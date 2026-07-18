@@ -183,6 +183,81 @@ else
     fi
 fi
 
+# ── Obsidian ─────────────────────────────────────────────────
+
+echo ""
+info "Obsidian — knowledge management client for wiki/"
+echo "   wiki/ is an Obsidian vault. Open it in the Obsidian desktop app"
+echo "   (not the repo root) to browse, edit, and follow wikilinks."
+echo ""
+
+# Detect Obsidian install: check common app names across platforms
+obsidian_found=""
+case "$(uname -s)" in
+    Darwin)
+        [[ -d "/Applications/Obsidian.app" ]] && obsidian_found="macOS"
+        ;;
+    Linux)
+        command -v obsidian &>/dev/null && obsidian_found="Linux"
+        [[ -d "/var/lib/flatpak/exports/bin/md.obsidian.Obsidian" ]] && obsidian_found="Linux"
+        ;;
+    MINGW*|MSYS*|CYGWIN*)
+        [[ -e "/c/Users/$USER/AppData/Local/Obsidian/Obsidian.exe" ]] && obsidian_found="Windows"
+        ;;
+esac
+
+if [[ -n "$obsidian_found" ]]; then
+    ok "obsidian already installed ($obsidian_found)"
+else
+    case "$(uname -s)" in
+        Darwin)
+            if command -v brew &>/dev/null; then
+                if ask "Install Obsidian via Homebrew cask?" "y"; then
+                    brew install --cask obsidian
+                    ok "Obsidian installed"
+                else
+                    warn "Obsidian skipped. Install later: brew install --cask obsidian"
+                    echo "   Or download directly from https://obsidian.md"
+                fi
+            else
+                warn "Homebrew not found. Download Obsidian from https://obsidian.md"
+            fi
+            ;;
+        Linux)
+            if command -v flatpak &>/dev/null; then
+                if ask "Install Obsidian via Flatpak?" "y"; then
+                    flatpak install -y flathub md.obsidian.Obsidian
+                    ok "Obsidian installed"
+                else
+                    warn "Obsidian skipped. Install later: flatpak install flathub md.obsidian.Obsidian"
+                    echo "   Or download an AppImage from https://obsidian.md"
+                fi
+            else
+                warn "Flatpak not found. Download Obsidian AppImage from https://obsidian.md"
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            if command -v winget &>/dev/null; then
+                if ask "Install Obsidian via winget?" "y"; then
+                    winget install Obsidian.Obsidian
+                    ok "Obsidian installed"
+                else
+                    warn "Obsidian skipped. Install later: winget install Obsidian.Obsidian"
+                    echo "   Or download from https://obsidian.md"
+                fi
+            else
+                warn "winget not found. Download Obsidian from https://obsidian.md"
+            fi
+            ;;
+        *)
+            warn "Unknown platform ($(uname -s)). Download Obsidian from https://obsidian.md"
+            ;;
+    esac
+fi
+
+echo ""
+warn "First use: open the 'wiki/' folder (not the repo root) as an Obsidian vault."
+
 # ── Git setup ─────────────────────────────────────────────────
 
 echo ""
@@ -346,6 +421,7 @@ fi
 echo ""
 info "Next step:"
 echo "   • Run: opencode"
+echo "   • Open wiki/ as a vault in Obsidian (for the human knowledge side)"
 echo ""
 echo "   OpenCode will auto-discover AGENTS.md, skills, and spaces."
 echo "   Start there."

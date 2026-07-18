@@ -4,7 +4,7 @@ A personal workspace for building projects, storing documents, and running agent
 
 ## What's in here
 
-- `wiki/` — PARA knowledge management vault (human-written)
+- `wiki/` — PARA knowledge management vault (human-written). Open this folder as an Obsidian vault for the human side of knowledge management.
 - `memory/` — agent session summaries, staging, and reviews (agent-written)
 - `work/` — independently versioned project repos (each subdir is its own git repo)
 - `artifacts/` — research, architecture docs, design plans
@@ -21,9 +21,25 @@ cd openbench
 bash scripts/setup
 ```
 
-Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression), lets you trim unwanted MCP servers, runs a smoke test, and prints featured skills to try first.
+Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, runs a smoke test, and prints featured skills to try first.
 
-Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, and start OpenCode in the repo root.
+Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, open `wiki/` as an Obsidian vault, and start OpenCode in the repo root.
+
+### Obsidian (wiki client)
+
+The `wiki/` directory is an Obsidian vault. Open it in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks.
+
+```bash
+# macOS
+brew install --cask obsidian
+# Linux (Flatpak)
+flatpak install flathub md.obsidian.Obsidian
+# Windows
+winget install Obsidian.Obsidian
+# Or download from https://obsidian.md
+```
+
+Then: open Obsidian → "Open folder as vault" → select `wiki/`.
 
 ## Integrations
 
