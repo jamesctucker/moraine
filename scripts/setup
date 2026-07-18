@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# OpenBench — Setup
+#
+# One-shot workspace setup for new clones and forks.
+# - Verifies required tools (git, bun, python3)
+# - Auto-installs uv and opencode if missing
+# - Installs JS, Python, and MCP server dependencies
+# - Optionally installs headroom (context compression)
+# - Shows configured MCP servers and offers to trim unwanted ones
+# - Runs a smoke test and prints featured skills to try first
 set -euo pipefail
 
 BOLD="\033[1m"
@@ -109,7 +118,11 @@ fi
 if ! command -v node &>/dev/null; then
     warn "node not found. Some third-party tools may still expect Node.js."
     if ask "Install Node.js via Homebrew?"; then
-        brew install node
+        if ! command -v brew &>/dev/null; then
+            fail "Homebrew not installed. Install from https://brew.sh first, then re-run setup."
+        else
+            brew install node
+        fi
     fi
 else
     ok "node $(node --version)"
@@ -160,8 +173,11 @@ else
     echo ""
     if ask "Install headroom?" "y"; then
         uv pip install "headroom-ai[mcp]" --system -q
-        headroom mcp install 2>/dev/null || true
-        ok "headroom installed and registered with OpenCode"
+        if headroom mcp install 2>/dev/null; then
+            ok "headroom installed and registered with OpenCode"
+        else
+            warn "headroom installed but MCP registration failed. Run manually: headroom mcp install"
+        fi
     else
         warn "headroom skipped. Install later with: uv pip install \"headroom-ai[mcp]\" --system && headroom mcp install"
     fi
@@ -172,9 +188,17 @@ fi
 echo ""
 info "Git setup"
 
-if ask "Set this repo's default branch to main?"; then
-    git -C "$REPO_ROOT" config init.defaultBranch main 2>/dev/null || true
-    ok "default branch set to main"
+# Ensure current branch is named 'main' (forks sometimes start as 'master')
+CURRENT_BRANCH=$(git -C "$REPO_ROOT" symbolic-ref --short HEAD 2>/dev/null || echo "")
+if [[ "$CURRENT_BRANCH" != "main" ]]; then
+    if ask "Rename current branch '$CURRENT_BRANCH' to 'main'?"; then
+        git -C "$REPO_ROOT" branch -m main
+        ok "branch renamed to main"
+    else
+        warn "keeping branch '$CURRENT_BRANCH'"
+    fi
+else
+    ok "on main branch"
 fi
 
 # ── MCP server status + trim ─────────────────────────────────
@@ -219,11 +243,16 @@ else
 
         # Print numbered list
         SERVER_COUNT=$(node -e "
-            const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
-            console.log(Object.keys(cfg.mcp || {}).length);
-        ")
+            try {
+                const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+                console.log(Object.keys(cfg.mcp || {}).length);
+            } catch (e) {
+                console.log('0');
+            }
+        " 2>/dev/null)
+        SERVER_COUNT="${SERVER_COUNT:-0}"
 
-        if [[ "$SERVER_COUNT" -eq 0 ]] 2>/dev/null || [[ -z "$SERVER_COUNT" ]]; then
+        if [[ ! "$SERVER_COUNT" =~ ^[0-9]+$ ]] || [[ "$SERVER_COUNT" -eq 0 ]]; then
             warn "No servers to remove"
         else
             node -e "
@@ -237,25 +266,29 @@ else
             echo -ne "${BOLD}Numbers to remove:${RESET} "
             read -r selections
 
-            # Convert comma-separated numbers to server names, then remove via Node
+            # Pass selections via stdin to avoid shell-injection into Node JS string
             if [[ -n "$selections" ]]; then
-                node -e "
+                printf '%s' "$selections" | node -e "
                     const fs = require('fs');
-                    const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
-                    const names = Object.keys(cfg.mcp || {});
-                    const input = '$selections'.split(/[,\s]+/).filter(Boolean);
-                    const toRemove = input
-                        .map(n => parseInt(n.trim(), 10))
-                        .filter(n => n >= 1 && n <= names.length)
-                        .map(n => names[n - 1]);
+                    let input = '';
+                    process.stdin.on('data', chunk => input += chunk);
+                    process.stdin.on('end', () => {
+                        const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
+                        const names = Object.keys(cfg.mcp || {});
+                        const tokens = input.split(/[,\s]+/).filter(Boolean);
+                        const toRemove = tokens
+                            .map(n => parseInt(n.trim(), 10))
+                            .filter(n => n >= 1 && n <= names.length)
+                            .map(n => names[n - 1]);
 
-                    if (toRemove.length === 0) {
-                        console.log('  (no valid selections — keeping all)');
-                    } else {
-                        toRemove.forEach(name => delete cfg.mcp[name]);
-                        fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
-                        console.log('  removed: ' + toRemove.join(', '));
-                    }
+                        if (toRemove.length === 0) {
+                            console.log('  (no valid selections — keeping all)');
+                        } else {
+                            toRemove.forEach(name => delete cfg.mcp[name]);
+                            fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                            console.log('  removed: ' + toRemove.join(', '));
+                        }
+                    });
                 "
             else
                 warn "No selections — keeping all MCP servers"
@@ -268,7 +301,6 @@ fi
 
 echo ""
 info "Smoke test"
-echo ""
 
 SMOKE_FAILED=0
 

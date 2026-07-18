@@ -21,13 +21,19 @@ This is a **merge** operation, not a reset. The goal is to take upstream improve
 git remote get-url upstream
 ```
 
-If this fails (missing remote), add it:
+If this fails (missing remote), check the `origin` remote to infer the source:
+
+```bash
+ORIGIN_URL=$(git remote get-url origin)
+```
+
+If `origin` is a fork of `jamesctucker/openbench` (check by looking at the URL), add:
 
 ```bash
 git remote add upstream https://github.com/jamesctucker/openbench.git
 ```
 
-If the URL is different from `jamesctucker/openbench`, warn the user and ask if they want to update it.
+If `origin` is a fork of a different user (e.g., the user forked from a friend who forked from `jamesctucker`), **ask the user** which upstream they want to sync from before adding the remote. Don't assume.
 
 ### 2. Check working tree is clean
 
@@ -36,6 +42,16 @@ git status --porcelain
 ```
 
 If anything is uncommitted or staged, stop and tell the user: "Working tree is dirty. Commit or stash your changes before syncing." Do not proceed.
+
+**Also check the current branch:** Ops should happen on `main`. If the user is on a feature branch, warn them and offer to switch:
+
+```bash
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+```
+
+If `CURRENT_BRANCH` is not `main`, tell the user: "You're on $CURRENT_BRANCH. Syncing here will commit upstream changes to this branch. Switch to main first? [Y/n]"
+
+If they decline, proceed on the current branch — but remind them in the final report.
 
 ### 3. Create a backup branch
 
@@ -78,7 +94,7 @@ For each changed file, classify into one of three buckets based on the path:
 
 ### SAFE — structural files, auto-take upstream
 
-These files are pure upstream code. The user should not have personalized them. If local changes exist, they were probably accidental.
+These files are pure upstream code. The user should not have personalized them. If local changes exist, they were probably accidental — but always check (see "Auto-merge SAFE files" below for the safety check).
 
 - `scripts/**` (setup, MCP servers, workspace scripts, sandbox, spaces, obsidian-audit)
 - `.opencode/skills/**` (skill definitions)
@@ -87,17 +103,17 @@ These files are pure upstream code. The user should not have personalized them. 
 - `.opencode/package.json` (OpenCode dependencies)
 - `.opencode-version`
 - `tests/**`
-- `.husky/**` (git hooks — but be careful, user might have customized hook content)
+- `.husky/**` (git hooks) — treat as SAFE but **always** check for user-local changes; users sometimes customize `pre-push`
 - `.github/**`
 - `.editorconfig`, `.gitattributes`, `.gitignore`, `.nvmrc`
 - `.sembleignore`
-- `scheduled/**` (cron job YAML templates — but if user customized one, surface it)
+- `scheduled/**` — treat as SAFE but **always** check for user-local changes; users sometimes customize job YAMLs
 - `package.json`, `bun.lock`, `pyproject.toml`, `requirements.txt`
 - `LICENSE`
 
 ### PERSONALIZED — files with `[CUSTOMIZE]` markers or user-edited config
 
-These files have structured structure that upstream maintains, but contain `[CUSTOMIZE]` sections where the user adds their own content. The agent should **propose** a merge, not auto-take upstream.
+These files have structure that upstream maintains, but contain `[CUSTOMIZE]` sections where the user adds their own content. The agent should **propose** a merge, not auto-take upstream.
 
 - `AGENTS.md` — has `[CUSTOMIZE]` markers for issue tracker, remote access
 - `README.md` — has `[CUSTOMIZE]` markers in some sections
@@ -316,7 +332,7 @@ For very large syncs, suggest doing it file-by-file across multiple sessions.
 
 ## Notes
 
-- This skill reads files but does not run any destructive git operations without explicit user approval (except `git checkout upstream/main -- <safe-file>` for SAFE files, which is documented as auto-take behavior)
+- This skill runs destructive git operations only after explicit user approval (except `git checkout upstream/main -- <safe-file>` for SAFE files with no local changes, which is documented as auto-take behavior)
 - The backup branch is never deleted by this skill — the user can clean up old backups with `git branch -D backup-pre-sync-*` later
-- If the user has committed uncommitted local changes between syncs, those are preserved in the backup branch
-- Merges happen on the user's current branch, not a feature branch — this matches the "personal repo" mental model where the user works directly on `main`
+- If the user has local commits between syncs, those are preserved in the backup branch
+- Merges normally happen on `main`, matching the "personal repo" mental model where the user works directly on `main`. If the user insists on syncing from a feature branch, the commit lands there — warn in the report.
