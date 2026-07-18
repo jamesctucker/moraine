@@ -95,3 +95,11 @@ git cherry-pick <upstream-commit-sha>      # take only the specific fix you want
 ```
 
 When in doubt, `git merge --abort` and inspect with `git diff upstream/main -- path/to/file` before deciding.
+
+### Agent-assisted sync
+
+Instead of merging manually, ask OpenCode to sync for you:
+
+> Sync with upstream
+
+The `sync-upstream` skill handles the whole flow: classifies changes (safe vs. personalized vs. user-owned), auto-merges structural files, smart-merges your `[CUSTOMIZE]` sections in AGENTS.md and `opencode.json`, runs a smoke test, and commits with a backup branch you can roll back to. It's the magical version of the manual flow above.
