@@ -45,6 +45,67 @@ if ! command -v bun &>/dev/null; then
 fi
 ok "bun $(bun --version)"
 
+if ! command -v python3 &>/dev/null; then
+    fail "python3 is required but not found. Install Python 3.11+ from https://python.org"
+    exit 1
+fi
+ok "python3 $(python3 --version)"
+
+# ── uv (auto-install if missing) ─────────────────────────────
+
+if command -v uv &>/dev/null; then
+    ok "uv $(uv --version)"
+else
+    info "uv not found — installing (Python package manager, 10-100x faster than pip)..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+    if command -v uv &>/dev/null; then
+        ok "uv installed"
+    else
+        fail "uv installation failed. Install manually: https://docs.astral.sh/uv/"
+        exit 1
+    fi
+fi
+
+# ── OpenCode (auto-install if missing or version mismatch) ──
+
+OPENCODE_VERSION=""
+if [[ -f ".opencode-version" ]]; then
+    OPENCODE_VERSION=$(tr -d '[:space:]' < .opencode-version)
+fi
+
+if [[ -z "$OPENCODE_VERSION" ]]; then
+    warn ".opencode-version not found — will install latest OpenCode"
+    OPENCODE_VERSION="latest"
+fi
+
+install_opencode() {
+    local version="$1"
+    info "Installing OpenCode (${version})..."
+    if bun install -g "opencode@${version}" 2>/dev/null; then
+        ok "OpenCode installed"
+    else
+        fail "OpenCode installation failed. Install manually: https://opencode.ai/docs/install"
+        exit 1
+    fi
+}
+
+if ! command -v opencode &>/dev/null; then
+    install_opencode "$OPENCODE_VERSION"
+else
+    INSTALLED_VERSION=$(opencode --version 2>/dev/null || echo "unknown")
+    if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != *"$OPENCODE_VERSION"* ]]; then
+        warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
+        if ask "Install matching version?"; then
+            install_opencode "$OPENCODE_VERSION"
+        else
+            warn "Version mismatch — workspace may not behave as expected"
+        fi
+    else
+        ok "opencode ${INSTALLED_VERSION}"
+    fi
+fi
+
 if ! command -v node &>/dev/null; then
     warn "node not found. Some third-party tools may still expect Node.js."
     if ask "Install Node.js via Homebrew?"; then
@@ -76,48 +137,17 @@ if [[ -f scripts/mcp-servers/package.json ]]; then
     ok "MCP server dependencies installed"
 fi
 
-if [[ -f scripts/workspace/requirements.txt ]]; then
-    if command -v pip3 &>/dev/null; then
-        info "Installing Python workspace dependencies..."
-        pip3 install -q -r scripts/workspace/requirements.txt
-        ok "Python dependencies installed"
-    else
-        warn "pip3 not found. Workspace scripts may not work."
-    fi
+# ── Python dependencies ───────────────────────────────────────
+
+if [[ -f requirements.txt ]]; then
+    info "Installing Python dependencies..."
+    uv pip install -r requirements.txt --system -q
+    ok "Python dependencies installed"
 fi
 
-# ── Optional tools ───────────────────────────────────────────
+# ── Optional: Headroom ───────────────────────────────────────
 
 echo ""
-info "Optional integrations"
-echo ""
-
-# ── remindctl ────────────────────────────────────────────────
-
-if command -v remindctl &>/dev/null; then
-    ok "remindctl already installed ($(remindctl --version 2>/dev/null || echo "unknown version"))"
-else
-    echo -e "${BOLD}remindctl${RESET} — CLI for Apple Reminders (macOS only)"
-    echo " lets agents read and create reminders via remindctl."
-    echo " Requires macOS 14+ (Sonoma) and Reminders permission grant."
-    echo ""
-    if ask "Install remindctl via Homebrew?"; then
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install steipete/tap/remindctl
-        ok "remindctl installed"
-        echo ""
-        warn "First-time setup:"
-        echo "   1. Run: remindctl status"
-        echo "   2. If access is denied, go to System Settings > Privacy & Security > Reminders"
-        echo "   3. Enable Reminders access for your terminal app"
-        echo "   4. Run: remindctl authorize"
-    else
-        warn "remindctl skipped. You can install later with: brew install steipete/tap/remindctl"
-    fi
-fi
-
-echo ""
-# ── headroom ──────────────────────────────────────────────────
-
 if command -v headroom &>/dev/null; then
     ok "headroom already installed ($(headroom --version 2>/dev/null))"
 else
@@ -128,27 +158,16 @@ else
     echo ""
     echo " ⚠️  HIGH VALUE — compounds every session"
     echo ""
-    if ask "Install headroom via pip?" "y"; then
-        pip install "headroom-ai[mcp]"
-        headroom mcp install
+    if ask "Install headroom?" "y"; then
+        uv pip install "headroom-ai[mcp]" --system -q
+        headroom mcp install 2>/dev/null || true
         ok "headroom installed and registered with OpenCode"
     else
-        warn "headroom skipped. Install later with: pip install \"headroom-ai[mcp]\" && headroom mcp install"
+        warn "headroom skipped. Install later with: uv pip install \"headroom-ai[mcp]\" --system && headroom mcp install"
     fi
 fi
 
-echo ""
-# ── Reminders permission check ───────────────────────────────
-
-if command -v remindctl &>/dev/null; then
-    status=$(remindctl status --json 2>/dev/null || echo '{"authorized":false}')
-    if echo "$status" | grep -q '"authorized"[[:space:]]*:[[:space:]]*false'; then
-        warn "Reminders permission not yet granted. Run: remindctl authorize"
-        echo "   Then enable Reminders access in System Settings > Privacy & Security > Reminders"
-    fi
-fi
-
-# ── Git hooks ─────────────────────────────────────────────────
+# ── Git setup ─────────────────────────────────────────────────
 
 echo ""
 info "Git setup"
@@ -158,14 +177,152 @@ if ask "Set this repo's default branch to main?"; then
     ok "default branch set to main"
 fi
 
+# ── MCP server status + trim ─────────────────────────────────
+
+echo ""
+info "MCP servers"
+echo ""
+
+MCP_FILE=".opencode/opencode.json"
+
+if [[ ! -f "$MCP_FILE" ]]; then
+    warn "No opencode.json found — skipping MCP configuration"
+else
+    # Print server list with descriptions
+    node -e "
+        const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+        const servers = cfg.mcp || {};
+        const descs = {
+            granola:  'meeting notes and voice memo integration (remote, no setup)',
+            sunsama:  'daily planning and task management (remote, requires Sunsama account: https://sunsama.com)',
+            readwise: 'highlights and Reader access (remote, requires Readwise account: https://readwise.io)',
+            semble:   'semantic code search across work/ repos (local, uvx)',
+            headroom: 'context compression, 60-95% fewer tokens (local)',
+        };
+        const names = Object.keys(servers);
+        if (names.length === 0) {
+            console.log('  (none configured)');
+        } else {
+            names.forEach((name, i) => {
+                const conf = servers[name];
+                const type = conf.type || 'unknown';
+                const desc = descs[name] || type;
+                console.log('  \x1b[32m✓\x1b[0m \x1b[1m' + name + '\x1b[0m — ' + desc);
+            });
+        }
+    "
+
+    echo ""
+    if ask "Remove any MCP servers you don't want?"; then
+        echo ""
+        info "Select servers to remove (comma-separated numbers):"
+
+        # Print numbered list
+        SERVER_COUNT=$(node -e "
+            const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+            console.log(Object.keys(cfg.mcp || {}).length);
+        ")
+
+        if [[ "$SERVER_COUNT" -eq 0 ]] 2>/dev/null || [[ -z "$SERVER_COUNT" ]]; then
+            warn "No servers to remove"
+        else
+            node -e "
+                const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+                Object.keys(cfg.mcp || {}).forEach((name, i) => {
+                    console.log('  ' + (i + 1) + ') ' + name);
+                });
+            "
+
+            echo ""
+            echo -ne "${BOLD}Numbers to remove:${RESET} "
+            read -r selections
+
+            # Convert comma-separated numbers to server names, then remove via Node
+            if [[ -n "$selections" ]]; then
+                node -e "
+                    const fs = require('fs');
+                    const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
+                    const names = Object.keys(cfg.mcp || {});
+                    const input = '$selections'.split(/[,\s]+/).filter(Boolean);
+                    const toRemove = input
+                        .map(n => parseInt(n.trim(), 10))
+                        .filter(n => n >= 1 && n <= names.length)
+                        .map(n => names[n - 1]);
+
+                    if (toRemove.length === 0) {
+                        console.log('  (no valid selections — keeping all)');
+                    } else {
+                        toRemove.forEach(name => delete cfg.mcp[name]);
+                        fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                        console.log('  removed: ' + toRemove.join(', '));
+                    }
+                "
+            else
+                warn "No selections — keeping all MCP servers"
+            fi
+        fi
+    fi
+fi
+
+# ── Smoke test ───────────────────────────────────────────────
+
+echo ""
+info "Smoke test"
+echo ""
+
+SMOKE_FAILED=0
+
+if command -v opencode &>/dev/null; then
+    if opencode --version &>/dev/null 2>&1; then
+        ok "opencode (CLI responsive)"
+    else
+        warn "opencode --version failed"
+        SMOKE_FAILED=1
+    fi
+else
+    warn "opencode not on PATH"
+    SMOKE_FAILED=1
+fi
+
+if command -v headroom &>/dev/null; then
+    if headroom mcp status &>/dev/null 2>&1; then
+        ok "headroom (MCP responsive)"
+    else
+        warn "headroom mcp status failed — may need: headroom mcp install"
+        SMOKE_FAILED=1
+    fi
+fi
+
+if [[ -f scripts/workspace/session-index.py ]]; then
+    if python3 scripts/workspace/session-index.py --help &>/dev/null 2>&1; then
+        ok "session-index (Python deps OK)"
+    else
+        warn "session-index.py failed — check Python dependencies"
+        SMOKE_FAILED=1
+    fi
+fi
+
 # ── Done ──────────────────────────────────────────────────────
 
 echo ""
-ok "Setup complete!"
+if [[ $SMOKE_FAILED -eq 0 ]]; then
+    ok "Setup complete!"
+else
+    warn "Setup complete with warnings — see above"
+fi
+
 echo ""
-info "Next steps:"
-echo "   • Run: headroom mcp status           (verify MCP tools registered)"
-echo "   • Run: remindctl today               (try out Reminders integration)"
-echo "   • OpenCode auto-discovers .opencode/plugins/*.ts — no manual config needed"
-echo "   • Edit .opencode/opencode.json        (MCP servers, agents, npm plugins)"
+info "Next step:"
+echo "   • Run: opencode"
+echo ""
+echo "   OpenCode will auto-discover AGENTS.md, skills, and spaces."
+echo "   Start there."
+echo ""
+info "Featured skills (try these first):"
+echo "   • executive-function — ADHD-friendly focus helper, pairs with Sunsama"
+echo "   • session-handoff — wrap up a session, persist memory for next time"
+echo "   • scaffold-project — start a new project with PARA structure"
+echo "   • create-skill — build a new skill when you find a pattern worth automating"
+echo ""
+echo "   Skills auto-activate when you ask for what they do. Just describe your intent."
 echo ""

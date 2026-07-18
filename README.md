@@ -21,7 +21,7 @@ cd openbench
 bash scripts/setup
 ```
 
-Requires: `git`, `bun`. The setup script installs workspace deps, OpenCode deps, MCP server deps, and Python workspace deps. It also offers to install `remindctl` (macOS Reminders CLI) and `headroom` (context compression) optionally.
+Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression), lets you trim unwanted MCP servers, runs a smoke test, and prints featured skills to try first.
 
 Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, and start OpenCode in the repo root.
 

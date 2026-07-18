@@ -15,7 +15,7 @@ FAILED=0
 if [ -n "$EVAL_DEPS" ]; then
   if ! python -m pytest --version >/dev/null 2>&1; then
     echo "[husky] Installing Python dev dependencies..."
-    pip install -r requirements.txt -q
+    uv pip install -r requirements.txt --system -q
   fi
 fi
 

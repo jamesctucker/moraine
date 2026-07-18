@@ -1,5 +1,0 @@
-/**
- * Harness auto-routing plugin entry point.
- * Source lives in ./harness/ — this file is the OpenCode auto-discovery hook.
- */
-export { default } from "./harness/plugin.js";
