@@ -36,3 +36,62 @@ MCP servers configured in `.opencode/opencode.json`:
 - **Headroom** — context compression (local server, save 60-95% on tool output tokens)
 
 See `AGENTS.md` for the full directory map and agent conventions.
+
+## Keeping your fork up to date
+
+Add upstream as a remote:
+
+```bash
+git remote add upstream https://github.com/jamesctucker/openbench.git
+```
+
+Fetch and merge:
+
+```bash
+git fetch upstream
+git merge upstream/main
+```
+
+GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/openbench` → Fetch upstream).
+
+### What to expect when syncing
+
+**Safe to merge (rarely conflict):**
+
+- `scripts/` — setup, MCP servers, workspace tooling
+- `.opencode/skills/` — skill definitions
+- `.opencode/cron/` — cron runner
+- `tests/` — test suite
+- `.husky/` — git hooks
+- `scheduled/` — cron job YAMLs
+- `.opencode-version` — OpenCode version pin
+- `package.json`, `requirements.txt` — dependency manifests
+
+**Expect conflicts (you've likely personalized these):**
+
+- `AGENTS.md` — issue tracker config, remote access, conventions
+- `README.md` — setup notes, integrations
+- `.opencode/opencode.json` — MCP server selection
+- `wiki/` — your PARA vault content
+- `memory/` — session summaries, staging notes
+- `spaces/` — your custom spaces
+- `artifacts/` — your artifacts
+
+### Conflict tips
+
+If a file has nothing but local changes you don't want to keep:
+
+```bash
+git checkout upstream/main -- path/to/file
+```
+
+This discards your version and takes upstream's. Useful when upstream ships a fix to `scripts/setup` and you haven't personalized it.
+
+If a file is heavily personalized and you want to keep your version:
+
+```bash
+git merge --abort                          # bail on the merge
+git cherry-pick <upstream-commit-sha>      # take only the specific fix you want
+```
+
+When in doubt, `git merge --abort` and inspect with `git diff upstream/main -- path/to/file` before deciding.
