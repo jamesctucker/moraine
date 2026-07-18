@@ -4,9 +4,27 @@ A personal workspace for working with AI agents that actually remember.
 
 ## The problem
 
-AI coding agents are powerful, but they have no memory between sessions. Every conversation starts from scratch. Your project context, your decisions, your research — it all resets when you close the terminal. You spend the first ten minutes of every session re-explaining what you were doing.
+AI coding agents are powerful, but they have no memory between sessions. Every conversation starts from scratch. Your project context, your decisions, your research — it all resets when you close the terminal. Existing tools either:
 
-OpenBench fixes this. It's a single git repository that holds your knowledge (a PARA-organized wiki), your agent's memory (session summaries, staging notes, pattern reviews), your skills (reusable workflows that auto-activate when needed), and your project repos (each independently versioned under `work/`). Clone it, and your agent has context. Fork it, and the workspace is yours.
+- **Claude Code** — Great at code, but no cross-session memory, no knowledge management, no integrations.
+- **OpenHuman** — Auto-fetches everything from 118+ services. Powerful, but agent-centric: it decides what matters, not you.
+- **Hermes Agent** — A monolithic runtime with browser automation and media generation. Powerful scope, heavy install.
+- **OpenWork** — A polished desktop app with multi-platform reach. Company-backed, YC-funded. Different scale entirely.
+
+OpenBench takes a different approach: **workspace-centric, not agent-centric.** You organize your knowledge (PARA wiki). You decide what's a project, what's an area, what's archive. The agent reads from and writes to that structure on your terms. Memory is just markdown in git — readable by you, diffable, portable. No database, no lock-in.
+
+## How it's different
+
+| Dimension | OpenBench | OpenHuman | Hermes Agent | OpenWork | Claude Code |
+|-----------|-----------|-----------|--------------|----------|-------------|
+| **Philosophy** | Workspace-centric. You curate; the agent assists. | Agent-centric. Agent auto-fetches and populates. | Agent-centric. Monolithic runtime. | Desktop app. Company-backed. | Coding tool. Stateless sessions. |
+| **Knowledge management** | Full PARA + Obsidian vault with wikilinks, frontmatter, audit | Obsidian vault as auto-populated view | None | None | None |
+| **Memory** | git-native markdown: sessions, staging, reviews, per-repo memory | Memory Tree with auto-fetch | SQLite + JSON session history | Session history only | No cross-session memory |
+| **Skills** | 28 curated, deep, workspace-aware | Skill system with auto-fetch context | Skill marketplace | ~15 infrastructure-focused | No skill system |
+| **Integrations** | 6 intentional MCP servers (Granola, Sunsama, Readwise, Linear, Semble, Headroom) — opt-in, not auto-fetch | 118+ via Composio (auto-fetch) | 70+ built-in tools | Extension manifest system | No integrations |
+| **Install** | `git clone` + `bash scripts/setup` | `npx openhuman` | `pip install hermes` + API keys | Desktop download | `npm install -g @anthropic-ai/claude-code` |
+| **Audience** | Developer/thinker/founder who wants deep, structured work | User who wants agent to "just know" everything | Power user who wants broad tool coverage | Team/enterprise seeking multi-platform | Developer who wants AI in their editor |
+| **Open source** | MIT | GNU GPL-3.0 | Apache 2.0 | MIT | Proprietary |
 
 ## What a session looks like
 
@@ -47,7 +65,7 @@ cd openbench
 bash scripts/setup
 ```
 
-Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, runs a smoke test, and prints featured skills to try first.
+Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, offers to enable `linear` (issue tracking), runs a smoke test, and prints featured skills to try first.
 
 Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, open `wiki/` as an Obsidian vault, and start OpenCode in the repo root.
 
@@ -67,6 +85,12 @@ winget install Obsidian.Obsidian
 
 Then: open Obsidian → "Open folder as vault" → select `wiki/`.
 
+### Linear (optional, issue tracking)
+
+Linear is configured as a remote MCP server (no local install). It's **disabled by default** — enable it in setup or by editing `.opencode/opencode.json`. On first use, OpenCode prompts for OAuth; sign in once and the agent can read issues, create projects, update status, and link PRs.
+
+The `linearize` skill converts specs, artifacts, or repos into Linear structure: it reads the source, proposes a breakdown table (issue → label → project → priority), waits for your approval, then creates everything with cross-links back to the source. Try it with: *"linearize artifacts/15-payment-gateway-integration.md"*.
+
 ## Integrations
 
 MCP servers configured in `.opencode/opencode.json`:
@@ -74,6 +98,7 @@ MCP servers configured in `.opencode/opencode.json`:
 - **Granola** — meeting notes and voice memo integration (remote MCP, no setup)
 - **Sunsama** — daily planning and task management (remote MCP, no setup). The `executive-function` skill pairs well with Sunsama.
 - **Readwise** — highlights and Reader access (remote MCP, no setup)
+- **Linear** — issue tracking (remote MCP, disabled by default — enable in setup or opencode.json). The `linearize` skill converts specs/repos to Linear issues.
 - **Semble** — semantic code search across `work/` repos (local server, `uvx`)
 - **Headroom** — context compression (local server, save 60-95% on tool output tokens)
 

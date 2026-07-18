@@ -372,6 +372,53 @@ else
     fi
 fi
 
+# ── Linear (opt-in) ───────────────────────────────────────────
+
+echo ""
+info "Linear — issue tracking (opt-in)"
+echo "   Linear is a remote MCP server; no local install needed."
+echo "   Requires a Linear account (https://linear.app). On first use,"
+echo "   OpenCode will prompt for OAuth — sign in once and you're set."
+echo "   The 'linearize' skill converts specs/repos into Linear issues."
+echo ""
+
+LINEAR_CFG=$(node -e "
+    try {
+        const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+        console.log(cfg.mcp && cfg.mcp.linear && cfg.mcp.linear.enabled ? 'enabled' : 'disabled');
+    } catch (e) {
+        console.log('missing');
+    }
+" 2>/dev/null)
+LINEAR_CFG="${LINEAR_CFG:-missing}"
+
+if [[ "$LINEAR_CFG" == "enabled" ]]; then
+    ok "linear MCP already enabled"
+elif [[ "$LINEAR_CFG" == "disabled" ]]; then
+    if ask "Enable Linear MCP?"; then
+        node -e "
+            const fs = require('fs');
+            const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
+            if (cfg.mcp && cfg.mcp.linear) {
+                cfg.mcp.linear.enabled = true;
+                fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                console.log('enabled');
+            } else {
+                console.log('not-configured');
+            }
+        " | read -r OUTCOME
+        if [[ "$OUTCOME" == "enabled" ]]; then
+            ok "linear MCP enabled — OAuth will prompt on first use"
+        else
+            warn "linear entry missing in opencode.json — leaving as-is"
+        fi
+    else
+        warn "linear MCP left disabled. Enable later by editing .opencode/opencode.json"
+    fi
+else
+    warn "linear entry missing in .opencode/opencode.json — skipping"
+fi
+
 # ── Smoke test ───────────────────────────────────────────────
 
 echo ""
@@ -430,6 +477,7 @@ info "Featured skills (try these first):"
 echo "   • executive-function — ADHD-friendly focus helper, pairs with Sunsama"
 echo "   • session-handoff — wrap up a session, persist memory for next time"
 echo "   • scaffold-project — start a new project with PARA structure"
+echo "   • linearize — turn a spec/repo into Linear issues (requires Linear MCP)"
 echo "   • create-skill — build a new skill when you find a pattern worth automating"
 echo ""
 echo "   Skills auto-activate when you ask for what they do. Just describe your intent."
