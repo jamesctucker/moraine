@@ -30,8 +30,8 @@ Cross-link by URL. The wiki/artifact owns intent; Linear owns the list. Issue de
 
 Determine what you're linearizing:
 
-- **From an artifact** (e.g. `artifacts/15-auction-reseller-extension.md`): read it fully.
-- **From a repo** (e.g. `work/the-grove/`): read `AGENTS.md`, `README.md`, `TODO.md`/`ROADMAP.md`; scan for `TODO`/`FIXME`.
+- **From an artifact** (e.g. `artifacts/15-payment-gateway-integration.md`): read it fully.
+- **From a repo** (e.g. `work/my-project/`): read `AGENTS.md`, `README.md`, `TODO.md`/`ROADMAP.md`; scan for `TODO`/`FIXME`.
 
 Map the natural breakdown:
 
@@ -55,7 +55,7 @@ Output a table and ask for confirmation. Do NOT create anything yet.
 ```markdown
 | # | Issue title (from source section) | Label | Project / Initiative | Priority | Source ref |
 |---|-----------------------------------|-------|----------------------|----------|------------|
-| 1 | M4: SSE Evaluation Orchestrator   | Feature | Auction Reseller | High | artifacts/15 § M4 |
+| 1 | M4: SSE Evaluation Orchestrator   | Feature | Example Project | High | artifacts/15 § M4 |
 ```
 
 Also name the Linear project (new or existing) and which initiative it parents to.

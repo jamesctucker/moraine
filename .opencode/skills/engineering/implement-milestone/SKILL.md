@@ -7,7 +7,7 @@ description: Spec-driven implementation of a single milestone/feature with a man
 
 Implement one milestone from a spec (artifact section or Linear issue), ship it on a branch with tests, run the **test gate**, do a **self-review pass**, then hand off for **human PR review** and apply every piece of feedback before the issue is closed.
 
-This skill encodes the loop that matured across the Auction Reseller M2/M3 sessions: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
+This skill encodes the loop that should mature across milestone implementations: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
 
 ## Layer model
 
@@ -76,6 +76,6 @@ These categories surfaced in human PR reviews on HTTP-scraper / data-pipeline mi
 Follow `AGENTS.md` → Issue Tracking → Autonomy gates (same model as `linearize`). Additionally: apply **all** PR review feedback; never close an issue with outstanding review findings.
 
 ## Reference
-- Pattern source: `memory/sessions/2026-07-09-m2-spec-lookup-pipeline.md` (ENG-64), `memory/sessions/2026-07-10-m3-comp-fetcher-pipeline.md` (ENG-65) — auction-reseller project; the review checklist above derives from findings in these sessions
-- Test gate + review loop observed in: `memory/reviews/2026-06-23.md` ("review-then-fix double-check" pattern)
+- Pattern source: example milestone implementation sessions — the review checklist above derives from findings in real-world sessions
+- Test gate + review loop observed in: periodic reviews ("review-then-fix double-check" pattern)
 - Linear workflow: `AGENTS.md` → Issue Tracking

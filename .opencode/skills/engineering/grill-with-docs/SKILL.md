@@ -44,7 +44,7 @@ Discussing a specific software project inside `work/<project>/`. Documentation l
 
 ```
 work/
-└── mrets/
+└── my-project/
     ├── CONTEXT.md
     ├── docs/
     │   └── adr/

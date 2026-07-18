@@ -4,7 +4,7 @@ ADRs live in `docs/adr/` **inside a project directory** and use sequential numbe
 
 ```
 work/
-└── mrets/
+└── my-project/
     └── docs/
         └── adr/
             ├── 0001-event-sourced-orders.md

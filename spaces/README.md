@@ -53,5 +53,6 @@ Sync runs automatically:
 
 ## Active Spaces
 
-- [flip-advisor](flip-advisor/INSTRUCTIONS.md) — Government auctions and liquidation reselling advisor
-- [gg-board-strategist](gg-board-strategist/INSTRUCTIONS.md) — Nonprofit board strategist and sponsorship copy editor for Gifting Grove
+<!-- [CUSTOMIZE] List your spaces here. Each row: name, link to INSTRUCTIONS.md, short description. -->
+
+_None yet._ Copy `_template/` into a new directory and fill in `INSTRUCTIONS.md` to create one.

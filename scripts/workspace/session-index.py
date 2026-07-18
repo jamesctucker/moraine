@@ -207,7 +207,7 @@ def main() -> None:
     search_parser.add_argument("--dates", help="Date range: YYYY-MM-DD..YYYY-MM-DD")
     search_parser.add_argument("--section", choices=sorted(SECTION_ALIASES.values()),
                                help="Filter by section (e.g. decisions, accomplishments)")
-    search_parser.add_argument("--project", help="Filter by project link (e.g. the-grove)")
+    search_parser.add_argument("--project", help="Filter by project link (e.g. my-api)")
 
     parsed = parser.parse_args()
 

@@ -115,7 +115,7 @@ Given this session file content:
 ```
 ## Accomplished
 - Searched sessions for "authentication" — 3 matches
-- Read auth controller at work/the-grove/app/controllers/auth_controller.rb
+- Read auth controller at work/my-project/app/controllers/auth_controller.rb
 - Decided to add session timeout
 - Edited auth_controller.rb (+12 lines)
 - Ran rails test and all passed

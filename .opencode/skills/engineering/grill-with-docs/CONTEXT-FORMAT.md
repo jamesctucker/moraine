@@ -38,15 +38,15 @@ _Avoid_: Client, buyer, account
 
 ```
 work/
-└── mrets/
-    └── CONTEXT.md          ← domain glossary for the M-RETS project
+└── my-project/
+    └── CONTEXT.md          ← domain glossary for the project
 ```
 
 If a project has multiple bounded contexts, use a `CONTEXT-MAP.md` at the project root:
 
 ```
 work/
-└── mrets/
+└── my-project/
     ├── CONTEXT-MAP.md
     ├── src/
     │   ├── ordering/

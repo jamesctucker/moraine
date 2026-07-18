@@ -39,14 +39,14 @@ python scripts/workspace/session-index.py search "<query>"
 - `--limit N` — max results (default: 10)
 - `--dates YYYY-MM-DD..YYYY-MM-DD` — date range filter
 - `--section decisions` — filter to a specific section (`accomplishments`, `decisions`, `in_progress`, `artifacts`, `notes`)
-- `--project NAME` — filter by project name (e.g., `the-grove`, `mrets`)
+- `--project NAME` — filter by project name (e.g., `my-api`, `my-frontend`)
 
 **Examples:**
 ```bash
 python scripts/workspace/session-index.py search "authentication"
 python scripts/workspace/session-index.py search "Grove deploy" --limit 5
 python scripts/workspace/session-index.py search "OpenHuman comparison" --section decisions
-python scripts/workspace/session-index.py search "gift sheet" --dates 2026-05-01..2026-05-31 --project the-grove
+python scripts/workspace/session-index.py search "gift sheet" --dates 2026-05-01..2026-05-31 --project my-api
 ```
 
 ### 3. Read matching sessions
