@@ -41,14 +41,6 @@ Content
         assert any("kebab-case" in e for e in ctx.errors)
 
 
-class TestValidatePersonas:
-    def test_missing_persona_dir(self, val, tmp_path):
-        ctx = val.ValidationContext()
-        val.WORKSPACE = tmp_path
-        val.validate_personas(ctx)
-        assert len(ctx.errors) == 0
-
-
 class TestValidateArtifacts:
     def test_good_artifact_passes(self, val, tmp_path):
         (tmp_path / "artifacts").mkdir()

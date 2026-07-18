@@ -1,6 +1,32 @@
 # OpenBench
 
-A personal workspace for building projects, storing documents, and running agentic AI workflows with OpenCode.
+A personal workspace for working with AI agents that actually remember.
+
+## The problem
+
+AI coding agents are powerful, but they have no memory between sessions. Every conversation starts from scratch. Your project context, your decisions, your research — it all resets when you close the terminal. You spend the first ten minutes of every session re-explaining what you were doing.
+
+OpenBench fixes this. It's a single git repository that holds your knowledge (a PARA-organized wiki), your agent's memory (session summaries, staging notes, pattern reviews), your skills (reusable workflows that auto-activate when needed), and your project repos (each independently versioned under `work/`). Clone it, and your agent has context. Fork it, and the workspace is yours.
+
+## What a session looks like
+
+```
+# Morning: agent reads context, you set direction
+Agent reads memory/index.md → sees active projects, recent decisions, open threads
+You: "Let's continue the auth refactor in work/my-app"
+Agent reads work/my-app/AGENTS.md → learns stack, conventions, deploy notes
+Agent reads memory/staging/2026-07-17.md → picks up restart anchors from yesterday
+
+# Work: agent codes, researches, documents
+Agent implements changes, runs tests, commits
+Agent writes thinking to memory/staging/ with restart anchors
+You jump in with feedback; agent adapts
+
+# Wrap-up: agent summarizes
+session-handoff skill writes summary to memory/sessions/
+Updates memory/index.md with new decisions and next actions
+You're done. Context survives until tomorrow.
+```
 
 ## What's in here
 
@@ -92,6 +118,16 @@ GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/openbe
 - `memory/` — session summaries, staging notes
 - `spaces/` — your custom spaces
 - `artifacts/` — your artifacts
+
+### `[CUSTOMIZE]` markers
+
+Files like `AGENTS.md` contain HTML-comment markers:
+
+```html
+<!-- [CUSTOMIZE] Configure your issue tracker below. ... -->
+```
+
+Sections wrapped in these markers are intentionally generic placeholders you replace with your own setup. The `sync-upstream` skill treats them as merge-protected — when upstream changes the surrounding scaffolding, your customized sections are preserved. If you sync by hand, just be aware these marked regions are yours; everything else is upstream-owned.
 
 ### Conflict tips
 
