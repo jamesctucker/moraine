@@ -141,7 +141,7 @@ openbench/
     ├── cron.config.yaml    # Cron runner config
     ├── cron/               # TypeScript cron runner + modules
     ├── plugins/            # Loaded automatically when added (currently empty)
-    └── skills/             # Agent skill definitions (auto-discovered, 41 skills)
+    └── skills/             # Agent skill definitions (auto-discovered, 36 skills)
 ```
 
 ## Integrations

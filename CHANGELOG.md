@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **15 new skills** synced from the upstream workspace: `brainstorming`, `domain-modeling`, `executing-plans`, `find-skills`, `i-have-adhd`, `ios-simulator`, `orchestrate-build-chain`, `pdf`, `poetry-craft`, `swift-testing-pro`, `swiftui-pro`, `tdd`, `writing-plans`, plus the four `readwise/` skills (`build-persona`, `feed-catchup`, `reader-recap`, `triage`) with shared `REFERENCE.md`/`SETUP.md` docs.
+- **15 new skills** synced from the upstream workspace: `brainstorming`, `domain-modeling`, `executing-plans`, `find-skills`, `i-have-adhd`, `orchestrate-build-chain`, `pdf`, `tdd`, `writing-plans`, plus the four `readwise/` skills (`build-persona`, `feed-catchup`, `reader-recap`, `triage`) with shared `REFERENCE.md`/`SETUP.md` docs. (Upstream's `poetry-craft`, `wtf`, `ios-simulator`, `swiftui-pro`, and `swift-testing-pro` were intentionally left out as too workflow-specific.)
 - **Workspace tooling**: `memory-audit.py`, `validate-repos.py`, `verify-deploy-vars.py`, `frontmatter.py` in `scripts/workspace/`; `weekly-recap.yaml` scheduled job (memory audit + week-in-review → daily note, optional email).
 
 ### Changed

@@ -148,7 +148,7 @@ Override the defaults when:
 4. Real ambiguity in the request. One short clarifying question beats guessing and rewriting.
 5. A rule fights the task. When a rule would delete the answer itself, the task wins; the shape stays. Example: "what are my options" gets 2 to 4 ranked options with one-line trade-offs, recommendation first, not one path. The options are the answer.
 6. A rule fights the harness. Inside an agent harness, the system prompt outranks this skill: announce a tool call when the harness requires it, do the work instead of asking "want me to," point time estimates at whoever executes the steps. Same principle as 5: the constraint wins, the shape stays.
-7. A skill with its own voice wins on its own surface. This skill shapes what you say to the reader in chat. Text you author for another audience — inline PR comments under code-review's VOICE.md, newsletter drafts, workshop critiques under poetry-craft — takes its tone from that skill. Tone follows the artifact; structure (lead-with-action, chunking, paste-ready) still applies wherever the reader must act on the result.
+7. A skill with its own voice wins on its own surface. This skill shapes what you say to the reader in chat. Text you author for another audience — newsletter drafts, docs, PR comments — takes its tone from the skill that governs that surface. Tone follows the artifact; structure (lead-with-action, chunking, paste-ready) still applies wherever the reader must act on the result.
 
 ## Pre-send check
 
