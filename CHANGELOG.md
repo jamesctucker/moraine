@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Sunsama MCP integration** — dropped from `opencode.json`, setup trim menu, and docs.
+
+### Changed
+
+- **README rewritten** — restructured around the session lifecycle and 30-second demo (dropped the competitor comparison); integrations section now explains what Readwise and Granola are and why they're useful.
+
 ### Added
 
 - **15 new skills** synced from the upstream workspace: `brainstorming`, `domain-modeling`, `executing-plans`, `find-skills`, `i-have-adhd`, `ios-simulator`, `orchestrate-build-chain`, `pdf`, `poetry-craft`, `swift-testing-pro`, `swiftui-pro`, `tdd`, `writing-plans`, plus the four `readwise/` skills (`build-persona`, `feed-catchup`, `reader-recap`, `triage`) with shared `REFERENCE.md`/`SETUP.md` docs.
