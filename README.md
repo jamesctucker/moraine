@@ -20,7 +20,7 @@ OpenBench takes a different approach: **workspace-centric, not agent-centric.** 
 | **Philosophy** | Workspace-centric. You curate; the agent assists. | Agent-centric. Agent auto-fetches and populates. | Agent-centric. Monolithic runtime. | Desktop app. Company-backed. | Coding tool. Stateless sessions. |
 | **Knowledge management** | Full PARA + Obsidian vault with wikilinks, frontmatter, audit | Obsidian vault as auto-populated view | None | None | None |
 | **Memory** | git-native markdown: sessions, staging, reviews, per-repo memory | Memory Tree with auto-fetch | SQLite + JSON session history | Session history only | No cross-session memory |
-| **Skills** | 28 curated, deep, workspace-aware | Skill system with auto-fetch context | Skill marketplace | ~15 infrastructure-focused | No skill system |
+| **Skills** | 40+ curated, deep, workspace-aware | Skill system with auto-fetch context | Skill marketplace | ~15 infrastructure-focused | No skill system |
 | **Integrations** | 6 intentional MCP servers (Granola, Sunsama, Readwise, Linear, Semble, Headroom) — opt-in, not auto-fetch | 118+ via Composio (auto-fetch) | 70+ built-in tools | Extension manifest system | No integrations |
 | **Install** | `git clone` + `bash scripts/setup` | `npx openhuman` | `pip install hermes` + API keys | Desktop download | `npm install -g @anthropic-ai/claude-code` |
 | **Audience** | Developer/thinker/founder who wants deep, structured work | User who wants agent to "just know" everything | Power user who wants broad tool coverage | Team/enterprise seeking multi-platform | Developer who wants AI in their editor |
@@ -96,7 +96,7 @@ The `linearize` skill converts specs, artifacts, or repos into Linear structure:
 MCP servers configured in `.opencode/opencode.json`:
 
 - **Granola** — meeting notes and voice memo integration (remote MCP, no setup)
-- **Sunsama** — daily planning and task management (remote MCP, no setup). The `executive-function` skill pairs well with Sunsama.
+- **Sunsama** — daily planning and task management (remote MCP, no setup). The `i-have-adhd` output-style skill pairs well with structured daily planning.
 - **Readwise** — highlights and Reader access (remote MCP, no setup)
 - **Linear** — issue tracking (remote MCP, disabled by default — enable in setup or opencode.json). The `linearize` skill converts specs/repos to Linear issues.
 - **Semble** — semantic code search across `work/` repos (local server, `uvx`)

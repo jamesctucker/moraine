@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **15 new skills** synced from the upstream workspace: `brainstorming`, `domain-modeling`, `executing-plans`, `find-skills`, `i-have-adhd`, `ios-simulator`, `orchestrate-build-chain`, `pdf`, `poetry-craft`, `swift-testing-pro`, `swiftui-pro`, `tdd`, `writing-plans`, plus the four `readwise/` skills (`build-persona`, `feed-catchup`, `reader-recap`, `triage`) with shared `REFERENCE.md`/`SETUP.md` docs.
+- **Workspace tooling**: `memory-audit.py`, `validate-repos.py`, `verify-deploy-vars.py`, `frontmatter.py` in `scripts/workspace/`; `weekly-recap.yaml` scheduled job (memory audit + week-in-review → daily note, optional email).
+
+### Changed
+
+- **Skills refresh** — all carried-over skills synced to current upstream versions; personal examples genericized (`my-app`, `Homelab.md`).
+- **Removed stale skills**: `token-compress`, `session-trace`, `executive-function`, `grill-me` (dropped upstream; `i-have-adhd` is the successor to `executive-function`, `grilling` covers `grill-me`).
+- **Removed stale scheduled jobs**: `morning-briefing`, `weekly-review`, `space-session-sync` (decommissioned upstream) — replaced by `weekly-recap`.
+- **Tests** — suite synced with upstream (dropped `test_token_compress`/`test_session_frontmatter`, added `test_memory_audit` and cron runner tests).
+- **`validate.py`** — wikilink checks skip imported Readwise content and Daily Notes (journal links are intentional forward references), cutting ~1,100 noise warnings.
+- **Scripts** — `scripts/workspace/`, `sandbox/`, `spaces/`, `obsidian-audit` synced; `scripts/mcp-servers/` trimmed to `brave-search-mcp.sh` (stale goodreads package files removed).
+- **Cron runner + CI + dotfiles** — synced with upstream (`.opencode/cron/`, `.github/`, `.husky/`, `pyproject.toml`, `requirements.txt`, `.gitignore`, `.gitattributes`, `.editorconfig`, `.nvmrc`).
+
 ### Changed
 
 - **RTK → Headroom migration** — replaced RTK (Rust Token Killer) with Headroom for context compression:

@@ -21,14 +21,14 @@ Load this skill when the user:
 
 ## Domain awareness
 
-OpenBench is a workspace, not a single software project. Before grilling, determine which layer the conversation belongs to:
+The Garage is a workspace, not a single software project. Before grilling, determine which layer the conversation belongs to:
 
 ### Workspace level
 
 Discussing infrastructure, skills, agent workflows, or cross-project concerns. Documentation lives here:
 
 ```
-openbench/
+my-workspace/
 ├── artifacts/           ← architecture docs, design plans (numbered: 01-, 02-, etc.)
 │   ├── 01-self-improving-loop.md
 │   └── 02-ocr-pipeline.md
@@ -44,7 +44,7 @@ Discussing a specific software project inside `work/<project>/`. Documentation l
 
 ```
 work/
-└── my-project/
+└── my-app/
     ├── CONTEXT.md
     ├── docs/
     │   └── adr/

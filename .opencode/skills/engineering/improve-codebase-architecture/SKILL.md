@@ -5,7 +5,7 @@ description: Find deepening opportunities in a codebase, informed by the domain 
 
 # Improve Codebase Architecture
 
-> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture). Forked for OpenBench workspace.
+> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture). Forked for The Garage workspace.
 
 Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
 
@@ -32,14 +32,14 @@ This skill is _informed_ by the project's domain model. The domain language give
 
 ## Domain awareness
 
-OpenBench is a workspace, not a single software project. Before running this skill, determine which layer the conversation belongs to:
+The Garage is a workspace, not a single software project. Before running this skill, determine which layer the conversation belongs to:
 
 ### Workspace level
 
 Discussing infrastructure, skills, agent workflows, or cross-project concerns. Check these for domain knowledge:
 
 ```
-openbench/
+my-workspace/
 ├── artifacts/           ← architecture docs, design plans
 ├── memory/index.md      ← active projects, recent decisions
 └── wiki/            ← PARA vault for domain knowledge

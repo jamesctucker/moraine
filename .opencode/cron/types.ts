@@ -6,6 +6,14 @@ export interface CronConfig {
   log_dir: string;
   locks_dir: string;
   install_dir: string;
+  work_models?: string[];
+}
+
+export interface EmailConfig {
+  to: string;
+  from?: string;
+  /** Supports {date} (YYYY-MM-DD) and {name} (job name) tokens. */
+  subject?: string;
 }
 
 export interface Job {
@@ -20,6 +28,9 @@ export interface Job {
   prepend?: boolean;
   timeout?: number;
   hostname?: string;
+  disabled?: boolean;
+  scope?: "work" | "personal";
+  email?: EmailConfig;
 }
 
 export interface RunResult {

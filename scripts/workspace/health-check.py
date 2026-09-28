@@ -186,7 +186,7 @@ def main() -> int:
     parser.add_argument("--quick", "-q", action="store_true", help="Skip MCP reachability check")
     args = parser.parse_args()
 
-    print("=== OpenBench — Agent Health Check ===\n")
+    print("=== The Garage — Agent Health Check ===\n")
 
     checks = []
 

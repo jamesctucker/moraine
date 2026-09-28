@@ -26,7 +26,7 @@ Never construct commands containing these patterns. If you detect a match in you
 
 ### 2. Confirm writes outside the workspace
 
-Any command that creates or modifies files outside `WORKSPACE` (the repo root) must be flagged for user confirmation before execution. Explicitly state the external path and ask.
+Any command that creates or modifies files outside `WORKSPACE` (this workspace's root) must be flagged for user confirmation before execution. Explicitly state the external path and ask.
 
 ### 3. Prefer safe alternatives
 

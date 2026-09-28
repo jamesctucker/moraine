@@ -68,7 +68,7 @@ node .opencode/skills/design/impeccable/scripts/pin.mjs <pin|unpin> <command>
 Valid `<command>` is any command from the table above. Report the script's result concisely. Confirm the new shortcut on success, relay stderr verbatim on error.
 ## Workspace Integration
 
-> Forked from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) for OpenBench workspace. Apache 2.0.
+> Forked from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) for The Garage workspace. Apache 2.0.
 
 ### Where output goes
 

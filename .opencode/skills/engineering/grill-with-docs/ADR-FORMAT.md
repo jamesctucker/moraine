@@ -4,7 +4,7 @@ ADRs live in `docs/adr/` **inside a project directory** and use sequential numbe
 
 ```
 work/
-└── my-project/
+└── my-app/
     └── docs/
         └── adr/
             ├── 0001-event-sourced-orders.md
@@ -57,7 +57,7 @@ If a decision is easy to reverse, skip it — you'll just reverse it. If it's no
 
 ## Workspace-level decisions ≠ ADRs
 
-At OpenBench workspace level (skills, agent workflows, infrastructure), do not create ADRs. Instead:
+At The Garage workspace level (skills, agent workflows, infrastructure), do not create ADRs. Instead:
 
 - **Architecture and design** → `artifacts/<next-number>-<slug>.md`
 - **Decisions and conventions** → `memory/index.md` under a dated "Recent decisions" section

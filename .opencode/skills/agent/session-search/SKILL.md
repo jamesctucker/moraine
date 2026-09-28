@@ -39,14 +39,14 @@ python scripts/workspace/session-index.py search "<query>"
 - `--limit N` — max results (default: 10)
 - `--dates YYYY-MM-DD..YYYY-MM-DD` — date range filter
 - `--section decisions` — filter to a specific section (`accomplishments`, `decisions`, `in_progress`, `artifacts`, `notes`)
-- `--project NAME` — filter by project name (e.g., `my-api`, `my-frontend`)
+- `--project NAME` — filter by project name (e.g., `my-app`, `api-server`)
 
 **Examples:**
 ```bash
 python scripts/workspace/session-index.py search "authentication"
 python scripts/workspace/session-index.py search "Grove deploy" --limit 5
 python scripts/workspace/session-index.py search "OpenHuman comparison" --section decisions
-python scripts/workspace/session-index.py search "gift sheet" --dates 2026-05-01..2026-05-31 --project my-api
+python scripts/workspace/session-index.py search "gift sheet" --dates 2026-05-01..2026-05-31 --project my-app
 ```
 
 ### 3. Read matching sessions
@@ -66,6 +66,6 @@ cat memory/staging/<YYYY-MM-DD>.md
 - Builds an SQLite FTS5 index over all session and staging markdown files
 - Tokenizer: `porter unicode61` — Porter stemming (e.g., "auth" matches "authentication") + Unicode-aware tokenization
 - Each H2 section (`## Accomplished`, `## Decisions`, etc.) is indexed as a separate row with a `section` tag for targeted queries
-- Wikilinks (`[[path/to/file.md|title]]`) and `work/<repo>/` paths are extracted as `project_links` for project-scoped search
+- Wikilinks (double-bracket path syntax with alias) and `work/<repo>/` paths are extracted as `project_links` for project-scoped search
 - Full rebuild on every index run — trivial (~40 files, <100ms)
 - Index stored at `memory/.index/sessions.db` (gitignored)

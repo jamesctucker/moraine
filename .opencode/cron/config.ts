@@ -9,8 +9,9 @@ const CronConfigSchema = z.object({
     timeout: z.number().default(600),
   }).default({ timeout: 600 }),
   log_dir: z.string().default("scheduled/.logs"),
-  locks_dir: z.string().default("~/.openbench/cron/.locks"),
-  install_dir: z.string().default("~/.openbench/cron"),
+  locks_dir: z.string().default("~/.garage/cron/.locks"),
+  install_dir: z.string().default("~/.garage/cron"),
+  work_models: z.array(z.string()).optional(),
 });
 
 export function loadConfig(configPath: string): CronConfig {

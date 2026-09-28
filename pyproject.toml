@@ -29,6 +29,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests — assert is expected in tests
 "tests/*.py" = ["S101"]
+"scripts/workspace/graph/tests/*.py" = ["S101"]
 # Pre-existing scripts (not linted in CI, listed for local development)
 "scripts/workspace/agent-eval.py" = ["F401", "I001", "UP017", "UP032"]
 "scripts/workspace/memory-promoter.py" = ["F841", "I001", "UP017"]
@@ -41,5 +42,5 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "scripts/workspace/graph/tests"]
 python_files = ["test_*.py"]
