@@ -6,11 +6,6 @@
       "url": "https://mcp.granola.ai/mcp",
       "enabled": true
     },
-    "sunsama": {
-      "type": "remote",
-      "url": "https://api.sunsama.com/mcp",
-      "enabled": true
-    },
     "readwise": {
       "type": "remote",
       "url": "https://mcp2.readwise.io/mcp"

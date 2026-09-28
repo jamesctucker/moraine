@@ -292,9 +292,8 @@ else
         const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
         const servers = cfg.mcp || {};
         const descs = {
-            granola:  'meeting notes and voice memo integration (remote, no setup)',
-            sunsama:  'daily planning and task management (remote, requires Sunsama account: https://sunsama.com)',
-            readwise: 'highlights and Reader access (remote, requires Readwise account: https://readwise.io)',
+            granola:  'meeting notes and transcripts — search past meetings in-session (remote, requires Granola account: https://granola.ai)',
+            readwise: 'highlights and Reader access — search everything you have saved and highlighted (remote, requires Readwise account: https://readwise.io)',
             semble:   'semantic code search across work/ repos (local, uvx)',
             headroom: 'context compression, 60-95% fewer tokens (local)',
         };
@@ -474,7 +473,7 @@ echo "   OpenCode will auto-discover AGENTS.md, skills, and spaces."
 echo "   Start there."
 echo ""
 info "Featured skills (try these first):"
-echo "   • executive-function — ADHD-friendly focus helper, pairs with Sunsama"
+echo "   • i-have-adhd — ADHD-shaped output: next action first, numbered steps, capped lists"
 echo "   • session-handoff — wrap up a session, persist memory for next time"
 echo "   • scaffold-project — start a new project with PARA structure"
 echo "   • linearize — turn a spec/repo into Linear issues (requires Linear MCP)"
