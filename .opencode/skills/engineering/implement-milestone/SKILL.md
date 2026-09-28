@@ -7,7 +7,7 @@ description: Spec-driven implementation of a single milestone/feature with a man
 
 Implement one milestone from a spec (artifact section or Linear issue), ship it on a branch with tests, run the **test gate**, do a **self-review pass**, then hand off for **human PR review** and apply every piece of feedback before the issue is closed.
 
-This skill encodes the loop that should mature across milestone implementations: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
+This skill encodes the loop that matured across the Auction Reseller M2/M3 sessions: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
 
 ## Layer model
 
@@ -38,6 +38,8 @@ Run the repo's full test command **and** typecheck. Both must be green before yo
 ### 5. Self-review pass
 Before opening the PR, re-read your own diff against the recurring bug classes below and fix anything found. If none of the scraper/pipeline items apply, check the generic list. Produce a 3–5 line self-review note in the PR/issue comment.
 
+**If the user invokes `code-review` explicitly on this branch** (e.g., "review this branch before I open the PR", "self-review ENG-X"): **defer to the `code-review` skill in Mode C** — it supersedes this step. Its output (tiered findings + self-review note) replaces step 5 here; step 6 picks up with opening the PR.
+
 **Generic items (all milestone types):**
 - No dead code, commented-out blocks, or leftover debug logging.
 - No hardcoded secrets, tokens, or credentials.
@@ -62,6 +64,8 @@ Before opening the PR, re-read your own diff against the recurring bug classes b
 
 These categories surfaced in human PR reviews on HTTP-scraper / data-pipeline milestones (see References). Apply when the diff touches external HTTP, caching, or untrusted input. For other milestone types (UI, CLI, data-only), check the repo's own `AGENTS.md` for a project-specific rubric — if none exists, use the generic items below and add repo-specific ones as they emerge.
 
+> **For an explicit review pass** (user says "review this branch", "self-review", "PR review on ENG-X"), invoke the `code-review` skill instead — it generalizes this checklist across all diff-surfaces (HTTP, auth, persistence, types, UI) and produces the tiered report + apply-fixes loop. This checklist is the lightweight pre-PR self-review built into implementation; `code-review` is the heavier standalone pass.
+
 - **Cache poisoning** — failed upstream responses must not be cached for the full TTL; bypass/retry on `failed` status.
 - **No date fabrication** — parse real dates; if absent, leave null. Never invent `2024-01-01` style defaults. Use ISO-8601 everywhere (DB writes + returned objects).
 - **Injection sanitization** — sanitize any user/entity input that reaches SPARQL/SQL/HTML/shell (entity IDs, search terms, item numbers).
@@ -76,6 +80,6 @@ These categories surfaced in human PR reviews on HTTP-scraper / data-pipeline mi
 Follow `AGENTS.md` → Issue Tracking → Autonomy gates (same model as `linearize`). Additionally: apply **all** PR review feedback; never close an issue with outstanding review findings.
 
 ## Reference
-- Pattern source: example milestone implementation sessions — the review checklist above derives from findings in real-world sessions
-- Test gate + review loop observed in: periodic reviews ("review-then-fix double-check" pattern)
+- Pattern source: `memory/sessions/2026-07-09-m2-spec-lookup-pipeline.md` (ENG-64), `memory/sessions/2026-07-10-m3-comp-fetcher-pipeline.md` (ENG-65) — auction-reseller project; the review checklist above derives from findings in these sessions
+- Test gate + review loop observed in: `memory/reviews/2026-06-23.md` ("review-then-fix double-check" pattern)
 - Linear workflow: `AGENTS.md` → Issue Tracking

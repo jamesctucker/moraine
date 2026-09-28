@@ -111,4 +111,4 @@ Canonical examples in this workspace:
 - `artifacts/06-aws-to-hetzner-migration.md` — runbook after hardening
 - `artifacts/06a-agent-execution-safety.md` — extracted safety policy
 - `artifacts/06b-post-migration-tasks.md` — extracted cleanup doc
-- `wiki/1 Projects/OpenBench/plan-session-search-semble.md` — reviewed plan
+- `wiki/1 Projects/The Garage/plan-session-search-semble.md` — reviewed plan

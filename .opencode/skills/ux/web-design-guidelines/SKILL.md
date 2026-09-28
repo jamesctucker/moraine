@@ -9,7 +9,7 @@ metadata:
 
 # Web Interface Guidelines
 
-> Adapted from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/blob/main/skills/web-design-guidelines/SKILL.md). Forked for OpenBench workspace.
+> Adapted from [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills/blob/main/skills/web-design-guidelines/SKILL.md). Forked for The Garage workspace.
 
 Review files for compliance with [Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines).
 

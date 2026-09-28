@@ -69,7 +69,7 @@ OpenBench Cron runs automated agent tasks on a schedule. Job definitions are YAM
 ```bash
 bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.openbench/cron/
 bun run .opencode/cron/runner.ts --list                # list all jobs
-bun run .opencode/cron/runner.ts --once morning-briefing  # run one immediately
+bun run .opencode/cron/runner.ts --once weekly-recap      # run one immediately
 ```
 
 Add to crontab (runs every minute, fires only when schedule matches):
@@ -77,13 +77,13 @@ Add to crontab (runs every minute, fires only when schedule matches):
 * * * * * cd /path/to/openbench && bun run .opencode/cron/runner.ts
 ```
 
-Default jobs: `morning-briefing` (weekdays 8am), `weekly-review` (Mondays 9am).
+Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audit, then appends a week-in-review to the daily note; optional email delivery via the commented `email:` block. Add your own jobs as new YAML files in `scheduled/`.
 
 ## Conventions
 
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
 - `wiki/` is an Obsidian vault — open the folder in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks. Obsidian creates `.obsidian/` on first open (gitignored).
-- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `ux/`, `design/`.
+- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `readwise/`, `ux/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.

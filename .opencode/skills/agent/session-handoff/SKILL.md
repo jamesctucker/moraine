@@ -69,8 +69,22 @@ If the user has a specific next task in mind, add a **Next steps** section to th
 
 Prune handoff files from `memory/sessions/` that have clearly been consumed (referenced in a later session summary).
 
+### 5. Commit memory changes
+
+**Always commit the memory writes when done.** This is not optional and should not wait for the user to ask. From the workspace root:
+
+```bash
+git add memory/
+git commit -m "memory: <session topic> (session summary + index update)"
+```
+
+- Stage only `memory/` paths (plus skill edits made during the session, if any). Never sweep unrelated working-tree changes into the commit — check `git status` first and stage explicitly.
+- If the repo has other in-flight changes, leave them alone; the memory commit must be scoped.
+- Do not push unless the user asks.
+
 ## Rules
 
 - Do not duplicate content already in files, commits, or notes. Reference by path or URL.
 - Session summaries should be 20-40 lines. Handoffs under 20 lines.
 - If user specified a focus for next session, prioritize that.
+- The wrap-up is not complete until the memory commit exists. If committing is impossible (e.g. no git repo), say so explicitly instead of skipping silently.

@@ -1,0 +1,94 @@
+name: weekly-recap
+cron: 0 8 * * 1
+# hostname: my-machine        # optional — restrict this job to one machine
+# model: some/model           # optional — pin a model; omitted = agent default
+output: wiki/2 Areas/Daily Notes/YYYY-MM-DD.md
+append: true
+# email:                      # optional — runner sends the recap as HTML email (needs msmtp configured)
+#   to: you@example.com
+#   from: "OpenBench <you@example.com>"
+#   subject: "Weekly recap + audit — {date}"
+skills:
+  - session-search
+prompt: >
+  First, run the deterministic memory audit and keep its output:
+
+    python scripts/workspace/memory-audit.py
+
+  It always exits 0; every finding is a flag for review, not a failure.
+
+  Then produce the Monday weekly recap covering the prior Monday through Sunday.
+
+  Read the following sources, filtering to entries touched in the last 7 days
+  (use file mtimes to determine recency):
+
+  - memory/sessions/*.md
+  - memory/staging/*.md
+  - memory/index.md (active projects, deadlines, next actions)
+  - wiki/2 Areas/Daily Notes/*.md (any manual daily entries)
+
+  Produce the recap using this layout. Cite session files inline as
+  [[filename]] so they're traceable. Replace <Mon date> and <Sun date> with
+  the actual dates of the prior week.
+
+  # Week of <Mon date> – <Sun date>
+
+  ## Memory audit findings
+
+  - Reproduce the audit's findings verbatim (they are deterministic; do not
+    editorialize), plus a one-line suggested action per flag (e.g. "run
+    prune-decisions.py --prune after review", "update work-repos.md",
+    "clear or re-date this open thread").
+  - IMPORTANT: Do NOT apply any fix the audit suggests (no pruning, no index
+    edits, no thread deletions). The audit flags; the human decides.
+
+  ## Patterns this week
+
+  - Repeated manual steps / friction
+  - Recurring questions or themes across sessions
+  - Tool gaps or workarounds that cost time
+
+  ## Intentions to keep top of mind
+
+  - Active threads needing follow-through
+  - Decisions made this week that anchor next week
+  - Stated next-actions / deadlines approaching
+
+  ## What happened
+
+  - Per-project bullets, grouped by active project from index.md
+
+  ## At risk / slipping
+
+  - Stale threads (no session touch in 7+ days)
+  - Deadlines in the next 2 weeks
+
+  ## Sources read
+
+  - N sessions, M staging entries, K daily notes, memory/index.md, memory audit
+
+  ---
+
+  Recap PDF: [_recaps/YYYY-MM-DD-weekly-recap.pdf]
+
+  After producing the markdown, execute these steps from the workspace root:
+
+  1. Write the markdown to "wiki/2 Areas/Daily Notes/_recaps/YYYY-MM-DD-weekly-recap.md"
+     (use today's date for YYYY-MM-DD).
+
+  2. Render the PDF (md-to-pdf outputs the .pdf next to the input .md):
+
+     bunx md-to-pdf "wiki/2 Areas/Daily Notes/_recaps/YYYY-MM-DD-weekly-recap.md"
+       --launch-options '{"args": ["--no-sandbox"]}'
+
+  3. If the PDF fails, note the failure on the Recap PDF line but continue.
+
+  4. Print the markdown (including the PDF reference line) to stdout — the
+     runner appends it to today's daily note AND, if an email block is
+     configured, sends it as an HTML email. Do NOT send email yourself;
+     the runner handles delivery.
+
+  IMPORTANT:
+  - Output ONLY the markdown to stdout. Do not wrap it in code fences.
+  - Do not write to wiki/2 Areas/Daily Notes/YYYY-MM-DD.md directly — the
+    runner's output router handles that via the append flag.

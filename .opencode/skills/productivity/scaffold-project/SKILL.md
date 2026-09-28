@@ -1,6 +1,6 @@
 ---
 name: scaffold-project
-description: Scaffold a new project, area, cadence, or resource in OpenBench with proper PARA placement, top-note structure, and memory/manifest updates. Interviews first, pushes back on vague scope, writes consistent files. Use when user says "scaffold", "start a new project", "kick off", "set up X", or wants to promote an existing idea to active.
+description: Scaffold a new project, area, cadence, or resource in The Garage with proper PARA placement, top-note structure, and memory/manifest updates. Interviews first, pushes back on vague scope, writes consistent files. Use when user says "scaffold", "start a new project", "kick off", "set up X", or wants to promote an existing idea to active.
 ---
 
 # Scaffold Project
@@ -25,9 +25,9 @@ Load this skill when the user:
 | **Cadence** | No (recurring activity) | `2 Areas/<Parent>/<Name>/` | Yes (it is the cadence) |
 | **Resource** | No (reference) | `3 Resources/<Name>.md` | No |
 
-**Pattern choice for areas:** single file (`<AreaName>.md`) when the area is just one note; directory with `00 Top Note.md` when it has sub-cadences, sub-projects, or > 50 lines of content (e.g., `<AreaName>/`). Default to single file unless the area needs sub-structure.
+**Pattern choice for areas:** single file (`Homelab.md`) when the area is just one note; directory with `00 Top Note.md` when it has sub-cadences, sub-projects, or > 50 lines of content (e.g., `Garden Club/`). Default to single file unless the area needs sub-structure.
 
-**Naming:** directory names use Title Case for proper nouns and multi-word names (e.g., `Filter Refactoring/`, `Custom Orchestrator Harness/`). Single-file area/resource notes use Title Case + `.md` (e.g., `Homelab.md`).
+**Naming:** directory names use Title Case for proper nouns and multi-word names (matches existing pattern: `Reading Log/`, `Home Renovation/`, `Garden Club/`). Single-file area/resource notes use Title Case + `.md` (e.g., `Homelab.md`).
 
 ## Phase 1: INTERVIEW
 

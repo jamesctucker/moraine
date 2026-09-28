@@ -9,7 +9,14 @@ WORKSPACE = Path(__file__).resolve().parent.parent.parent
 VAULT = WORKSPACE / "wiki"
 
 # Well-known vault directories for path-based wikilink resolution.
-VAULT_DIRS = ["0 Inbox", "1 Projects", "2 Areas", "3 Resources", "4 Archive"]
+VAULT_DIRS = ["0 Inbox", "1 Projects", "2 Areas", "3 Resources", "4 Archives"]
+
+# Directories excluded from broken-wikilink checks:
+# - Imported third-party content whose export-artifact links ([[starred]],
+#   podcast names, etc.) will never resolve in the vault.
+# - Daily Notes: journal entries use [[links]] as forward references to
+#   notes that may never exist — an intentional Obsidian pattern, not breakage.
+WIKILINK_CHECK_EXCLUDE_PREFIXES = ("3 Resources/Readwise/", "2 Areas/Daily Notes/")
 
 # Unified wikilink regex: handles [[Link]], [[Link|Alias]], [[Link\|Alias]]
 # (table-escaped pipe), and [[Link#block]] (block reference).
@@ -81,6 +88,9 @@ def check_wikilinks(index: WikilinkIndex | None = None) -> list[BrokenLink]:
         index = WikilinkIndex()
     broken: list[BrokenLink] = []
     for md_file in index.files:
+        rel = md_file.relative_to(VAULT).as_posix()
+        if any(rel.startswith(prefix) for prefix in WIKILINK_CHECK_EXCLUDE_PREFIXES):
+            continue
         content = md_file.read_text(encoding="utf-8", errors="replace")
         for link in extract_wikilinks(content):
             if link.startswith("http://") or link.startswith("https://") or "@" in link:

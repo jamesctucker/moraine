@@ -143,12 +143,13 @@ await server.connect(transport);
 
 | Server | File | API | Tools |
 |--------|------|-----|-------|
+| Goodreads | `scripts/mcp-servers/goodreads-mcp.mjs` | Piratereads | 4 shelf tools |
 | Granola | Remote (not local) | Granola MCP | Meeting notes, transcripts |
 
 ## Naming conventions
 
-- File: `<service>-mcp.mjs` (e.g., `notion-mcp.mjs`, `linear-mcp.mjs`)
-- Tool names: `<service>_<action>` (e.g., `linear_create_issue`)
+- File: `<service>-mcp.mjs` (e.g., `goodreads-mcp.mjs`, `notion-mcp.mjs`)
+- Tool names: `<service>_<action>` (e.g., `goodreads_currently_reading`)
 - Config key in opencode.json: matches the service name
 - Env vars: `<SERVICE>_API_KEY` or `<SERVICE>_USER_ID` — uppercase, service-prefixed
 

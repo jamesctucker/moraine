@@ -5,7 +5,7 @@ description: Disciplined diagnosis loop for hard bugs and performance regression
 
 # Diagnose
 
-> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnose). Forked for OpenBench workspace.
+> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnose). Forked for The Garage workspace.
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
@@ -120,7 +120,7 @@ Required before declaring done:
 
 ## Workspace awareness
 
-OpenBench is a workspace, not a single project. Where the bug lives determines how you work:
+The Garage is a workspace, not a single project. Where the bug lives determines how you work:
 
 ### Workspace level (skills, MCP servers, agent workflows)
 

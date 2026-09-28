@@ -14,7 +14,7 @@ description: Search, create, and manage notes in the Obsidian vault with wikilin
 - `1 Projects/` — Active, time-bound efforts with deadlines
 - `2 Areas/` — Ongoing responsibilities without end dates
 - `3 Resources/` — Reference materials, topics of interest
-- `4 Archive/` — Inactive or completed items from the above
+- `4 Archives/` — Inactive or completed items from the above
 
 Notes go into the appropriate PARA folder. Flat structure within each folder unless nesting is useful.
 

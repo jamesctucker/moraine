@@ -60,5 +60,7 @@ work/*
 # Plugins — some are independently versioned
 .opencode/plugins/harness/
 
-# Temp files
-temp/*
+# Runtime state
+log/
+temp/
+.wrangler/
