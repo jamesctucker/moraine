@@ -3,11 +3,16 @@
 #
 # One-shot workspace setup for new clones and forks.
 # - Verifies required tools (git, bun, python3)
-# - Auto-installs uv and opencode if missing
-# - Installs JS, Python, and MCP server dependencies
+# - Offers to install OpenCode if missing (prompted, exact command shown)
+# - Installs JS deps and Python deps (into a workspace-local .venv, never system Python)
 # - Optionally installs headroom (context compression)
 # - Shows configured MCP servers and offers to trim unwanted ones
 # - Runs a smoke test and prints featured skills to try first
+#
+# Consent model: nothing is installed outside this workspace without a
+# prompt, and every prompt shows the exact command that will run.
+# Pass --yes (-y) to accept all defaults non-interactively (CI).
+
 set -euo pipefail
 
 BOLD="\033[1m"
@@ -19,15 +24,35 @@ RESET="\033[0m"
 info()  { echo -e "${BOLD}$*${RESET}"; }
 ok()    { echo -e "${GREEN}✓ $*${RESET}"; }
 warn()  { echo -e "${YELLOW}→ $*${RESET}"; }
-fail()  { echo -e "${RED}✗ $*${RESET}"; }
+fail()  { echo -e "${RED}✗ $*${RESET}"; exit 1; }
+
+YES=0
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes) YES=1 ;;
+        -h|--help)
+            echo "Usage: bash scripts/setup [--yes]"
+            echo "  --yes, -y   Accept all defaults non-interactively (CI). Nothing is"
+            echo "              installed outside the workspace without a prompt unless"
+            echo "              the default is already 'yes'."
+            exit 0
+            ;;
+        *) warn "Unknown argument: $arg (ignored)" ;;
+    esac
+done
 
 ask() {
     local prompt="$1"
     local default="${2:-n}"
+    if [[ "$YES" == "1" ]]; then
+        [[ "$default" == "y" ]]
+        return
+    fi
     local choices="[y/N]"
     [[ "$default" == "y" ]] && choices="[Y/n]"
     echo -ne "${BOLD}${prompt} ${choices}${RESET} "
-    read -r answer
+    local answer=""
+    read -r answer || answer=""
     answer="${answer:-$default}"
     [[ "$answer" =~ ^[Yy] ]]
 }
@@ -44,39 +69,23 @@ echo ""
 
 if ! command -v git &>/dev/null; then
     fail "git is required but not found. Install Xcode Command Line Tools first."
-    exit 1
 fi
 ok "git"
 
 if ! command -v bun &>/dev/null; then
     fail "bun is required but not found. Install it first: https://bun.sh/docs/installation"
-    exit 1
 fi
 ok "bun $(bun --version)"
 
 if ! command -v python3 &>/dev/null; then
     fail "python3 is required but not found. Install Python 3.11+ from https://python.org"
-    exit 1
 fi
-ok "python3 $(python3 --version)"
-
-# ── uv (auto-install if missing) ─────────────────────────────
-
-if command -v uv &>/dev/null; then
-    ok "uv $(uv --version)"
-else
-    info "uv not found — installing (Python package manager, 10-100x faster than pip)..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.local/bin:$PATH"
-    if command -v uv &>/dev/null; then
-        ok "uv installed"
-    else
-        fail "uv installation failed. Install manually: https://docs.astral.sh/uv/"
-        exit 1
-    fi
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
+    fail "python3 3.11+ is required; found $(python3 --version 2>&1 | awk '{print $2}')."
 fi
+ok "python3 $(python3 --version 2>&1 | awk '{print $2}')"
 
-# ── OpenCode (auto-install if missing or version mismatch) ──
+# ── OpenCode (prompted install if missing) ───────────────────
 
 OPENCODE_VERSION=""
 if [[ -f ".opencode-version" ]]; then
@@ -91,21 +100,37 @@ fi
 install_opencode() {
     local version="$1"
     info "Installing OpenCode (${version})..."
-    if bun install -g "opencode@${version}" 2>/dev/null; then
+    if bun install -g "opencode-ai@${version}"; then
         ok "OpenCode installed"
+        # bun's global bin dir is not always on PATH (fresh bun installs)
+        local bun_bin
+        bun_bin="$(bun pm -g bin 2>/dev/null || echo "")"
+        if ! command -v opencode &>/dev/null && [[ -n "$bun_bin" ]]; then
+            warn "opencode installed but not on PATH. Add bun's global bin dir:"
+            echo "   export PATH=\"${bun_bin}:\$PATH\""
+        fi
     else
         fail "OpenCode installation failed. Install manually: https://opencode.ai/docs/install"
-        exit 1
     fi
 }
 
 if ! command -v opencode &>/dev/null; then
-    install_opencode "$OPENCODE_VERSION"
+    echo ""
+    info "OpenCode not found."
+    echo "   This workspace runs on the OpenCode agent CLI."
+    echo "   Install command: bun install -g opencode-ai@${OPENCODE_VERSION}"
+    echo ""
+    if ask "Install OpenCode globally now?" "y"; then
+        install_opencode "$OPENCODE_VERSION"
+    else
+        warn "OpenCode skipped — the workspace won't run without it."
+        echo "   Install later: bun install -g opencode-ai@${OPENCODE_VERSION}"
+    fi
 else
-    INSTALLED_VERSION=$(opencode --version 2>/dev/null || echo "unknown")
-    if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != *"$OPENCODE_VERSION"* ]]; then
+    INSTALLED_VERSION=$(opencode --version 2>/dev/null | tr -d '[:space:]' || echo "unknown")
+    if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != "$OPENCODE_VERSION" ]]; then
         warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
-        if ask "Install matching version?"; then
+        if ask "Install matching version (bun install -g opencode-ai@${OPENCODE_VERSION})?"; then
             install_opencode "$OPENCODE_VERSION"
         else
             warn "Version mismatch — workspace may not behave as expected"
@@ -115,15 +140,11 @@ else
     fi
 fi
 
+# ── Node.js (informational only — the script itself runs on bun) ──
+
 if ! command -v node &>/dev/null; then
-    warn "node not found. Some third-party tools may still expect Node.js."
-    if ask "Install Node.js via Homebrew?"; then
-        if ! command -v brew &>/dev/null; then
-            fail "Homebrew not installed. Install from https://brew.sh first, then re-run setup."
-        else
-            brew install node
-        fi
-    fi
+    warn "node not found — not required by this workspace, but some third-party"
+    echo "   tools may expect it. Install via your package manager if you need it."
 else
     ok "node $(node --version)"
 fi
@@ -142,20 +163,59 @@ if [[ -f .opencode/package.json ]]; then
     ok "OpenCode dependencies installed"
 fi
 
-# ── MCP server dependencies ──────────────────────────────────
-
 if [[ -f scripts/mcp-servers/package.json ]]; then
     info "Installing MCP server dependencies..."
     (cd scripts/mcp-servers && bun install --silent)
     ok "MCP server dependencies installed"
 fi
 
-# ── Python dependencies ───────────────────────────────────────
+# ── Python dependencies (workspace-local .venv — never system Python) ──
+
+VENV_DIR=".venv"
+VENV_PY="$VENV_DIR/bin/python"
+
+# uv is an optional faster pip — never installed silently. If the user
+# already has it, use it; otherwise plain python3 -m venv works fine.
+USE_UV=0
+if command -v uv &>/dev/null; then
+    ok "uv $(uv --version)"
+    USE_UV=1
+else
+    echo ""
+    info "uv not found (optional)."
+    echo "   uv is a fast Python package manager. Setup works fine without it"
+    echo "   (falls back to python3 -m venv + pip)."
+    echo "   Install command: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo ""
+    if ask "Install uv now?" "n"; then
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$PATH"
+        if command -v uv &>/dev/null; then
+            ok "uv installed"
+            USE_UV=1
+            warn "uv installed to ~/.local/bin — add it to your shell's PATH:"
+            echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+        else
+            warn "uv installation failed — continuing with python3 -m venv + pip"
+        fi
+    fi
+fi
 
 if [[ -f requirements.txt ]]; then
-    info "Installing Python dependencies..."
-    uv pip install -r requirements.txt --system -q
-    ok "Python dependencies installed"
+    info "Installing Python dependencies into ${VENV_DIR}/ (workspace-local)..."
+    if [[ ! -d "$VENV_DIR" ]]; then
+        if [[ "$USE_UV" == "1" ]]; then
+            uv venv "$VENV_DIR" -q
+        else
+            python3 -m venv "$VENV_DIR"
+        fi
+    fi
+    if [[ "$USE_UV" == "1" ]]; then
+        uv pip install -r requirements.txt -q
+    else
+        "$VENV_PY" -m pip install -q -r requirements.txt
+    fi
+    ok "Python dependencies installed (${VENV_DIR}/)"
 fi
 
 # ── Optional: Headroom ───────────────────────────────────────
@@ -172,14 +232,30 @@ else
     echo " ⚠️  HIGH VALUE — compounds every session"
     echo ""
     if ask "Install headroom?" "y"; then
-        uv pip install "headroom-ai[mcp]" --system -q
-        if headroom mcp install 2>/dev/null; then
-            ok "headroom installed and registered with OpenCode"
+        HEADROOM_INSTALLED=""
+        if command -v uv &>/dev/null; then
+            # uv tool install = isolated env, binary linked into ~/.local/bin
+            uv tool install "headroom-ai[mcp]" -q && HEADROOM_INSTALLED="uv tool"
+        elif command -v pipx &>/dev/null; then
+            pipx install "headroom-ai[mcp]" -q && HEADROOM_INSTALLED="pipx"
+        else
+            # Last resort: workspace venv (binary at .venv/bin/headroom)
+            "$VENV_PY" -m pip install -q "headroom-ai[mcp]" && HEADROOM_INSTALLED="venv"
+            warn "headroom installed into ${VENV_DIR} — binary at ${VENV_DIR}/bin/headroom"
+            echo "   For global access, install pipx or uv and re-run."
+        fi
+
+        HEADROOM_BIN="$(command -v headroom || echo "$VENV_DIR/bin/headroom")"
+        echo ""
+        echo "   Registering headroom as an MCP server — this writes to your"
+        echo "   OpenCode config (the agent's MCP server list)."
+        if "$HEADROOM_BIN" mcp install 2>/dev/null; then
+            ok "headroom installed (${HEADROOM_INSTALLED}) and registered with OpenCode"
         else
             warn "headroom installed but MCP registration failed. Run manually: headroom mcp install"
         fi
     else
-        warn "headroom skipped. Install later with: uv pip install \"headroom-ai[mcp]\" --system && headroom mcp install"
+        warn "headroom skipped. Install later: uv tool install \"headroom-ai[mcp]\" && headroom mcp install"
     fi
 fi
 
@@ -196,10 +272,11 @@ obsidian_found=""
 case "$(uname -s)" in
     Darwin)
         [[ -d "/Applications/Obsidian.app" ]] && obsidian_found="macOS"
+        [[ -d "$HOME/Applications/Obsidian.app" ]] && obsidian_found="macOS (user)"
         ;;
     Linux)
         command -v obsidian &>/dev/null && obsidian_found="Linux"
-        [[ -d "/var/lib/flatpak/exports/bin/md.obsidian.Obsidian" ]] && obsidian_found="Linux"
+        [[ -e "/var/lib/flatpak/exports/bin/md.obsidian.Obsidian" ]] && obsidian_found="Linux (flatpak)"
         ;;
     MINGW*|MSYS*|CYGWIN*)
         [[ -e "/c/Users/$USER/AppData/Local/Obsidian/Obsidian.exe" ]] && obsidian_found="Windows"
@@ -212,7 +289,7 @@ else
     case "$(uname -s)" in
         Darwin)
             if command -v brew &>/dev/null; then
-                if ask "Install Obsidian via Homebrew cask?" "y"; then
+                if ask "Install Obsidian via Homebrew cask (brew install --cask obsidian)?" "y"; then
                     brew install --cask obsidian
                     ok "Obsidian installed"
                 else
@@ -225,7 +302,7 @@ else
             ;;
         Linux)
             if command -v flatpak &>/dev/null; then
-                if ask "Install Obsidian via Flatpak?" "y"; then
+                if ask "Install Obsidian via Flatpak (flatpak install flathub md.obsidian.Obsidian)?" "y"; then
                     flatpak install -y flathub md.obsidian.Obsidian
                     ok "Obsidian installed"
                 else
@@ -238,7 +315,7 @@ else
             ;;
         MINGW*|MSYS*|CYGWIN*)
             if command -v winget &>/dev/null; then
-                if ask "Install Obsidian via winget?" "y"; then
+                if ask "Install Obsidian via winget (winget install Obsidian.Obsidian)?" "y"; then
                     winget install Obsidian.Obsidian
                     ok "Obsidian installed"
                 else
@@ -263,17 +340,21 @@ warn "First use: open the 'wiki/' folder (not the repo root) as an Obsidian vaul
 echo ""
 info "Git setup"
 
-# Ensure current branch is named 'main' (forks sometimes start as 'master')
+# Offer a rename only in the one case it's safe and useful: the repo's
+# only branch is 'master' and no 'main' exists. Anything else (detached
+# HEAD, feature branch, main already present) is left alone.
 CURRENT_BRANCH=$(git -C "$REPO_ROOT" symbolic-ref --short HEAD 2>/dev/null || echo "")
-if [[ "$CURRENT_BRANCH" != "main" ]]; then
-    if ask "Rename current branch '$CURRENT_BRANCH' to 'main'?"; then
+if [[ "$CURRENT_BRANCH" == "master" ]] && ! git show-ref --verify --quiet refs/heads/main; then
+    if ask "Rename branch 'master' to 'main' (git branch -m main)?"; then
         git -C "$REPO_ROOT" branch -m main
         ok "branch renamed to main"
     else
-        warn "keeping branch '$CURRENT_BRANCH'"
+        warn "keeping branch 'master'"
     fi
+elif [[ -n "$CURRENT_BRANCH" ]]; then
+    ok "on branch '$CURRENT_BRANCH'"
 else
-    ok "on main branch"
+    warn "detached HEAD — leaving branch state untouched"
 fi
 
 # ── MCP server status + trim ─────────────────────────────────
@@ -283,17 +364,19 @@ info "MCP servers"
 echo ""
 
 MCP_FILE=".opencode/opencode.json"
+export MCP_FILE
 
 if [[ ! -f "$MCP_FILE" ]]; then
     warn "No opencode.json found — skipping MCP configuration"
 else
     # Print server list with descriptions
-    node -e "
-        const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+    bun -e "
+        const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
         const servers = cfg.mcp || {};
         const descs = {
             granola:  'meeting notes and transcripts — search past meetings in-session (remote, requires Granola account: https://granola.ai)',
             readwise: 'highlights and Reader access — search everything you have saved and highlighted (remote, requires Readwise account: https://readwise.io)',
+            linear:   'issue tracking (remote, disabled by default — enable below)',
             semble:   'semantic code search across work/ repos (local, uvx)',
             headroom: 'context compression, 60-95% fewer tokens (local)',
         };
@@ -301,7 +384,7 @@ else
         if (names.length === 0) {
             console.log('  (none configured)');
         } else {
-            names.forEach((name, i) => {
+            names.forEach((name) => {
                 const conf = servers[name];
                 const type = conf.type || 'unknown';
                 const desc = descs[name] || type;
@@ -315,22 +398,21 @@ else
         echo ""
         info "Select servers to remove (comma-separated numbers):"
 
-        # Print numbered list
-        SERVER_COUNT=$(node -e "
+        SERVER_COUNT=$(bun -e "
             try {
-                const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+                const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
                 console.log(Object.keys(cfg.mcp || {}).length);
             } catch (e) {
                 console.log('0');
             }
-        " 2>/dev/null)
+        " 2>/dev/null || echo "0")
         SERVER_COUNT="${SERVER_COUNT:-0}"
 
         if [[ ! "$SERVER_COUNT" =~ ^[0-9]+$ ]] || [[ "$SERVER_COUNT" -eq 0 ]]; then
             warn "No servers to remove"
         else
-            node -e "
-                const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+            bun -e "
+                const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
                 Object.keys(cfg.mcp || {}).forEach((name, i) => {
                     console.log('  ' + (i + 1) + ') ' + name);
                 });
@@ -338,16 +420,17 @@ else
 
             echo ""
             echo -ne "${BOLD}Numbers to remove:${RESET} "
-            read -r selections
+            selections=""
+            read -r selections || selections=""
 
-            # Pass selections via stdin to avoid shell-injection into Node JS string
+            # Pass selections via stdin to avoid shell-injection into the JS string
             if [[ -n "$selections" ]]; then
-                printf '%s' "$selections" | node -e "
+                printf '%s' "$selections" | bun -e "
                     const fs = require('fs');
                     let input = '';
                     process.stdin.on('data', chunk => input += chunk);
                     process.stdin.on('end', () => {
-                        const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
+                        const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
                         const names = Object.keys(cfg.mcp || {});
                         const tokens = input.split(/[,\s]+/).filter(Boolean);
                         const toRemove = tokens
@@ -359,7 +442,7 @@ else
                             console.log('  (no valid selections — keeping all)');
                         } else {
                             toRemove.forEach(name => delete cfg.mcp[name]);
-                            fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                            fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
                             console.log('  removed: ' + toRemove.join(', '));
                         }
                     });
@@ -381,31 +464,31 @@ echo "   OpenCode will prompt for OAuth — sign in once and you're set."
 echo "   The 'linearize' skill converts specs/repos into Linear issues."
 echo ""
 
-LINEAR_CFG=$(node -e "
+LINEAR_CFG=$(bun -e "
     try {
-        const cfg = JSON.parse(require('fs').readFileSync('$MCP_FILE', 'utf8'));
+        const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
         console.log(cfg.mcp && cfg.mcp.linear && cfg.mcp.linear.enabled ? 'enabled' : 'disabled');
     } catch (e) {
         console.log('missing');
     }
-" 2>/dev/null)
+" 2>/dev/null || echo "missing")
 LINEAR_CFG="${LINEAR_CFG:-missing}"
 
 if [[ "$LINEAR_CFG" == "enabled" ]]; then
     ok "linear MCP already enabled"
 elif [[ "$LINEAR_CFG" == "disabled" ]]; then
     if ask "Enable Linear MCP?"; then
-        node -e "
+        OUTCOME=$(bun -e "
             const fs = require('fs');
-            const cfg = JSON.parse(fs.readFileSync('$MCP_FILE', 'utf8'));
+            const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
             if (cfg.mcp && cfg.mcp.linear) {
                 cfg.mcp.linear.enabled = true;
-                fs.writeFileSync('$MCP_FILE', JSON.stringify(cfg, null, 2) + '\n');
+                fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
                 console.log('enabled');
             } else {
                 console.log('not-configured');
             }
-        " | read -r OUTCOME
+        ")
         if [[ "$OUTCOME" == "enabled" ]]; then
             ok "linear MCP enabled — OAuth will prompt on first use"
         else
@@ -424,6 +507,8 @@ echo ""
 info "Smoke test"
 
 SMOKE_FAILED=0
+PYBIN="python3"
+[[ -x "$VENV_PY" ]] && PYBIN="$VENV_PY"
 
 if command -v opencode &>/dev/null; then
     if opencode --version &>/dev/null 2>&1; then
@@ -438,19 +523,28 @@ else
 fi
 
 if command -v headroom &>/dev/null; then
-    if headroom mcp status &>/dev/null 2>&1; then
-        ok "headroom (MCP responsive)"
+    if headroom --version &>/dev/null 2>&1; then
+        ok "headroom (installed)"
     else
-        warn "headroom mcp status failed — may need: headroom mcp install"
+        warn "headroom --version failed"
         SMOKE_FAILED=1
     fi
 fi
 
 if [[ -f scripts/workspace/session-index.py ]]; then
-    if python3 scripts/workspace/session-index.py --help &>/dev/null 2>&1; then
+    if "$PYBIN" scripts/workspace/session-index.py --help &>/dev/null 2>&1; then
         ok "session-index (Python deps OK)"
     else
         warn "session-index.py failed — check Python dependencies"
+        SMOKE_FAILED=1
+    fi
+fi
+
+if [[ -f scripts/workspace/validate.py ]]; then
+    if "$PYBIN" scripts/workspace/validate.py &>/dev/null 2>&1; then
+        ok "validate (workspace structure OK)"
+    else
+        warn "validate.py failed — run it manually to see findings"
         SMOKE_FAILED=1
     fi
 fi
@@ -462,6 +556,14 @@ if [[ $SMOKE_FAILED -eq 0 ]]; then
     ok "Setup complete!"
 else
     warn "Setup complete with warnings — see above"
+fi
+
+if [[ -x "$VENV_PY" ]]; then
+    echo ""
+    info "Python environment"
+    echo "   Python deps live in ${VENV_DIR}/ (workspace-local, gitignored)."
+    echo "   Workspace scripts use the venv automatically; for your own runs:"
+    echo "   source ${VENV_DIR}/bin/activate"
 fi
 
 echo ""

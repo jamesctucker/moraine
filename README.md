@@ -164,7 +164,7 @@ cd openbench
 bash scripts/setup
 ```
 
-Requires: `git`, `bun`, `python3`. The setup script auto-installs `uv` (Python package manager) and `opencode` (versioned via `.opencode-version`). It installs all workspace deps, offers to install `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, offers to enable `linear` (issue tracking), runs a smoke test, and prints featured skills to try first.
+Requires: `git`, `bun`, `python3` (3.11+). The setup script is consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command that will run. It checks for `opencode` (versioned via `.opencode-version`, offers `bun install -g opencode-ai` if missing), installs workspace JS deps and Python deps (into a workspace-local `.venv/` — never system Python), optionally installs `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, offers to enable `linear` (issue tracking), runs a smoke test, and prints featured skills to try first. Pass `--yes` to accept defaults non-interactively (CI).
 
 Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, open `wiki/` as an Obsidian vault, and start OpenCode in the repo root.
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Setup script review pass** — correctness, consent, and platform fixes:
+  - Wrong npm package for OpenCode auto-install (`opencode` → `opencode-ai`) — the install path previously always failed
+  - No more silent installs: uv and OpenCode are now prompted with the exact install command shown (uv was previously installed via an unprompted `curl | sh`)
+  - Python deps now install into a workspace-local `.venv/` (previously `uv pip install --system` mutated system Python); uv is optional, with a `python3 -m venv` + pip fallback
+  - headroom installs via `uv tool`/`pipx`/venv fallback instead of system pip; MCP registration now explains what it writes
+  - `node -e` → `bun -e` (script no longer depends on Node; previously crashed mid-run if the optional Node offer was declined)
+  - Branch rename guarded to the only safe case (branch `master`, no `main`, not detached) — previously could crash under `set -e`
+  - `fail()` now actually exits; exact (not substring) `.opencode-version` compare; Flatpak Obsidian detection (`-d` → `-e`); `~/Applications` checked on macOS
+  - Python 3.11+ requirement enforced; smoke test adds `validate.py` and uses the venv interpreter; `--yes` non-interactive mode for CI
+
 ### Removed
 
 - **Sunsama MCP integration** — dropped from `opencode.json`, setup trim menu, and docs.
