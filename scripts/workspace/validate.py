@@ -8,6 +8,8 @@ Checks:
   4. memory/index.md references are not orphaned
   5. Artifact filenames follow NN-title.md convention
   6. No broken wikilinks in the Obsidian vault
+  7. Project top notes have required frontmatter, are indexed in projects.md,
+     are linked from another note, and have a reviewed date under 60 days
 
 Usage:
   python scripts/workspace/validate.py          # validate entire workspace
@@ -19,14 +21,23 @@ Usage:
 import argparse
 import re
 import sys
+from collections import defaultdict
+from datetime import date, datetime
 from pathlib import Path
 
-from lib import VAULT, WORKSPACE, check_wikilinks, parse_detailed
+from lib import (
+    VAULT,
+    WORKSPACE,
+    WikilinkIndex,
+    check_wikilinks,
+    extract_wikilinks,
+    parse_detailed,
+)
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 ARTIFACT_NAME_RE = re.compile(r"^\d{2}[a-z]?-[a-z0-9-]+\.md$")
 SESSION_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
-REVIEW_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")
+REVIEW_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(-[a-z0-9-]+)?\.md$")
 
 # Required frontmatter fields for PERSONA.md files.
 # Kept in sync with personas/_template/PERSONA.md.
@@ -158,7 +169,7 @@ def validate_memory_index(ctx: ValidationContext) -> None:
         for rf in reviews_dir.iterdir():
             if rf.is_file() and rf.suffix == ".md":
                 if not REVIEW_FILE_RE.match(rf.name):
-                    ctx.warn(f"Review file does not follow YYYY-MM-DD.md convention: memory/reviews/{rf.name}")
+                    ctx.warn(f"Review file does not follow YYYY-MM-DD[-slug].md convention: memory/reviews/{rf.name}")
 
     content = index_path.read_text()
     refs = set()
@@ -202,6 +213,88 @@ def validate_artifacts(ctx: ValidationContext) -> None:
 # ── Obsidian wikilink validation ────────────────────────────────────
 
 
+PROJECT_TOP_NOTE = "00 Top Note.md"
+PROJECT_REQUIRED_KEYS = {"status", "priority"}
+PROJECT_ACTIVE_KEYS = {"next-action"}
+LIVE_PROJECT_STATUSES = {"Active", "Paused"}
+STALE_REVIEW_DAYS = 60
+
+
+def _review_date(value: object) -> date | None:
+    if isinstance(value, date):
+        return value
+    try:
+        return datetime.strptime(str(value), "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def validate_projects(ctx: ValidationContext) -> None:
+    projects_dir = VAULT / "1 Projects"
+    if not projects_dir.is_dir():
+        return
+
+    index = WikilinkIndex()
+    top_notes = sorted(projects_dir.rglob(PROJECT_TOP_NOTE))
+
+    # Inbound links per target, so a note linking to itself does not count.
+    inbound: dict[Path, set[Path]] = defaultdict(set)
+    for fp in index.files:
+        for link in extract_wikilinks(fp.read_text(encoding="utf-8", errors="replace")):
+            target = index.resolve(link, source_file=fp)
+            if target:
+                inbound[target].add(fp)
+
+    # Notes linked from the projects index.
+    index_file = projects_dir / "projects.md"
+    indexed: set[Path] = set()
+    if not index_file.exists():
+        ctx.warn("wiki/1 Projects/projects.md missing")
+    else:
+        for link in extract_wikilinks(index_file.read_text(encoding="utf-8", errors="replace")):
+            target = index.resolve(link, source_file=index_file)
+            if target:
+                indexed.add(target)
+            elif not link.startswith("00"):
+                ctx.error(f"projects.md: [[{link}]] → no matching note")
+
+    for note in top_notes:
+        rel = note.relative_to(VAULT)
+        status_dir = rel.parts[1] if len(rel.parts) > 1 else ""
+        is_live = status_dir in LIVE_PROJECT_STATUSES
+
+        result = parse_detailed(note.read_text(encoding="utf-8", errors="replace"))
+        if result.error:
+            ctx.warn(f"wiki/{rel}: {result.error.kind.name.lower()}: {result.error.detail}")
+            continue
+        if result.frontmatter is None:
+            ctx.warn(f"wiki/{rel}: no frontmatter")
+            continue
+
+        fm = result.frontmatter
+        required = PROJECT_REQUIRED_KEYS | (PROJECT_ACTIVE_KEYS if is_live else set())
+        for key in sorted(required - set(fm.keys())):
+            ctx.warn(f"wiki/{rel}: missing `{key}` in frontmatter")
+
+        # Completed notes are records, not work in progress: no review clock.
+        reviewed = fm.get("last-reviewed")
+        if reviewed is None:
+            if is_live:
+                ctx.warn(f"wiki/{rel}: no last-reviewed date")
+        elif (reviewed_date := _review_date(reviewed)) is None:
+            ctx.warn(f"wiki/{rel}: unparseable last-reviewed `{reviewed}`")
+        elif is_live and (days := (date.today() - reviewed_date).days) > STALE_REVIEW_DAYS:
+            ctx.warn(f"wiki/{rel}: last reviewed {days} days ago ({reviewed_date})")
+
+        # projects.md itself is the index, so it is never expected to be indexed.
+        if note != index_file and note not in indexed:
+            ctx.warn(f"wiki/{rel}: not listed in projects.md")
+
+        # A project with no inbound link at all is invisible in the graph.
+        if not any(src != note for src in inbound.get(note, ())):
+            ctx.warn(f"wiki/{rel}: not linked from any other note")
+
+
 def validate_vault(ctx: ValidationContext) -> None:
     if not VAULT.is_dir():
         ctx.warn(f"Obsidian vault not found: {VAULT}")
@@ -210,6 +303,8 @@ def validate_vault(ctx: ValidationContext) -> None:
     for broken in check_wikilinks():
         rel = broken.source.relative_to(VAULT)
         ctx.warn(f"Broken wikilink in wiki/{rel}: [[{broken.link}]]")
+
+    validate_projects(ctx)
 
 
 # ── Main ─────────────────────────────────────────────────────────────

@@ -127,7 +127,8 @@ if ! command -v opencode &>/dev/null; then
         echo "   Install later: bun install -g opencode-ai@${OPENCODE_VERSION}"
     fi
 else
-    INSTALLED_VERSION=$(opencode --version 2>/dev/null | tr -d '[:space:]' || echo "unknown")
+    # `opencode --version` prints e.g. "opencode v2.1.1" — keep only the number.
+    INSTALLED_VERSION=$(opencode --version 2>/dev/null | sed -E 's/.*v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' || echo "unknown")
     if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != "$OPENCODE_VERSION" ]]; then
         warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
         if ask "Install matching version (bun install -g opencode-ai@${OPENCODE_VERSION})?"; then
@@ -372,7 +373,7 @@ else
     # Print server list with descriptions
     bun -e "
         const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-        const servers = cfg.mcp || {};
+        const servers = (cfg.mcp && cfg.mcp.servers) || {};
         const descs = {
             granola:  'meeting notes and transcripts — search past meetings in-session (remote, requires Granola account: https://granola.ai)',
             readwise: 'highlights and Reader access — search everything you have saved and highlighted (remote, requires Readwise account: https://readwise.io)',
@@ -401,7 +402,7 @@ else
         SERVER_COUNT=$(bun -e "
             try {
                 const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-                console.log(Object.keys(cfg.mcp || {}).length);
+                console.log(Object.keys((cfg.mcp && cfg.mcp.servers) || {}).length);
             } catch (e) {
                 console.log('0');
             }
@@ -413,7 +414,7 @@ else
         else
             bun -e "
                 const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-                Object.keys(cfg.mcp || {}).forEach((name, i) => {
+                Object.keys((cfg.mcp && cfg.mcp.servers) || {}).forEach((name, i) => {
                     console.log('  ' + (i + 1) + ') ' + name);
                 });
             "
@@ -431,7 +432,7 @@ else
                     process.stdin.on('data', chunk => input += chunk);
                     process.stdin.on('end', () => {
                         const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
-                        const names = Object.keys(cfg.mcp || {});
+                        const names = Object.keys((cfg.mcp && cfg.mcp.servers) || {});
                         const tokens = input.split(/[,\s]+/).filter(Boolean);
                         const toRemove = tokens
                             .map(n => parseInt(n.trim(), 10))
@@ -441,7 +442,7 @@ else
                         if (toRemove.length === 0) {
                             console.log('  (no valid selections — keeping all)');
                         } else {
-                            toRemove.forEach(name => delete cfg.mcp[name]);
+                            toRemove.forEach(name => delete cfg.mcp.servers[name]);
                             fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
                             console.log('  removed: ' + toRemove.join(', '));
                         }
@@ -467,7 +468,8 @@ echo ""
 LINEAR_CFG=$(bun -e "
     try {
         const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-        console.log(cfg.mcp && cfg.mcp.linear && cfg.mcp.linear.enabled ? 'enabled' : 'disabled');
+        const linear = cfg.mcp && cfg.mcp.servers && cfg.mcp.servers.linear;
+        console.log(linear ? (linear.disabled === true ? 'disabled' : 'enabled') : 'missing');
     } catch (e) {
         console.log('missing');
     }
@@ -481,8 +483,8 @@ elif [[ "$LINEAR_CFG" == "disabled" ]]; then
         OUTCOME=$(bun -e "
             const fs = require('fs');
             const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
-            if (cfg.mcp && cfg.mcp.linear) {
-                cfg.mcp.linear.enabled = true;
+            if (cfg.mcp && cfg.mcp.servers && cfg.mcp.servers.linear) {
+                cfg.mcp.servers.linear.disabled = false;
                 fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
                 console.log('enabled');
             } else {
