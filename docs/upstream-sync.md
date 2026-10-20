@@ -1,11 +1,11 @@
 # Syncing with upstream
 
-Joinery is a template. You clone it (or fork it), personalize it, and later pull improvements from the public template repo — "upstream" in git terms. This page is the manual flow; the `sync-upstream` skill automates all of it.
+Moraine is a template. You clone it (or fork it), personalize it, and later pull improvements from the public template repo — "upstream" in git terms. This page is the manual flow; the `sync-upstream` skill automates all of it.
 
 ## Add upstream
 
 ```bash
-git remote add upstream https://github.com/jamesctucker/joinery.git
+git remote add upstream https://github.com/jamesctucker/moraine.git
 ```
 
 ## Fetch and merge
@@ -15,7 +15,7 @@ git fetch upstream
 git merge upstream/main
 ```
 
-GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/joinery` → Fetch upstream) — only if you forked; plain clones don't get one.
+GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/moraine` → Fetch upstream) — only if you forked; plain clones don't get one.
 
 ## What to expect when syncing
 

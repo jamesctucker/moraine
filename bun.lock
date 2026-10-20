@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "joinery",
+      "name": "moraine",
       "dependencies": {
         "@opencode-ai/sdk": "^1.17.8",
       },

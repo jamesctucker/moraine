@@ -1,4 +1,4 @@
-# Joinery
+# Moraine
 
 A personal workspace for building projects, storing documents, and running agentic AI workflows.
 
@@ -62,10 +62,10 @@ sessions → review → identify candidates → create skill/command/plugin
 
 ## Scheduled jobs
 
-Joinery Cron runs automated agent tasks on a schedule. Job definitions are YAML files in `scheduled/`. The runner lives at `.opencode/cron/runner.ts`. To set up:
+Moraine Cron runs automated agent tasks on a schedule. Job definitions are YAML files in `scheduled/`. The runner lives at `.opencode/cron/runner.ts`. To set up:
 
 ```bash
-bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.joinery/cron/
+bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.moraine/cron/
 bun run .opencode/cron/runner.ts --list                # list all jobs
 bun run .opencode/cron/runner.ts --once weekly-recap      # run one immediately
 ```
@@ -73,7 +73,7 @@ bun run .opencode/cron/runner.ts --once weekly-recap      # run one immediately
 Add to crontab (runs every minute, fires only when schedule matches). Set PATH explicitly — cron's default excludes `~/.bun/bin` and `~/.opencode/bin`, so without it the job silently never runs:
 ```
 PATH=$HOME/.bun/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin:/bin
-* * * * * cd /path/to/joinery && bun run .opencode/cron/runner.ts
+* * * * * cd /path/to/moraine && bun run .opencode/cron/runner.ts
 ```
 
 Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audit, then appends a week-in-review to the daily note; optional email delivery via the commented `email:` block. Add your own jobs as new YAML files in `scheduled/`.
