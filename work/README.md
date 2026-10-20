@@ -1,6 +1,6 @@
 # /work
 
-External project repos that benefit from OpenBench's skills, spaces, and infra, while remaining independently versioned.
+External project repos that benefit from OpenBench's skills and infra, while remaining independently versioned.
 
 Pull repos in here when you want to work on them using this workspace's tools and context. Each subdirectory is its own git repo — no submodules, no nesting.
 

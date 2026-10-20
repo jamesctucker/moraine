@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **`spaces/`** — the domain-consultant space system is gone: the template and `spaces/README.md`, the `scripts/spaces/` loader and session-sync script, and the `/use-space` command. Persistent domain context belongs in a skill (which auto-loads on intent) or in `AGENTS.md`, not in a directory you have to load by hand.
 - **`readwise/` skills** (`build-persona`, `reader-recap`, `triage`, plus the shared `REFERENCE.md` and `SETUP.md`) — the Readwise MCP server is no longer shipped, so the whole category is gone. Skill count 35 → 32.
 - **Readwise, Granola, and Linear MCP integrations** — dropped from `.opencode/opencode.json`, the README integrations list, and the setup script (the Linear opt-in flow is gone). Only Semble and Headroom ship configured; add your own tracker, reader, or meeting-notes server to `opencode.json` when you want it.
 

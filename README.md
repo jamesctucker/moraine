@@ -108,7 +108,6 @@ openbench/
 │   ├── workspace/          # validate, health-check, session-index, memory-audit, project-status, agent-eval
 │   ├── mcp-servers/        # MCP server implementations (e.g. brave-search)
 │   ├── sandbox/            # opencode-sandbox, pii-scan
-│   └── spaces/             # Space loading script
 ├── tests/                  # pytest + vitest test suites
 ├── wiki/                   # PARA knowledge vault (open as an Obsidian vault)
 │   ├── 1 Projects/         # projects.md index + top notes with YAML frontmatter
@@ -124,7 +123,6 @@ openbench/
 │   ├── historical-decisions.md  # Decision blocks archived out of index.md
 │   ├── eval/               # Agent evaluation results
 │   └── .index/             # SQLite FTS5 search indexes (gitignored)
-├── spaces/                 # AI space definitions (_template to start)
 ├── artifacts/              # Architecture docs, research, design plans
 ├── work/                   # External project repos (each independently versioned)
 └── .opencode/              # OpenCode configuration
@@ -228,7 +226,6 @@ GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/openbe
 - `.opencode/opencode.json` — MCP server selection
 - `wiki/` — your PARA vault content
 - `memory/` — session summaries, staging notes
-- `spaces/` — your custom spaces
 - `artifacts/` — your artifacts
 
 ### `[CUSTOMIZE]` markers

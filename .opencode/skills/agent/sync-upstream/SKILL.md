@@ -96,7 +96,7 @@ For each changed file, classify into one of three buckets based on the path:
 
 These files are pure upstream code. The user should not have personalized them. If local changes exist, they were probably accidental — but always check (see "Auto-merge SAFE files" below for the safety check).
 
-- `scripts/**` (setup, MCP servers, workspace scripts, sandbox, spaces, obsidian-audit)
+- `scripts/**` (setup, MCP servers, workspace scripts, sandbox, obsidian-audit)
 - `.opencode/skills/**` (skill definitions)
 - `.opencode/cron/**` (cron runner code)
 - `.opencode/plugins/**` (plugin scaffolding)
@@ -119,7 +119,6 @@ These files have structure that upstream maintains, but contain `[CUSTOMIZE]` se
 - `README.md` — has `[CUSTOMIZE]` markers in some sections
 - `.opencode/opencode.json` — user may have trimmed MCP servers via setup
 - `work/README.md` — user adds their repos here
-- `spaces/README.md` — user adds their spaces here
 - `memory/README.md` (if user customized stubs)
 - `artifacts/README.md`
 
@@ -129,7 +128,6 @@ These directories contain personal content. Upstream changes here indicate eithe
 
 - `wiki/**`
 - `memory/sessions/**`, `memory/staging/**`, `memory/reviews/**`
-- `spaces/<name>/**` (specific user spaces, not the template)
 - `artifacts/**` (except README.md and _TEMPLATE.md)
 - `work/<repo>/**` (sub-repos)
 
@@ -206,7 +204,7 @@ If the user chose "Show me the raw diff", print `diff <file> <(git show upstream
 
 ## USER-OWNED files
 
-For files in `wiki/`, `memory/sessions/`, `spaces/<name>/`, `artifacts/` (except README.md and `_TEMPLATE.md`):
+For files in `wiki/`, `memory/sessions/`, `artifacts/` (except README.md and `_TEMPLATE.md`):
 
 If upstream changed any of these, **stop and surface to the user**. This shouldn't happen in normal operation. Possible causes:
 - Template update added a new stub to `wiki/` or `memory/` — show user, ask if they want it
@@ -296,7 +294,7 @@ New files added:
   .opencode/skills/engineering/new-skill/SKILL.md
 
 Skipped (user-owned, no upstream changes):
-  wiki/, memory/sessions/, spaces/myspace/
+  wiki/, memory/sessions/
 
 Smoke test: all passed
 
