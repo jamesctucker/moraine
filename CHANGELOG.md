@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`linearize` renamed to `to-issue` and made tracker-agnostic** — same propose-then-create workflow and `Route: rote|creative` tag, but it no longer assumes Linear tool names, a 0–4 priority scale, a hardcoded team key, or the initiative → project → issue model. It names the operations and defers to whichever tracker MCP is configured. `orchestrate-build-chain`, `implement-milestone`, `AGENTS.md`, and the setup featured-skills list follow the new name.
+- **`to-issue` now slices tracer bullets** — borrowed from Matt Pocock's `to-tickets`: every proposal row states the end-to-end behaviour it delivers, carries a `Blocked by` edge, and is sized to one context window; wide refactors get the expand–contract treatment instead of a fake vertical slice. Issues are published blockers-first so the edges reference real IDs.
 
 ### Removed
 
