@@ -473,6 +473,15 @@ else
     SMOKE_FAILED=1
 fi
 
+# A model provider must be authenticated before any session can run.
+if command -v opencode &>/dev/null; then
+    if opencode auth list --standalone 2>/dev/null | grep -q "stored"; then
+        ok "model provider credentials"
+    else
+        warn "No model provider yet — run: opencode auth login"
+    fi
+fi
+
 if command -v headroom &>/dev/null; then
     if headroom --version &>/dev/null 2>&1; then
         ok "headroom (installed)"

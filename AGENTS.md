@@ -30,6 +30,7 @@ A personal workspace for building projects, storing documents, and running agent
 | `artifacts/` | Research, architecture docs, design plans | When planning or understanding design decisions | When producing research or architecture output for a project |
 | `artifacts/diagrams/` | Excalidraw drawings (`.excalidraw`) and diagram descriptions (`.md`) | When looking for architecture diagrams, flowcharts, or system visuals | When creating or updating visual documentation for an artifact |
 | `scripts/` | Tooling: MCP servers, space generators, sandbox wrappers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
+| `docs/` | Maintenance and onboarding guides (upstream sync, first session) | When syncing a fork or onboarding | When a guide outgrows the README |
 | `.opencode/skills/` | Agent skill definitions | Automatically discovered by agents | When creating a new skill via `create-skill` |
 | `.opencode/plugins/` | OpenCode plugins (auto-discovered `*.ts` files) | Never — loaded automatically by OpenCode runtime | When adding project-local plugins |
 | `.opencode/opencode.json` | OpenCode project config (MCP servers, agents, plugins) | When checking or modifying OpenCode configuration | When adding MCP servers, agents, or changing settings |
@@ -85,6 +86,7 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 - Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
+- `memory/`, `wiki/`, and `artifacts/` are committed to git. Never write customer data, PII, credentials, incident details, or NDA material into them; keep secrets in `.env` (gitignored) and reference them by name.
 - Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`. Allocate the number with `python scripts/workspace/next-artifact.py --claim <slug>` — never hand-pick it from `ls`, because two sessions running at once will otherwise claim the same number.
 
 ## Health checks
@@ -100,7 +102,6 @@ Deterministic scripts in `scripts/workspace/`. All flag-only (never modify memor
 | `validate-repos.py` | `memory/work-repos.md` matches `work/` on disk (honours `machine_scope`) | After adding/removing repos |
 | `agent-eval.py` | Golden-task eval harness (results in `memory/eval/`) | After changing workspace tooling |
 | `prune-decisions.py` | Archives old "Recent decisions" blocks from `memory/index.md` (`--prune` modifies) | When flagged by memory-audit |
-- `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
 
 ## Token Efficiency (Headroom)
 
