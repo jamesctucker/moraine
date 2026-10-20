@@ -375,9 +375,6 @@ else
         const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
         const servers = (cfg.mcp && cfg.mcp.servers) || {};
         const descs = {
-            granola:  'meeting notes and transcripts — search past meetings in-session (remote, requires Granola account: https://granola.ai)',
-            readwise: 'highlights and Reader access — search everything you have saved and highlighted (remote, requires Readwise account: https://readwise.io)',
-            linear:   'issue tracking (remote, disabled by default — enable below)',
             semble:   'semantic code search across work/ repos (local, uvx)',
             headroom: 'context compression, 60-95% fewer tokens (local)',
         };
@@ -453,54 +450,6 @@ else
             fi
         fi
     fi
-fi
-
-# ── Linear (opt-in) ───────────────────────────────────────────
-
-echo ""
-info "Linear — issue tracking (opt-in)"
-echo "   Linear is a remote MCP server; no local install needed."
-echo "   Requires a Linear account (https://linear.app). On first use,"
-echo "   OpenCode will prompt for OAuth — sign in once and you're set."
-echo "   The 'linearize' skill converts specs/repos into Linear issues."
-echo ""
-
-LINEAR_CFG=$(bun -e "
-    try {
-        const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-        const linear = cfg.mcp && cfg.mcp.servers && cfg.mcp.servers.linear;
-        console.log(linear ? (linear.disabled === true ? 'disabled' : 'enabled') : 'missing');
-    } catch (e) {
-        console.log('missing');
-    }
-" 2>/dev/null || echo "missing")
-LINEAR_CFG="${LINEAR_CFG:-missing}"
-
-if [[ "$LINEAR_CFG" == "enabled" ]]; then
-    ok "linear MCP already enabled"
-elif [[ "$LINEAR_CFG" == "disabled" ]]; then
-    if ask "Enable Linear MCP?"; then
-        OUTCOME=$(bun -e "
-            const fs = require('fs');
-            const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
-            if (cfg.mcp && cfg.mcp.servers && cfg.mcp.servers.linear) {
-                cfg.mcp.servers.linear.disabled = false;
-                fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
-                console.log('enabled');
-            } else {
-                console.log('not-configured');
-            }
-        ")
-        if [[ "$OUTCOME" == "enabled" ]]; then
-            ok "linear MCP enabled — OAuth will prompt on first use"
-        else
-            warn "linear entry missing in opencode.json — leaving as-is"
-        fi
-    else
-        warn "linear MCP left disabled. Enable later by editing .opencode/opencode.json"
-    fi
-else
-    warn "linear entry missing in .opencode/opencode.json — skipping"
 fi
 
 # ── Smoke test ───────────────────────────────────────────────
@@ -580,7 +529,7 @@ info "Featured skills (try these first):"
 echo "   • i-have-adhd — ADHD-shaped output: next action first, numbered steps, capped lists"
 echo "   • session-handoff — wrap up a session, persist memory for next time"
 echo "   • scaffold-project — start a new project with PARA structure"
-echo "   • linearize — turn a spec/repo into Linear issues (requires Linear MCP)"
+echo "   • linearize — turn a spec/repo into tracker issues (needs an issue-tracker MCP server)"
 echo "   • create-skill — build a new skill when you find a pattern worth automating"
 echo ""
 echo "   Skills auto-activate when you ask for what they do. Just describe your intent."

@@ -49,15 +49,6 @@ python scripts/workspace/session-index.py search "authentication decision"
 # (session-handoff skill handles this automatically)
 ```
 
-## Linearizing existing work
-
-Specs, artifacts, and repos can be converted into Linear issues without manual entry. Point the agent at a source and say "linearize this":
-
-- **From an artifact** — the agent reads the spec, maps phases/milestones to Linear projects and sections to issues, proposes a breakdown table for your review, then creates everything on approval. Issue descriptions cross-link back to the artifact.
-- **From a repo** — the agent reads `AGENTS.md`, `README.md`, `TODO.md` / `ROADMAP.md`, scans for `TODO`/`FIXME` comments, and proposes an issue breakdown linked to the appropriate Linear project.
-
-The agent proposes before it creates — you review the table, adjust, then say "go." Nothing gets created silently. See `AGENTS.md` → *Issue Tracking* for the full workflow. (Requires the Linear MCP server — disabled by default; enable in setup or `.opencode/opencode.json`.)
-
 ## Scheduled jobs
 
 OpenBench includes a lightweight cron scheduler that runs automated agent tasks. It ships with one job, `weekly-recap` (Mondays 8am): a deterministic memory audit plus a week-in-review appended to your daily note. Job definitions live in `scheduled/` as simple YAML files — copy `weekly-recap.yaml` to add your own. The runner is TypeScript, executed via [`bun`](https://bun.sh/).
@@ -147,9 +138,6 @@ openbench/
 
 MCP servers are configured in `.opencode/opencode.json`. Each is opt-in — setup shows the list and lets you trim any you don't want.
 
-- **Readwise** — highlights and Read-Later access (remote MCP, requires a [Readwise](https://readwise.io) account). Readwise collects everything you highlight — books, articles, PDFs, podcasts — and its Reader app is a read-later inbox with RSS and email newsletters built in. With the MCP server, the agent can search your highlights and document library, so answers and drafts can draw on things you've actually read instead of generic knowledge. Three `readwise/` skills build on it: inbox triage, reading recap, and a persona builder that learns your taste.
-- **Granola** — meeting notes and transcripts (remote MCP, requires a [Granola](https://granola.ai) account). Granola is an AI notepad for meetings: it transcribes locally and merges your typed notes with the transcript into structured summaries — no bot joining the call. With the MCP server, "what did we decide in Tuesday's sync?" or "what action items came out of my 1:1?" become questions the agent can answer directly, with citations back to the meeting.
-- **Linear** — issue tracking (remote MCP, **disabled by default** — enable in setup or `opencode.json`; OAuth on first use). The `linearize` skill converts specs/repos to Linear issues.
 - **Semble** — semantic code search across `work/` repos (local server, `uvx`).
 - **Headroom** — context compression (local server, save 60–95% on tool output tokens, reversible via CCR).
 
@@ -163,7 +151,7 @@ cd openbench
 bash scripts/setup
 ```
 
-Requires: `git`, `bun`, `python3` (3.11+). The setup script is consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command that will run. It checks for `opencode` (versioned via `.opencode-version`, offers `bun install -g opencode-ai` if missing), installs workspace JS deps and Python deps (into a workspace-local `.venv/` — never system Python), optionally installs `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, offers to enable `linear` (issue tracking), runs a smoke test, and prints featured skills to try first. Pass `--yes` to accept defaults non-interactively (CI).
+Requires: `git`, `bun`, `python3` (3.11+). The setup script is consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command that will run. It checks for `opencode` (versioned via `.opencode-version`, offers `bun install -g opencode-ai` if missing), installs workspace JS deps and Python deps (into a workspace-local `.venv/` — never system Python), optionally installs `headroom` (context compression) and `obsidian` (wiki client), lets you trim unwanted MCP servers, runs a smoke test, and prints featured skills to try first. Pass `--yes` to accept defaults non-interactively (CI).
 
 Next: edit `AGENTS.md` to match your project tracking setup, edit `.opencode/opencode.json` to enable/disable MCP servers, open `wiki/` as an Obsidian vault, and start OpenCode in the repo root.
 
