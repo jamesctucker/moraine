@@ -21,7 +21,7 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# OpenBench internals (not code to search)
+# Joinery internals (not code to search)
 memory/
 wiki/
 artifacts/

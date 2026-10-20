@@ -1,11 +1,11 @@
 # Keeping your fork up to date
 
-OpenBench is a template. You clone it, personalize it, and pull upstream improvements later. This page is the manual flow; the `sync-upstream` skill automates all of it.
+Joinery is a template. You clone it, personalize it, and pull upstream improvements later. This page is the manual flow; the `sync-upstream` skill automates all of it.
 
 ## Add upstream
 
 ```bash
-git remote add upstream https://github.com/jamesctucker/openbench.git
+git remote add upstream https://github.com/jamesctucker/joinery.git
 ```
 
 ## Fetch and merge
@@ -15,7 +15,7 @@ git fetch upstream
 git merge upstream/main
 ```
 
-GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/openbench` → Fetch upstream).
+GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/joinery` → Fetch upstream).
 
 ## What to expect when syncing
 

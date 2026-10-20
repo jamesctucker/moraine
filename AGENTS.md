@@ -1,4 +1,4 @@
-# OpenBench
+# Joinery
 
 A personal workspace for building projects, storing documents, and running agentic AI workflows.
 
@@ -64,17 +64,17 @@ See `artifacts/01-self-improving-loop.md` for the full architecture.
 
 ## Scheduled jobs
 
-OpenBench Cron runs automated agent tasks on a schedule. Job definitions are YAML files in `scheduled/`. The runner lives at `.opencode/cron/runner.ts`. To set up:
+Joinery Cron runs automated agent tasks on a schedule. Job definitions are YAML files in `scheduled/`. The runner lives at `.opencode/cron/runner.ts`. To set up:
 
 ```bash
-bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.openbench/cron/
+bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.joinery/cron/
 bun run .opencode/cron/runner.ts --list                # list all jobs
 bun run .opencode/cron/runner.ts --once weekly-recap      # run one immediately
 ```
 
 Add to crontab (runs every minute, fires only when schedule matches):
 ```
-* * * * * cd /path/to/openbench && bun run .opencode/cron/runner.ts
+* * * * * cd /path/to/joinery && bun run .opencode/cron/runner.ts
 ```
 
 Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audit, then appends a week-in-review to the daily note; optional email delivery via the commented `email:` block. Add your own jobs as new YAML files in `scheduled/`.

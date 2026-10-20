@@ -1,8 +1,8 @@
-# OpenBench
+# Joinery
 
 **A git-backed workspace your coding agent can remember.**
 
-Every session with a coding agent starts from zero: it doesn't know your projects, your conventions, or what you decided last week. OpenBench closes that gap with a repo the agent reads on startup — project notes, session summaries, decisions — plus skills that encode how work gets done here.
+Every session with a coding agent starts from zero: it doesn't know your projects, your conventions, or what you decided last week. Joinery closes that gap with a repo the agent reads on startup — project notes, session summaries, decisions — plus skills that encode how work gets done here.
 
 **For:** engineers who use a coding agent daily and are tired of re-explaining context.
 **Not for:** teams wanting one shared workspace (each person clones their own; code stays in its own repos under `work/`), or anyone wanting a hosted service.
@@ -19,7 +19,7 @@ Four directories, four jobs. The split is the point: the agent writes memory, yo
 | `artifacts/` | Designs, research, specs, plans | agent |
 
 ```
-openbench/
+joinery/
 ├── AGENTS.md          # agent instructions and conventions
 ├── memory/            # agent-written session context
 ├── wiki/              # your PARA vault (open in Obsidian)
@@ -47,8 +47,8 @@ Everything outside `work/` is plain markdown in one git repo, so the agent's con
 ### Setup
 
 ```bash
-git clone https://github.com/jamesctucker/openbench
-cd openbench
+git clone https://github.com/jamesctucker/joinery
+cd joinery
 bash scripts/setup
 ```
 
@@ -126,7 +126,7 @@ For code across repos, ask the agent — the Semble MCP server searches `work/` 
 A lightweight cron scheduler runs automated agent tasks. It ships with one job, `weekly-recap` (Mondays 8am): a deterministic memory audit plus a week-in-review appended to your daily note. Jobs are YAML files in `scheduled/`; copy `weekly-recap.yaml` to add your own.
 
 ```bash
-bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.openbench/cron/
+bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.joinery/cron/
 bun run .opencode/cron/runner.ts --list               # list configured jobs
 bun run .opencode/cron/runner.ts --dry-run            # see what would fire now
 bun run .opencode/cron/runner.ts --once weekly-recap  # run one immediately
@@ -135,7 +135,7 @@ bun run .opencode/cron/runner.ts --once weekly-recap  # run one immediately
 Add it to crontab (every minute is fine — it only fires when a job's schedule matches):
 
 ```
-* * * * * cd /path/to/openbench && bun run .opencode/cron/runner.ts
+* * * * * cd /path/to/joinery && bun run .opencode/cron/runner.ts
 ```
 
 ```yaml
@@ -168,7 +168,7 @@ Add your own tracker, reader, or meeting-notes server there when you want it; `t
 
 ## Make it yours
 
-OpenBench is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No signup, no cloud dependency, no vendor lock-in.
+Joinery is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No signup, no cloud dependency, no vendor lock-in.
 
 - **`AGENTS.md`** — the main lever: conventions, commands, issue tracking, remote access.
 - **`.opencode/skills/`** — 32 skills. Edit them, or write your own with the `create-skill` skill.
@@ -188,7 +188,7 @@ OpenBench is cloned, not hosted. Everything is in git — memory, wiki, skills, 
 Pull upstream improvements without losing your customization:
 
 ```bash
-git remote add upstream https://github.com/jamesctucker/openbench.git
+git remote add upstream https://github.com/jamesctucker/joinery.git
 git fetch upstream && git merge upstream/main
 ```
 

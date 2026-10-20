@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenBench — Setup
+# Joinery — Setup
 #
 # One-shot workspace setup for new clones and forks.
 # - Verifies required tools (git, bun, python3)
@@ -61,7 +61,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 echo ""
-info "🛠  OpenBench — Setup"
+info "🛠  Joinery — Setup"
 echo "   ${REPO_ROOT}"
 echo ""
 
