@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Credentials check in the setup smoke test** — runs `opencode auth list` and points at `opencode auth login` instead of letting a fresh clone reach a login wall.
 - **"What not to commit" policy** in the README and `AGENTS.md` — `memory/`, `wiki/`, and `artifacts/` are committed, so customer data, PII, credentials, and NDA material stay out.
 
+### Fixed
+
+- **The CI Node job never ran the tests.** `npm ci` and `setup-node`'s npm cache both need an npm lockfile, and `package-lock.json` is gitignored — so the job failed at setup on every push. It now installs from the committed `bun.lock`, installs `.opencode/` dependencies (the cron runner imports `yaml`, `zod`, and `marked` from there), and runs vitest under the Node version in `.nvmrc`.
+
 ### Changed
 
 - **README rewritten for onboarding** — problem-first framing, a `For / Not for` fit check, the four-store model (work / memory / wiki / artifacts), install with provider-auth prerequisites, a first-20-minutes activation loop, and verify commands. The fork-sync guide moved to `docs/upstream-sync.md`; the deep file tree is trimmed to the eight entries that teach the model.
