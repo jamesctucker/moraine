@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Explore intent, requirements, and design before implementation, with optional visual companion. Use only when the user explicitly asks to brainstorm (\"brainstorm this\", \"let's brainstorm\", \"explore options before building\") or when a request is too vague to plan. Not for well-specified work — use writing-plans or implement-milestone instead."
 ---
 
 # Brainstorming Ideas Into Designs

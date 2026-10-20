@@ -5,7 +5,7 @@ description: Find deepening opportunities in a codebase, informed by the domain 
 
 # Improve Codebase Architecture
 
-> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture). Forked for The Garage workspace.
+> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture). Forked for this workspace.
 
 Surface architectural friction and propose **deepening opportunities** — refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
 
@@ -32,7 +32,7 @@ This skill is _informed_ by the project's domain model. The domain language give
 
 ## Domain awareness
 
-The Garage is a workspace, not a single software project. Before running this skill, determine which layer the conversation belongs to:
+This workspace is not a single software project. Before running this skill, determine which layer the conversation belongs to:
 
 ### Workspace level
 

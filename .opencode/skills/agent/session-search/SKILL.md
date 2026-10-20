@@ -44,7 +44,7 @@ python scripts/workspace/session-index.py search "<query>"
 **Examples:**
 ```bash
 python scripts/workspace/session-index.py search "authentication"
-python scripts/workspace/session-index.py search "Grove deploy" --limit 5
+python scripts/workspace/session-index.py search "release deploy" --limit 5
 python scripts/workspace/session-index.py search "OpenHuman comparison" --section decisions
 python scripts/workspace/session-index.py search "gift sheet" --dates 2026-05-01..2026-05-31 --project my-app
 ```

@@ -68,7 +68,7 @@ node .opencode/skills/design/impeccable/scripts/pin.mjs <pin|unpin> <command>
 Valid `<command>` is any command from the table above. Report the script's result concisely. Confirm the new shortcut on success, relay stderr verbatim on error.
 ## Workspace Integration
 
-> Forked from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) for The Garage workspace. Apache 2.0.
+> Forked from [pbakaus/impeccable](https://github.com/pbakaus/impeccable) for this workspace. Apache 2.0.
 
 ### Where output goes
 
@@ -80,8 +80,7 @@ Valid `<command>` is any command from the table above. Report the script's resul
 
 ### Complementary skills
 
-- **`web-design-guidelines`** (in `ux/`) — audits against Vercel's Web Interface Guidelines. Use for guideline compliance checks; Impeccable's `audit` and `critique` evaluate design quality and anti-patterns, not guideline conformance. Both are useful; they test different things.
-- **`grill-with-docs`** (in `engineering/`) — when a design choice affects architecture (component boundaries, state management, API contracts), switch to grilling to resolve the structural problem.
+- **`grilling`** (in `productivity/`) — when a design choice affects architecture (component boundaries, state management, API contracts), switch to grilling to resolve the structural problem.
 - **`diagnose`** (in `engineering/`) — for actual bug diagnosis. Don't use `harden` to debug runtime errors; use `diagnose` for that, then `harden` to prevent future edge cases.
 
 ### Context awareness
