@@ -1,6 +1,6 @@
 ---
 name: session-search
-description: Search past agent sessions for discussions, decisions, and context. Use when the user asks about past discussions, decisions, or anything that was covered in a previous session.
+description: Search past agent sessions for discussions, decisions, and context. Use when the user asks about past discussions, decisions, or anything that was covered in a previous session. For pattern analysis across sessions use review-memory; for staging cleanup use memory-promoter.
 ---
 
 # Session Search

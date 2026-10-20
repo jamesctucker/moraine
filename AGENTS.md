@@ -29,7 +29,7 @@ A personal workspace for building projects, storing documents, and running agent
 | `wiki/2 Areas/` | Ongoing responsibilities (no finish line) + `areas.md` index table | When catching up on area-level context | When updating area top notes or adding a new area |
 | `artifacts/` | Research, architecture docs, design plans | When planning or understanding design decisions | When producing research or architecture output for a project |
 | `artifacts/diagrams/` | Excalidraw drawings (`.excalidraw`) and diagram descriptions (`.md`) | When looking for architecture diagrams, flowcharts, or system visuals | When creating or updating visual documentation for an artifact |
-| `scripts/` | Tooling: MCP servers, space generators, sandbox wrappers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
+| `scripts/` | Tooling: MCP servers, sandbox wrappers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
 | `docs/` | Maintenance and onboarding guides (upstream sync, first session) | When syncing a fork or onboarding | When a guide outgrows the README |
 | `.opencode/skills/` | Agent skill definitions | Automatically discovered by agents | When creating a new skill via `create-skill` |
 | `.opencode/plugins/` | OpenCode plugins (auto-discovered `*.ts` files) | Never — loaded automatically by OpenCode runtime | When adding project-local plugins |
@@ -60,8 +60,6 @@ sessions → review → identify candidates → create skill/command/plugin
     └──────── those skills improve future sessions ───────┘
 ```
 
-See `artifacts/01-self-improving-loop.md` for the full architecture.
-
 ## Scheduled jobs
 
 Joinery Cron runs automated agent tasks on a schedule. Job definitions are YAML files in `scheduled/`. The runner lives at `.opencode/cron/runner.ts`. To set up:
@@ -72,8 +70,9 @@ bun run .opencode/cron/runner.ts --list                # list all jobs
 bun run .opencode/cron/runner.ts --once weekly-recap      # run one immediately
 ```
 
-Add to crontab (runs every minute, fires only when schedule matches):
+Add to crontab (runs every minute, fires only when schedule matches). Set PATH explicitly — cron's default excludes `~/.bun/bin` and `~/.opencode/bin`, so without it the job silently never runs:
 ```
+PATH=$HOME/.bun/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin:/bin
 * * * * * cd /path/to/joinery && bun run .opencode/cron/runner.ts
 ```
 
@@ -82,7 +81,7 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 ## Conventions
 
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
-- `wiki/` is an Obsidian vault — open the folder in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks. Obsidian creates `.obsidian/` on first open (gitignored).
+- Opening `wiki/` in Obsidian creates a `.obsidian/` config directory on first open (gitignored) — per-user vault state stays out of git.
 - Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
@@ -184,10 +183,6 @@ When asked "what's next?" or "what should I work on?", the agent lists backlog i
 
 ## Remote Access
 
-<!-- [CUSTOMIZE] Optional. If you want to expose this workspace over Tailscale
-     via OpenCode Server, document your setup here. Otherwise delete this
-     section. -->
-
-Connect to this workspace remotely via OpenCode Server:
-1. Connect to Tailscale
-2. Access OpenCode server at `http://<tailscale-ip>:8443`
+<!-- [CUSTOMIZE] Optional. To expose this workspace remotely, run
+     `opencode serve --port 8443` behind a private network (e.g. Tailscale)
+     and document your setup here. Otherwise delete this section. -->

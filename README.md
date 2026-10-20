@@ -37,12 +37,7 @@ Everything outside `work/` is plain markdown in one git repo, so the agent's con
 ### Prerequisites
 
 - `git`, `bun`, `python3` 3.11+
-- A model provider for OpenCode. Setup installs OpenCode; the credentials are yours:
-
-  ```bash
-  opencode auth login          # Anthropic, DeepSeek, OpenRouter, …
-  opencode auth list           # confirm something is stored
-  ```
+- A model provider for OpenCode (Anthropic, DeepSeek, OpenRouter, …). Setup installs OpenCode; you authenticate after setup, below.
 
 ### Setup
 
@@ -52,7 +47,27 @@ cd joinery
 bash scripts/setup
 ```
 
-Consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command. Setup checks your tools, installs OpenCode at the pinned version (`.opencode-version`), installs JS deps and Python deps into a workspace-local `.venv/` (never system Python), optionally installs Headroom and Obsidian, lets you trim MCP servers, and runs a smoke test that includes a credentials check. `--yes` accepts defaults non-interactively.
+Then authenticate your provider — setup installed OpenCode, but the credentials are yours:
+
+```bash
+opencode auth login          # Anthropic, DeepSeek, OpenRouter, …
+opencode auth list           # confirm something is stored
+```
+
+Consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command. Setup checks your tools, installs OpenCode at the pinned version (`.opencode-version`), installs JS deps and Python deps into a workspace-local `.venv/` (never system Python), optionally installs Headroom and Obsidian, lets you trim MCP servers (tool integrations the agent can call), and runs a smoke test that includes a credentials check. `--yes` accepts defaults non-interactively.
+
+Setup ends with `✓ Setup complete!` and a smoke-test tally. If the tally reports a credentials warning, run `opencode auth login` — everything else can wait.
+
+### Point origin at your own repo
+
+The clone's `origin` is the public template — but your memory, wiki, and project notes are committed to git, so they need somewhere to go. Create a private repo and repoint `origin`:
+
+```bash
+gh repo create joinery --private    # or create one in the GitHub UI
+git remote set-url origin <your-repo-url>
+```
+
+Forking first and cloning your fork works too. Either way, pulling template updates later is covered in [docs/upstream-sync.md](docs/upstream-sync.md).
 
 ### Verify
 
@@ -67,7 +82,7 @@ Use `python3` instead of `.venv/bin/python` only if you installed the Python dep
 
 ### Obsidian (optional)
 
-`wiki/` is an Obsidian vault. Open it in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks.
+`wiki/` is an Obsidian vault. Open it in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks (`[[links]]` between notes).
 
 ```bash
 # macOS
@@ -88,9 +103,9 @@ Onboarding has one test: **in a second session, the agent recalls what you did i
 1. **Scaffold a project.** Start `opencode` in the repo root and say *"Scaffold a project called Checkout."* The `scaffold-project` skill creates the wiki top note and the index row.
 2. **Do one small piece of work.** *"Add a health endpoint to Checkout, with a test."* Steer as it goes; that's normal.
 3. **Wrap up.** *"Wrap up this session."* The `session-handoff` skill writes `memory/sessions/<date>-*.md` and updates `memory/index.md`.
-4. **Prove recall.** Start a fresh session and ask *"What did I work on yesterday, and what's the next step?"*
+4. **Prove recall.** Start a fresh session and ask *"What did I work on in my last session, and what's the next step?"*
 
-If step 4 works, onboarding worked. [Full walkthrough with expected output →](docs/first-session.md)
+If step 4 works, onboarding worked. You'll know: the agent answers from its own reading — naming the project, what you did, and the next step — without you pasting anything. [Full walkthrough with expected output →](docs/first-session.md)
 
 ## Daily workflow
 
@@ -132,9 +147,10 @@ bun run .opencode/cron/runner.ts --dry-run            # see what would fire now
 bun run .opencode/cron/runner.ts --once weekly-recap  # run one immediately
 ```
 
-Add it to crontab (every minute is fine — it only fires when a job's schedule matches):
+Add it to crontab (every minute is fine — it only fires when a job's schedule matches). Set PATH explicitly: cron's default excludes `~/.bun/bin` and `~/.opencode/bin`, so without this line the job silently never runs:
 
 ```
+PATH=$HOME/.bun/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin:/bin
 * * * * * cd /path/to/joinery && bun run .opencode/cron/runner.ts
 ```
 
@@ -152,7 +168,7 @@ hostname: my-machine     # optional — restrict to one machine
 Configured in `.opencode/opencode.json`. Two ship enabled:
 
 - **Semble** — semantic code search across `work/` repos (local, `uvx`).
-- **Headroom** — context compression, 60–95% fewer tokens on tool output, reversible via CCR (local).
+- **Headroom** — context compression, 60–95% fewer tokens on tool output, reversible — the agent can retrieve the original via CCR (local).
 
 Add your own tracker, reader, or meeting-notes server there when you want it; `to-issue` and the other skills will use whatever the agent can see.
 
@@ -174,6 +190,10 @@ Joinery is cloned, not hosted. Everything is in git — memory, wiki, skills, pr
 - **`.opencode/skills/`** — 32 skills. Edit them, or write your own with the `create-skill` skill.
 - **`.opencode/opencode.json`** — MCP servers and shell-safety permissions.
 - **The loop** — sessions feed reviews, reviews feed new skills, skills improve future sessions. It gets more useful the longer you use it.
+
+### Ejecting
+
+Everything Joinery-specific lives in the clone. To remove it: delete the directory, remove the crontab line if you added one, and uninstall whatever you let setup install globally (`opencode`, `headroom`, Obsidian). Nothing else touches your system.
 
 ### What not to commit
 

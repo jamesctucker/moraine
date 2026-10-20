@@ -24,7 +24,7 @@ RESET="\033[0m"
 info()  { echo -e "${BOLD}$*${RESET}"; }
 ok()    { echo -e "${GREEN}✓ $*${RESET}"; }
 warn()  { echo -e "${YELLOW}→ $*${RESET}"; }
-fail()  { echo -e "${RED}✗ $*${RESET}"; exit 1; }
+fail()  { echo -e "${RED}✗ $*${RESET}"; echo "   Fix this, then re-run: bash scripts/setup — re-running is safe."; exit 1; }
 
 YES=0
 for arg in "$@"; do
@@ -229,8 +229,6 @@ else
     echo " Compresses tool outputs, logs, files before they reach the model."
     echo " Reversible via CCR (Compress-Cache-Retrieve). 60-95% fewer tokens."
     echo " MCP server integrates with OpenCode — no plugin needed."
-    echo ""
-    echo " ⚠️  HIGH VALUE — compounds every session"
     echo ""
     if ask "Install headroom?" "y"; then
         HEADROOM_INSTALLED=""
@@ -458,53 +456,60 @@ echo ""
 info "Smoke test"
 
 SMOKE_FAILED=0
+SMOKE_OK=0
+SMOKE_WARN=0
+NO_CREDENTIALS=0
 PYBIN="python3"
 [[ -x "$VENV_PY" ]] && PYBIN="$VENV_PY"
 
+smoke_ok()   { ok "$@";   SMOKE_OK=$((SMOKE_OK + 1)); }
+smoke_warn() { warn "$@"; SMOKE_WARN=$((SMOKE_WARN + 1)); }
+
 if command -v opencode &>/dev/null; then
     if opencode --version &>/dev/null 2>&1; then
-        ok "opencode (CLI responsive)"
+        smoke_ok "opencode (CLI responsive)"
     else
-        warn "opencode --version failed"
+        smoke_warn "opencode --version failed"
         SMOKE_FAILED=1
     fi
 else
-    warn "opencode not on PATH"
+    smoke_warn "opencode not on PATH"
     SMOKE_FAILED=1
 fi
 
 # A model provider must be authenticated before any session can run.
 if command -v opencode &>/dev/null; then
     if opencode auth list --standalone 2>/dev/null | grep -q "stored"; then
-        ok "model provider credentials"
+        smoke_ok "model provider credentials"
     else
-        warn "No model provider yet — run: opencode auth login"
+        smoke_warn "No model provider yet — run: opencode auth login"
+        NO_CREDENTIALS=1
     fi
 fi
 
 if command -v headroom &>/dev/null; then
     if headroom --version &>/dev/null 2>&1; then
-        ok "headroom (installed)"
+        smoke_ok "headroom (installed)"
     else
-        warn "headroom --version failed"
+        smoke_warn "headroom --version failed"
         SMOKE_FAILED=1
     fi
 fi
 
 if [[ -f scripts/workspace/session-index.py ]]; then
     if "$PYBIN" scripts/workspace/session-index.py --help &>/dev/null 2>&1; then
-        ok "session-index (Python deps OK)"
+        smoke_ok "session-index (Python deps OK)"
     else
-        warn "session-index.py failed — check Python dependencies"
+        smoke_warn "session-index.py failed — check Python dependencies"
         SMOKE_FAILED=1
     fi
 fi
 
 if [[ -f scripts/workspace/validate.py ]]; then
     if "$PYBIN" scripts/workspace/validate.py &>/dev/null 2>&1; then
-        ok "validate (workspace structure OK)"
+        smoke_ok "validate (workspace structure OK)"
     else
-        warn "validate.py failed — run it manually to see findings"
+        smoke_warn "validate.py failed — run it manually to see findings"
         SMOKE_FAILED=1
     fi
 fi
@@ -517,6 +522,11 @@ if [[ $SMOKE_FAILED -eq 0 ]]; then
 else
     warn "Setup complete with warnings — see above"
 fi
+echo "   Smoke test: ${SMOKE_OK} passed, ${SMOKE_WARN} warning(s)"
+
+if [[ "$NO_CREDENTIALS" == "1" ]]; then
+    warn "One thing left before your first session: opencode auth login"
+fi
 
 if [[ -x "$VENV_PY" ]]; then
     echo ""
@@ -528,18 +538,18 @@ fi
 
 echo ""
 info "Next step:"
+echo "   • docs/first-session.md — a 20-minute walkthrough that proves the workspace works"
 echo "   • Run: opencode"
 echo "   • Open wiki/ as a vault in Obsidian (for the human knowledge side)"
 echo ""
-echo "   OpenCode will auto-discover AGENTS.md and skills."
-echo "   Start there."
+echo "   OpenCode auto-discovers AGENTS.md and skills. Start with AGENTS.md."
 echo ""
 info "Featured skills (try these first):"
-echo "   • i-have-adhd — ADHD-shaped output: next action first, numbered steps, capped lists"
-echo "   • session-handoff — wrap up a session, persist memory for next time"
 echo "   • scaffold-project — start a new project with PARA structure"
+echo "   • session-handoff — wrap up a session, persist memory for next time"
 echo "   • to-issue — turn a spec or repo into tracker issues (needs an issue-tracker MCP server)"
 echo "   • create-skill — build a new skill when you find a pattern worth automating"
+echo "   • i-have-adhd — ADHD-shaped output: next action first, numbered steps, capped lists"
 echo ""
 echo "   Skills auto-activate when you ask for what they do. Just describe your intent."
 echo ""

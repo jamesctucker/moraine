@@ -1,13 +1,13 @@
 ---
 name: sync-upstream
-description: Sync this fork with the upstream Joinery repo, preserving user personalizations. Use when user says "sync with upstream", "pull upstream changes", "update from upstream", or "keep my fork current".
+description: Sync this workspace with the upstream Joinery template repo, preserving your personalizations. Use when user says "sync with upstream", "pull upstream changes", "update from upstream", or "keep my fork current".
 ---
 
 # Sync with Upstream
 
 ## When to use
 
-User wants to pull changes from the upstream Joinery repo into their fork while preserving their personalizations (AGENTS.md customizations, MCP server selection, wiki content, etc.).
+User wants to pull changes from the upstream Joinery repo into their clone or fork while preserving their personalizations (AGENTS.md customizations, MCP server selection, wiki content, etc.).
 
 ## Overview
 
@@ -27,13 +27,13 @@ If this fails (missing remote), check the `origin` remote to infer the source:
 ORIGIN_URL=$(git remote get-url origin)
 ```
 
-If `origin` is a fork of `jamesctucker/joinery` (check by looking at the URL), add:
+If `origin` is your own repo (forked from `jamesctucker/joinery`, or cloned from it and repointed — the two setups the README recommends), add:
 
 ```bash
 git remote add upstream https://github.com/jamesctucker/joinery.git
 ```
 
-If `origin` is a fork of a different user (e.g., the user forked from a friend who forked from `jamesctucker`), **ask the user** which upstream they want to sync from before adding the remote. Don't assume.
+If `origin` came from a different user's repo (e.g., you forked from a friend who forked `jamesctucker`), **ask the user** which upstream they want to sync from before adding the remote. Don't assume.
 
 ### 2. Check working tree is clean
 

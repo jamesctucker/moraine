@@ -1,6 +1,6 @@
-# Keeping your fork up to date
+# Syncing with upstream
 
-Joinery is a template. You clone it, personalize it, and pull upstream improvements later. This page is the manual flow; the `sync-upstream` skill automates all of it.
+Joinery is a template. You clone it (or fork it), personalize it, and later pull improvements from the public template repo — "upstream" in git terms. This page is the manual flow; the `sync-upstream` skill automates all of it.
 
 ## Add upstream
 
@@ -15,7 +15,7 @@ git fetch upstream
 git merge upstream/main
 ```
 
-GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/joinery` → Fetch upstream).
+GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/joinery` → Fetch upstream) — only if you forked; plain clones don't get one.
 
 ## What to expect when syncing
 

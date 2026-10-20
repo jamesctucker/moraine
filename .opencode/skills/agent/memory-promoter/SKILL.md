@@ -1,6 +1,6 @@
 ---
 name: memory-promoter
-description: Review memory/staging/ periodically and promote recurring entries to wiki project notes or session summaries. Use when asked to clean up staging, find promotion candidates, or surface recurring topics.
+description: Review memory/staging/ periodically and promote recurring entries to wiki project notes or session summaries. Use when asked to clean up staging, find promotion candidates, or surface recurring topics. For pattern analysis across sessions use review-memory; for finding a specific past discussion use session-search.
 ---
 
 # Memory Promoter

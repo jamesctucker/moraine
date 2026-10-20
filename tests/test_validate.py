@@ -41,14 +41,6 @@ Content
         assert any("kebab-case" in e for e in ctx.errors)
 
 
-class TestValidatePersonas:
-    def test_missing_persona_dir(self, val, tmp_path):
-        ctx = val.ValidationContext()
-        val.WORKSPACE = tmp_path
-        val.validate_personas(ctx)
-        assert len(ctx.errors) == 0
-
-
 class TestValidateArtifacts:
     def test_good_artifact_passes(self, val, tmp_path):
         (tmp_path / "artifacts").mkdir()
@@ -94,3 +86,45 @@ class TestValidateMemoryIndex:
         val.validate_memory_index(ctx)
         assert len(ctx.errors) == 1
         assert "index not found" in ctx.errors[0].lower()
+
+
+class TestValidateProjects:
+    """Live-status detection must work for both project layouts: the flat
+    layout (1 Projects/<Name>/, status only in frontmatter) and the
+    status-directory layout (1 Projects/Active/<Name>/)."""
+
+    class _EmptyIndex:
+        files = []
+
+        def resolve(self, link, source_file=None):
+            return None
+
+    def _run(self, val, tmp_path, note_parts, frontmatter_status):
+        vault = tmp_path / "wiki"
+        note = vault.joinpath(*note_parts)
+        note.parent.mkdir(parents=True)
+        note.write_text(
+            f"---\nstatus: {frontmatter_status}\npriority: high\n---\n# Checkout\n"
+        )
+        val.VAULT = vault
+        val.WikilinkIndex = self._EmptyIndex
+        ctx = val.ValidationContext()
+        val.validate_projects(ctx)
+        return ctx
+
+    def test_flat_layout_active_requires_next_action(self, val, tmp_path):
+        ctx = self._run(val, tmp_path, ("1 Projects", "Checkout", "00 Top Note.md"), "active")
+        assert any("next-action" in w for w in ctx.warnings)
+
+    def test_flat_layout_active_requires_last_reviewed(self, val, tmp_path):
+        ctx = self._run(val, tmp_path, ("1 Projects", "Checkout", "00 Top Note.md"), "active")
+        assert any("no last-reviewed" in w for w in ctx.warnings)
+
+    def test_flat_layout_completed_has_no_review_clock(self, val, tmp_path):
+        ctx = self._run(val, tmp_path, ("1 Projects", "Checkout", "00 Top Note.md"), "completed")
+        assert not any("next-action" in w for w in ctx.warnings)
+        assert not any("no last-reviewed" in w for w in ctx.warnings)
+
+    def test_status_dir_layout_still_detected(self, val, tmp_path):
+        ctx = self._run(val, tmp_path, ("1 Projects", "Active", "Checkout", "00 Top Note.md"), "active")
+        assert any("next-action" in w for w in ctx.warnings)
