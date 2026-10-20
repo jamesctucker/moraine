@@ -1,13 +1,13 @@
 ---
 name: sync-upstream
-description: Sync this fork with the upstream OpenBench repo, preserving user personalizations. Use when user says "sync with upstream", "pull upstream changes", "update from upstream", or "keep my fork current".
+description: Sync this fork with the upstream Joinery repo, preserving user personalizations. Use when user says "sync with upstream", "pull upstream changes", "update from upstream", or "keep my fork current".
 ---
 
 # Sync with Upstream
 
 ## When to use
 
-User wants to pull changes from the upstream OpenBench repo into their fork while preserving their personalizations (AGENTS.md customizations, MCP server selection, wiki content, etc.).
+User wants to pull changes from the upstream Joinery repo into their fork while preserving their personalizations (AGENTS.md customizations, MCP server selection, wiki content, etc.).
 
 ## Overview
 
@@ -27,10 +27,10 @@ If this fails (missing remote), check the `origin` remote to infer the source:
 ORIGIN_URL=$(git remote get-url origin)
 ```
 
-If `origin` is a fork of `jamesctucker/openbench` (check by looking at the URL), add:
+If `origin` is a fork of `jamesctucker/joinery` (check by looking at the URL), add:
 
 ```bash
-git remote add upstream https://github.com/jamesctucker/openbench.git
+git remote add upstream https://github.com/jamesctucker/joinery.git
 ```
 
 If `origin` is a fork of a different user (e.g., the user forked from a friend who forked from `jamesctucker`), **ask the user** which upstream they want to sync from before adding the remote. Don't assume.
@@ -324,7 +324,7 @@ Tell them: "Aborted. Nothing was changed. Backup branch is still there if you wa
 
 ### Upstream has diverged significantly
 
-If `git diff HEAD..upstream/main --stat | tail -1` shows more than ~50 files changed, warn the user: "This is a large upstream sync ($N files). Consider reviewing [upstream changes](https://github.com/jamesctucker/openbench/compare/$(git rev-parse --short HEAD)...upstream/main) first. Proceed?"
+If `git diff HEAD..upstream/main --stat | tail -1` shows more than ~50 files changed, warn the user: "This is a large upstream sync ($N files). Consider reviewing [upstream changes](https://github.com/jamesctucker/joinery/compare/$(git rev-parse --short HEAD)...upstream/main) first. Proceed?"
 
 For very large syncs, suggest doing it file-by-file across multiple sessions.
 
