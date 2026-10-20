@@ -53,19 +53,28 @@ Use the artifact's own section names for issue titles — don't invent terminolo
 Output a table and ask for confirmation. Do NOT create anything yet.
 
 ```markdown
-| # | Issue title (from source section) | Label | Project / Initiative | Priority | Source ref |
-|---|-----------------------------------|-------|----------------------|----------|------------|
-| 1 | M4: SSE Evaluation Orchestrator   | Feature | Auction Reseller | High | artifacts/15 § M4 |
+| # | Issue title (from source section) | Label | Project / Initiative | Priority | Route | Source ref |
+|---|-----------------------------------|-------|----------------------|----------|-------|------------|
+| 1 | M4: SSE Evaluation Orchestrator   | Feature | Auction Reseller | High | rote | artifacts/15 § M4 |
 ```
 
 Also name the Linear project (new or existing) and which initiative it parents to.
+
+#### Route: rote or creative (required per issue)
+
+Tag every issue `rote` or `creative` — `orchestrate-build-chain` routes on this tag.
+
+- **rote** — the design is already decided; the work is mechanical execution of it (wiring, CRUD, specified tests, config). Safe to delegate wholesale.
+- **creative** — the issue's core is an unsolved design or judgment problem the user should learn from solving. These never go to a build subagent: the user writes the core, an agent critiques.
+
+When in doubt, tag creative. A mis-tagged rote issue costs a parked chain; a mis-tagged creative issue costs the learning — the worse outcome.
 
 ### Phase 4 — Create on approval
 
 Only after explicit "yes" / "go ahead":
 
 - `linear_save_project` (if new) — set team `THE`, link initiative.
-- `linear_save_issue` per row — set `title`, `team: "THE"`, `project`, `labels`, `priority` (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low), and a `description` linking back to the source path.
+- `linear_save_issue` per row — set `title`, `team: "THE"`, `project`, `labels`, `priority` (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low), and a `description` linking back to the source path. First line of the description: `Route: rote|creative`.
 - Cross-link: add the new Linear project/initiative URL to the source's wiki top note.
 
 ### Phase 5 — Record

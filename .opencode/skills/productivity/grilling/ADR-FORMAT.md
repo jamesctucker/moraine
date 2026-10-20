@@ -57,7 +57,7 @@ If a decision is easy to reverse, skip it — you'll just reverse it. If it's no
 
 ## Workspace-level decisions ≠ ADRs
 
-At The Garage workspace level (skills, agent workflows, infrastructure), do not create ADRs. Instead:
+At the workspace level (skills, agent workflows, infrastructure), do not create ADRs. Instead:
 
 - **Architecture and design** → `artifacts/<next-number>-<slug>.md`
 - **Decisions and conventions** → `memory/index.md` under a dated "Recent decisions" section

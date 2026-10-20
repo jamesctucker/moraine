@@ -34,12 +34,12 @@ _Avoid_: Client, buyer, account
 
 ## Where CONTEXT.md lives
 
-**In The Garage workspace:** Project glossaries live inside `work/<project>/` directories:
+**In a workspace with `work/` repos:** Project glossaries live inside `work/<project>/` directories:
 
 ```
 work/
 └── my-app/
-    └── CONTEXT.md          ← domain glossary for the M-RETS project
+    └── CONTEXT.md          ← domain glossary for the project
 ```
 
 If a project has multiple bounded contexts, use a `CONTEXT-MAP.md` at the project root:
@@ -59,7 +59,7 @@ The skill infers which structure applies by checking for `CONTEXT-MAP.md` first.
 
 ## Workspace-level terminology
 
-For concepts that span projects or apply to The Garage itself (e.g., "skill", "persona", "artifact"), do not create a root-level `CONTEXT.md`. Instead:
+For concepts that span projects or apply to the workspace itself (e.g., "skill", "persona", "artifact"), do not create a root-level `CONTEXT.md`. Instead:
 - Define them in the relevant `artifacts/` doc
 - Or capture them in `memory/index.md` if they are conventions or decisions
-- Or store them in the Obsidian vault under the appropriate PARA category
+- Or store them in the knowledge base under the appropriate PARA category

@@ -1,6 +1,6 @@
 # orchestrate-build-chain — Reference
 
-Extended mechanics for running a delegated build chain. Derived from running a 10-issue delegated chain end-to-end.
+Extended mechanics for running a delegated build chain. Derived from a ten-issue chain run end-to-end.
 
 ## Stacked-PR merge order
 

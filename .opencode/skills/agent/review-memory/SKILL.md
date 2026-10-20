@@ -9,6 +9,8 @@ description: Analyze recent session summaries to identify repeated workflows, ma
 
 User says "review my sessions", "analyze memory", "find patterns", "what can be automated", or periodically when enough sessions have accumulated.
 
+This skill works across sessions. For one session that ran long or needed repeated correction, use `retro` instead.
+
 ## Workflow
 
 ### 1. Scan sessions

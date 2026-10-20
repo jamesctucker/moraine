@@ -1,6 +1,6 @@
 ---
 name: implement-milestone
-description: Spec-driven implementation of a single milestone/feature with a mandatory PR-review pass and a green test gate. Use when the user says "implement milestone X", "build M3", "work on THE-5", or points at a Linear issue / artifact section and wants it built end-to-end. Not for research, triage, or pure code review.
+description: Spec-driven implementation of a single milestone/feature with a mandatory PR-review pass and a green test gate. Use when the user says "implement milestone X", "build M3", "work on PROJ-5", or points at a Linear issue / artifact section and wants it built end-to-end. Not for research, triage, or pure code review.
 ---
 
 # implement-milestone
@@ -19,7 +19,7 @@ Follow the layer model in `AGENTS.md` → Issue Tracking. Read the spec section 
 - Read the milestone's spec section (artifact or Linear issue description) and any linked decisions/comments. If the spec or comment thread is large, compress with `headroom_compress` first.
 - Read the repo's `AGENTS.md` for commands, branch naming, and conventions.
 - Skim the relevant existing code so the new code matches surrounding style.
-- Identify the Linear issue ID and target branch name (repo convention, e.g. `feature/the-5-m3-comp-fetcher-pipeline`).
+- Identify the Linear issue ID and target branch name (repo convention, e.g. `feature/proj-5-m3-comp-fetcher-pipeline`).
 
 ### 2. Branch
 - Create the branch from the repo's default base. Announce the branch name.

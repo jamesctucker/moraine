@@ -1,13 +1,15 @@
 ---
 name: diagnose
-description: Disciplined diagnosis loop for hard bugs and performance regressions. Reproduce → minimise → hypothesise → instrument → fix → regression-test. Use when user says "diagnose this" / "debug this", reports a bug, says something is broken/throwing/failing, or describes a performance regression.
+description: Disciplined diagnosis loop for hard bugs and performance regressions. Reproduce → minimise → hypothesise → instrument → fix → regression-test. Use when user says "diagnose this" / "debug this" / "wtf" / "/wtf", asks "why did that fail" or "what went wrong", pastes an error, reports a bug, says something is broken/throwing/failing, or describes a performance regression.
 ---
 
 # Diagnose
 
-> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnose). Forked for The Garage workspace.
+> Adapted from [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnose). Forked for this workspace.
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
+
+**Quick triage short-circuit:** for a single failed command with an obvious cause (missing binary, typo'd path, permission denied, port in use), skip straight to naming the cause and the exact fix. The full loop is for failures whose cause is not visible in the error text.
 
 When exploring the codebase, use the project's domain glossary to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 
@@ -120,7 +122,7 @@ Required before declaring done:
 
 ## Workspace awareness
 
-The Garage is a workspace, not a single project. Where the bug lives determines how you work:
+This workspace is not a single project. Where the bug lives determines how you work:
 
 ### Workspace level (skills, MCP servers, agent workflows)
 
