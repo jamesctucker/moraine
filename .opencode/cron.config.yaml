@@ -3,5 +3,5 @@ default:
   timeout: 600
 hostname: null
 log_dir: scheduled/.logs
-locks_dir: ~/.joinery/cron/.locks
-install_dir: ~/.joinery/cron
+locks_dir: ~/.moraine/cron/.locks
+install_dir: ~/.moraine/cron

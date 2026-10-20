@@ -28,13 +28,13 @@ describe("renderHtml", () => {
 describe("buildMessage", () => {
   it("builds an RFC 822 message with headers + HTML body", () => {
     const msg = buildMessage(
-      { to: "user@example.com", from: "Joinery <recap@example.com>", subject: "Hi {date}" },
+      { to: "user@example.com", from: "Moraine <recap@example.com>", subject: "Hi {date}" },
       "**bold**",
       "weekly-recap",
       NOW,
     );
     expect(msg).toContain("To: user@example.com");
-    expect(msg).toContain("From: Joinery <recap@example.com>");
+    expect(msg).toContain("From: Moraine <recap@example.com>");
     expect(msg).toContain("Subject: Hi 2026-09-07");
     expect(msg).toContain("Content-Type: text/html; charset=utf-8");
     expect(msg).toContain("<strong>bold</strong>");

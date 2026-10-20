@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes to Joinery are documented here.
+All notable changes to Moraine are documented here.
 
-Joinery was previously OpenBench (`github.com/jamesctucker/openbench`, which now redirects here). Entries for releases before the rename describe the same project under the old name.
+Moraine was previously Joinery, and before that OpenBench (`github.com/jamesctucker/joinery` and `github.com/jamesctucker/openbench` — both redirect here). Entries for releases before those renames describe the same project under the old names.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Renamed OpenBench → Joinery.** Repo, package names, clone URLs, and the cron install path (`~/.openbench/cron/` → `~/.joinery/cron/`). Nothing about the workspace itself changed. If you had cron jobs installed under the old path, re-run `bun run .opencode/cron/runner.ts --install-defaults` to install them at the new one.
+- **Renamed Joinery → Moraine.** Repo, package names, clone URLs, and the cron install path (`~/.joinery/cron/` → `~/.moraine/cron/`). Nothing about the workspace itself changed. If you had cron jobs installed under the old path, re-run `bun run .opencode/cron/runner.ts --install-defaults` to install them at the new one.
+- **Renamed OpenBench → Joinery** (earlier the same day). Repo, package names, clone URLs, and the cron install path (`~/.openbench/cron/` → `~/.joinery/cron/`).
 - **README rewritten for onboarding** — problem-first framing, a `For / Not for` fit check, the four-store model (work / memory / wiki / artifacts), install with provider-auth prerequisites, a first-20-minutes activation loop, and verify commands. The fork-sync guide moved to `docs/upstream-sync.md`; the deep file tree is trimmed to the eight entries that teach the model.
 - **`linearize` renamed to `to-issue` and made tracker-agnostic** — same propose-then-create workflow and `Route: rote|creative` tag, but it no longer assumes Linear tool names, a 0–4 priority scale, a hardcoded team key, or the initiative → project → issue model. It names the operations and defers to whichever tracker MCP is configured. `orchestrate-build-chain`, `implement-milestone`, `AGENTS.md`, and the setup featured-skills list follow the new name.
 - **`to-issue` now slices tracer bullets** — borrowed from Matt Pocock's `to-tickets`: every proposal row states the end-to-end behaviour it delivers, carries a `Blocked by` edge, and is sized to one context window; wide refactors get the expand–contract treatment instead of a fake vertical slice. Issues are published blockers-first so the edges reference real IDs.
@@ -136,7 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Session search indexer (`scripts/workspace/session-index.py`) with SQLite FTS5 (#13)
 - Startup health check (`scripts/workspace/health-check.py`) (#14)
-- Joinery Cron scheduler (`scripts/workspace/cron-runner.py`) (#15)
+- Moraine Cron scheduler (`scripts/workspace/cron-runner.py`) (#15)
 - YAML frontmatter schema for sessions (`memory/.sessions-schema.yaml`) (#16)
 - Memory index auto-updater (`scripts/workspace/update-index.py`)
 - Token compressor skill (`scripts/workspace/token-compress.py`) (#6)

@@ -21,7 +21,7 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 
-# Joinery internals (not code to search)
+# Moraine internals (not code to search)
 memory/
 wiki/
 artifacts/

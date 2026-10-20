@@ -6,7 +6,7 @@ output: wiki/2 Areas/Daily Notes/YYYY-MM-DD.md
 append: true
 # email:                      # optional — runner sends the recap as HTML email (needs msmtp configured)
 #   to: you@example.com
-#   from: "Joinery <you@example.com>"
+#   from: "Moraine <you@example.com>"
 #   subject: "Weekly recap + audit — {date}"
 skills:
   - session-search
