@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
+### Changed
+
+- **Config migrated to OpenCode V2** — `.opencode/opencode.json` now uses the native V2 shape (`mcp.servers`, `disabled` instead of `enabled`, ordered `permissions` array). `.opencode-version` pinned to `2.1.1`.
+- **Shell-safety guardrails added** — destructive commands (`rm -rf /`, `dd` to block devices, `mkfs`/`mkswap`/`fdisk`, fork bombs, disk overwrites) are denied; `sudo`, `rm -rf ~`/`$HOME`, and remote-pipe-to-shell ask first; `external_directory` writes ask first.
+- **Skills refresh** — 11 skills updated to current upstream versions (`diagnose`, `grilling`, `linearize`, `orchestrate-build-chain`, `impeccable`, `review-memory`, `session-search`, `brainstorming`, `improve-codebase-architecture`, plus new `ADR-FORMAT.md`/`CONTEXT-FORMAT.md` companions for `grilling`).
+- **`domain-modeling` replaced** — track `GLOSSARY.md` (was `CONTEXT.md`) with `GLOSSARY-FORMAT.md`; dropped `CONTEXT-FORMAT.md` and the unused `agents/` config.
+- **`setup` reads the OpenCode version from either output shape** (`2.1.1` or `opencode v2.1.1`) so the pin check no longer always prompts a reinstall; MCP trim and the Linear opt-in now edit `mcp.servers`.
+- **`validate-repos.py`** gains opt-in machine scoping (`machine_scope` frontmatter) so one registry can span several machines.
+- **README** — skill count corrected to 35, `readwise/` skill list corrected to three.
+
+### Added
+
+- **7 skills**: `retro`, `prototype`, `wayfinder`, `wizard`, `teach`, `to-questionnaire`, `research`.
+- **`code-review`** — two-axis review (Standards + Spec) from Matt Pocock's upstream skills repo, copied verbatim.
+- **`next-artifact.py`** — allocates the next artifact number and can claim it safely under concurrent sessions (`--claim <slug>`).
+- **Health-check table in `AGENTS.md`** mapping each deterministic script to when it should run.
+
+### Removed
+
+- **9 retired skills**: `find-skills`, `space-loader`, `command-policy`, `grill-with-docs`, `mcp-scaffold`, `obsidian-audit`, `feed-catchup`, `perplexity-research`, and the `ux/web-design-guidelines` skill (the `ux/` category is gone).
+
 ### Fixed
 
 - **Setup script review pass** — correctness, consent, and platform fixes:
@@ -34,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Skills refresh** — all carried-over skills synced to current upstream versions; personal examples genericized (`my-app`, `Homelab.md`).
+- **Skills refresh** — all carried-over skills synced to current upstream versions; personal examples genericized (`my-app`, sample area names).
 - **Removed stale skills**: `token-compress`, `session-trace`, `executive-function`, `grill-me` (dropped upstream; `i-have-adhd` is the successor to `executive-function`, `grilling` covers `grill-me`).
 - **Removed stale scheduled jobs**: `morning-briefing`, `weekly-review`, `space-session-sync` (decommissioned upstream) — replaced by `weekly-recap`.
 - **Tests** — suite synced with upstream (dropped `test_token_compress`/`test_session_frontmatter`, added `test_memory_audit` and cron runner tests).

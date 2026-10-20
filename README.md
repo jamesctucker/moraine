@@ -140,15 +140,14 @@ openbench/
     ├── opencode.json       # MCP servers
     ├── cron.config.yaml    # Cron runner config
     ├── cron/               # TypeScript cron runner + modules
-    ├── plugins/            # Loaded automatically when added (currently empty)
-    └── skills/             # Agent skill definitions (auto-discovered, 36 skills)
+    └── skills/             # Agent skill definitions (auto-discovered, 35 skills)
 ```
 
 ## Integrations
 
 MCP servers are configured in `.opencode/opencode.json`. Each is opt-in — setup shows the list and lets you trim any you don't want.
 
-- **Readwise** — highlights and Read-Later access (remote MCP, requires a [Readwise](https://readwise.io) account). Readwise collects everything you highlight — books, articles, PDFs, podcasts — and its Reader app is a read-later inbox with RSS and email newsletters built in. With the MCP server, the agent can search your highlights and document library, so answers and drafts can draw on things you've actually read instead of generic knowledge. Four `readwise/` skills build on it: inbox triage, feed catch-up, reading recap, and a persona builder that learns your taste.
+- **Readwise** — highlights and Read-Later access (remote MCP, requires a [Readwise](https://readwise.io) account). Readwise collects everything you highlight — books, articles, PDFs, podcasts — and its Reader app is a read-later inbox with RSS and email newsletters built in. With the MCP server, the agent can search your highlights and document library, so answers and drafts can draw on things you've actually read instead of generic knowledge. Three `readwise/` skills build on it: inbox triage, reading recap, and a persona builder that learns your taste.
 - **Granola** — meeting notes and transcripts (remote MCP, requires a [Granola](https://granola.ai) account). Granola is an AI notepad for meetings: it transcribes locally and merges your typed notes with the transcript into structured summaries — no bot joining the call. With the MCP server, "what did we decide in Tuesday's sync?" or "what action items came out of my 1:1?" become questions the agent can answer directly, with citations back to the meeting.
 - **Linear** — issue tracking (remote MCP, **disabled by default** — enable in setup or `opencode.json`; OAuth on first use). The `linearize` skill converts specs/repos to Linear issues.
 - **Semble** — semantic code search across `work/` repos (local server, `uvx`).
