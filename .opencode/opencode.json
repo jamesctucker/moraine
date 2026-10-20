@@ -27,19 +27,6 @@
   ],
   "mcp": {
     "servers": {
-      "granola": {
-        "type": "remote",
-        "url": "https://mcp.granola.ai/mcp"
-      },
-      "readwise": {
-        "type": "remote",
-        "url": "https://mcp2.readwise.io/mcp"
-      },
-      "linear": {
-        "type": "remote",
-        "url": "https://mcp.linear.app/mcp",
-        "disabled": true
-      },
       "semble": {
         "type": "local",
         "command": ["uvx", "--from", "semble[mcp]", "semble"]

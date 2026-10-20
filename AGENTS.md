@@ -139,9 +139,9 @@ headroom mcp install                        # register with OpenCode
      - GitHub Issues (lightweight)
      Delete or replace this section to match your setup. -->
 
-**Linear (default, opt-in):** Linear is configured as a remote MCP server in `.opencode/opencode.json` but disabled by default. Enable it via `bash scripts/setup` (the Linear block flips `disabled: true → false`) or by editing the JSON directly. On first use, OpenCode prompts for OAuth.
+**Nothing is configured by default.** Add a tracker MCP server to `.opencode/opencode.json` — Linear, Jira, GitHub Issues, or anything else with an MCP server — then enable it there. The `linearize` skill's workflow (read source → propose breakdown table → wait for human approval → create projects/issues with cross-links) works with whichever tracker the agent has available.
 
-The `linearize` skill (`.opencode/skills/engineering/linearize/SKILL.md`) encodes the spec/repo → Linear issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"linearize artifacts/NN-foo.md"* or *"linearize work/my-repo"*.
+The `linearize` skill (`.opencode/skills/engineering/linearize/SKILL.md`) encodes the spec/repo → tracker issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"linearize artifacts/NN-foo.md"* or *"linearize work/my-repo"*.
 
 **Layer model — each tool owns one question, cross-link by URL, never duplicate:**
 

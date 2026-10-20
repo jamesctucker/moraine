@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Readwise, Granola, and Linear MCP integrations** — dropped from `.opencode/opencode.json`, the README integrations list, and the setup script (the Linear opt-in flow is gone). Only Semble and Headroom ship configured; add your own tracker, reader, or meeting-notes server to `opencode.json` when you want it. The `readwise/` and `linearize` skills remain and work against whatever server you wire up.
+
 ## [0.2.0] - 2026-10-20
 
 ### Changed
