@@ -1,6 +1,6 @@
 ---
 name: review-memory
-description: Analyze recent session summaries to identify repeated workflows, manual patterns, and automation opportunities. Use when user wants to review sessions, find patterns, or improve the agent ecosystem.
+description: Analyze recent session summaries to identify repeated workflows, manual patterns, and automation opportunities. Use when user wants to review sessions, find patterns, or improve the agent ecosystem. For finding a specific past discussion use session-search; for staging cleanup use memory-promoter.
 ---
 
 # Memory Review

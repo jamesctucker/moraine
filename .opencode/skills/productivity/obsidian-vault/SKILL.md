@@ -1,6 +1,6 @@
 ---
 name: obsidian-vault
-description: Search, create, and manage notes in the Obsidian vault with wikilinks and PARA organization. Use when user wants to find, create, or organize notes in the Obsidian vault.
+description: Search, create, and manage notes in the wiki (the Obsidian vault) with wikilinks and PARA organization. Use when the user wants to find, create, or organize notes — whether they say wiki, notes, or Obsidian vault.
 ---
 
 # Obsidian Vault

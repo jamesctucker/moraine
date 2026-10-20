@@ -4,11 +4,10 @@
 Checks:
   1. All SKILL.md files have valid YAML frontmatter with required fields (name, description)
   2. Skill directory names match frontmatter `name` and follow kebab-case
-  3. All PERSONA.md files follow the template structure
-  4. memory/index.md references are not orphaned
-  5. Artifact filenames follow NN-title.md convention
-  6. No broken wikilinks in the Obsidian vault
-  7. Project top notes have required frontmatter, are indexed in projects.md,
+  3. memory/index.md references are not orphaned
+  4. Artifact filenames follow NN-title.md convention
+  5. No broken wikilinks in the Obsidian vault
+  6. Project top notes have required frontmatter, are indexed in projects.md,
      are linked from another note, and have a reviewed date under 60 days
 
 Usage:
@@ -38,10 +37,6 @@ SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 ARTIFACT_NAME_RE = re.compile(r"^\d{2}[a-z]?-[a-z0-9-]+\.md$")
 SESSION_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
 REVIEW_FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(-[a-z0-9-]+)?\.md$")
-
-# Required frontmatter fields for PERSONA.md files.
-# Kept in sync with personas/_template/PERSONA.md.
-PERSONA_REQUIRED_FRONTMATTER = {"name", "role", "expertise", "style"}
 
 
 class ValidationContext:
@@ -107,44 +102,6 @@ def validate_skills(ctx: ValidationContext) -> None:
             )
 
 
-# ── PERSONA validation ──────────────────────────────────────────────
-
-
-def validate_personas(ctx: ValidationContext) -> None:
-    personas_dir = WORKSPACE / "personas"
-    if not personas_dir.is_dir():
-        ctx.warn(f"Personas directory not found: {personas_dir}")
-        return
-
-    for persona_dir in sorted(personas_dir.iterdir()):
-        if not persona_dir.is_dir() or persona_dir.name.startswith("_"):
-            continue
-
-        persona_md = persona_dir / "PERSONA.md"
-        if not persona_md.is_file():
-            ctx.error(f"PERSONA.md missing in {persona_dir.relative_to(WORKSPACE)}")
-            continue
-
-        content = persona_md.read_text()
-        rel = str(persona_md.relative_to(WORKSPACE))
-        result = parse_detailed(content)
-        if result.error:
-            ctx.error(f"{rel}: {result.error.kind.name.lower()}: {result.error.detail}")
-            continue
-        if result.frontmatter is None:
-            continue
-
-        frontmatter = result.frontmatter
-        missing_fm = PERSONA_REQUIRED_FRONTMATTER - set(frontmatter.keys())
-        if missing_fm:
-            ctx.error(f"PERSONA.md missing required frontmatter fields in {rel}: {', '.join(sorted(missing_fm))}")
-
-        body = result.body
-        has_content = bool(re.search(r"^#{1,3}\s", body, re.MULTILINE))
-        if not has_content:
-            ctx.warn(f"PERSONA.md appears empty (no content sections) in {rel}")
-
-
 # ── Memory index validation ─────────────────────────────────────────
 
 
@@ -159,7 +116,7 @@ def validate_memory_index(ctx: ValidationContext) -> None:
 
     if sessions_dir.is_dir():
         for sf in sessions_dir.iterdir():
-            if sf.is_file() and sf.suffix == ".md":
+            if sf.is_file() and sf.suffix == ".md" and sf.name != "README.md":
                 if not SESSION_FILE_RE.match(sf.name):
                     ctx.warn(
                         f"Session file does not follow YYYY-MM-DD-description.md convention: memory/sessions/{sf.name}"
@@ -167,7 +124,7 @@ def validate_memory_index(ctx: ValidationContext) -> None:
 
     if reviews_dir.is_dir():
         for rf in reviews_dir.iterdir():
-            if rf.is_file() and rf.suffix == ".md":
+            if rf.is_file() and rf.suffix == ".md" and rf.name != "README.md":
                 if not REVIEW_FILE_RE.match(rf.name):
                     ctx.warn(f"Review file does not follow YYYY-MM-DD[-slug].md convention: memory/reviews/{rf.name}")
 
@@ -217,6 +174,7 @@ PROJECT_TOP_NOTE = "00 Top Note.md"
 PROJECT_REQUIRED_KEYS = {"status", "priority"}
 PROJECT_ACTIVE_KEYS = {"next-action"}
 LIVE_PROJECT_STATUSES = {"Active", "Paused"}
+LIVE_STATUS_VALUES = {"active", "paused"}
 STALE_REVIEW_DAYS = 60
 
 
@@ -261,7 +219,6 @@ def validate_projects(ctx: ValidationContext) -> None:
     for note in top_notes:
         rel = note.relative_to(VAULT)
         status_dir = rel.parts[1] if len(rel.parts) > 1 else ""
-        is_live = status_dir in LIVE_PROJECT_STATUSES
 
         result = parse_detailed(note.read_text(encoding="utf-8", errors="replace"))
         if result.error:
@@ -272,6 +229,11 @@ def validate_projects(ctx: ValidationContext) -> None:
             continue
 
         fm = result.frontmatter
+        # Live projects are detected two ways: the status-directory layout
+        # (1 Projects/Active/<Name>/) and the flat layout (1 Projects/<Name>/),
+        # where status only exists in frontmatter.
+        status_value = str(fm.get("status", "")).strip().lower()
+        is_live = status_dir in LIVE_PROJECT_STATUSES or status_value in LIVE_STATUS_VALUES
         required = PROJECT_REQUIRED_KEYS | (PROJECT_ACTIVE_KEYS if is_live else set())
         for key in sorted(required - set(fm.keys())):
             ctx.warn(f"wiki/{rel}: missing `{key}` in frontmatter")
@@ -314,7 +276,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate workspace structure and conventions.")
     parser.add_argument("--quiet", "-q", action="store_true", help="Only print errors")
     parser.add_argument("--skills", action="store_true", help="Validate skills only")
-    parser.add_argument("--personas", action="store_true", help="Validate personas only")
     parser.add_argument("--vault", action="store_true", help="Validate vault wikilinks only")
     parser.add_argument("--memory", action="store_true", help="Validate memory index only")
     parser.add_argument("--artifacts", action="store_true", help="Validate artifacts only")
@@ -322,18 +283,30 @@ def main() -> int:
 
     ctx = ValidationContext()
 
-    run_all = not any([args.skills, args.personas, args.vault, args.memory, args.artifacts])
+    run_all = not any([args.skills, args.vault, args.memory, args.artifacts])
+
+    def run(label: str, check) -> None:
+        before_e, before_w = len(ctx.errors), len(ctx.warnings)
+        check(ctx)
+        if args.quiet:
+            return
+        new_e = len(ctx.errors) - before_e
+        new_w = len(ctx.warnings) - before_w
+        if new_e:
+            print(f"✗ {label}: {new_e} error(s), {new_w} warning(s)")
+        elif new_w:
+            print(f"→ {label}: {new_w} warning(s)")
+        else:
+            print(f"✓ {label}")
 
     if run_all or args.skills:
-        validate_skills(ctx)
-    if run_all or args.personas:
-        validate_personas(ctx)
+        run("skills", validate_skills)
     if run_all or args.memory:
-        validate_memory_index(ctx)
+        run("memory index", validate_memory_index)
     if run_all or args.artifacts:
-        validate_artifacts(ctx)
+        run("artifacts", validate_artifacts)
     if run_all or args.vault:
-        validate_vault(ctx)
+        run("vault", validate_vault)
 
     for w in ctx.warnings:
         print(f"WARNING: {w}", file=sys.stderr)
