@@ -1,27 +1,53 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "lsp": true,
+  "permissions": [
+    { "action": "shell", "resource": "*", "effect": "allow" },
+    { "action": "shell", "resource": "rm -rf /*", "effect": "deny" },
+    { "action": "shell", "resource": "rm -rf ~*", "effect": "ask" },
+    { "action": "shell", "resource": "rm -rf $HOME*", "effect": "ask" },
+    { "action": "shell", "resource": "dd *of=/dev/*", "effect": "deny" },
+    { "action": "shell", "resource": "mkfs*", "effect": "deny" },
+    { "action": "shell", "resource": "mkswap*", "effect": "deny" },
+    { "action": "shell", "resource": "fdisk*", "effect": "deny" },
+    { "action": "shell", "resource": "chmod -R 777 /*", "effect": "deny" },
+    { "action": "shell", "resource": ":(){*", "effect": "deny" },
+    { "action": "shell", "resource": "* > /dev/sd*", "effect": "deny" },
+    { "action": "shell", "resource": "* > /dev/nvme*", "effect": "deny" },
+    { "action": "shell", "resource": "sudo *", "effect": "ask" },
+    { "action": "shell", "resource": "curl * | sh*", "effect": "ask" },
+    { "action": "shell", "resource": "curl *|sh*", "effect": "ask" },
+    { "action": "shell", "resource": "curl * | bash*", "effect": "ask" },
+    { "action": "shell", "resource": "curl *|bash*", "effect": "ask" },
+    { "action": "shell", "resource": "wget * | sh*", "effect": "ask" },
+    { "action": "shell", "resource": "wget *|sh*", "effect": "ask" },
+    { "action": "shell", "resource": "wget * | bash*", "effect": "ask" },
+    { "action": "shell", "resource": "wget *|bash*", "effect": "ask" },
+    { "action": "external_directory", "resource": "*", "effect": "ask" }
+  ],
   "mcp": {
-    "granola": {
-      "type": "remote",
-      "url": "https://mcp.granola.ai/mcp",
-      "enabled": true
-    },
-    "readwise": {
-      "type": "remote",
-      "url": "https://mcp2.readwise.io/mcp"
-    },
-    "linear": {
-      "type": "remote",
-      "url": "https://mcp.linear.app/mcp",
-      "enabled": false
-    },
-    "semble": {
-      "type": "local",
-      "command": ["uvx", "--from", "semble[mcp]", "semble"]
-    },
-    "headroom": {
-      "type": "local",
-      "command": ["headroom", "mcp", "serve"]
+    "servers": {
+      "granola": {
+        "type": "remote",
+        "url": "https://mcp.granola.ai/mcp"
+      },
+      "readwise": {
+        "type": "remote",
+        "url": "https://mcp2.readwise.io/mcp"
+      },
+      "linear": {
+        "type": "remote",
+        "url": "https://mcp.linear.app/mcp",
+        "disabled": true
+      },
+      "semble": {
+        "type": "local",
+        "command": ["uvx", "--from", "semble[mcp]", "semble"]
+      },
+      "headroom": {
+        "type": "local",
+        "command": ["headroom", "mcp", "serve"]
+      }
     }
   }
 }

@@ -83,9 +83,24 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
 - `wiki/` is an Obsidian vault — open the folder in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks. Obsidian creates `.obsidian/` on first open (gitignored).
-- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `readwise/`, `ux/`, `design/`.
+- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `readwise/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
-- Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`.
+- `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
+- Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`. Allocate the number with `python scripts/workspace/next-artifact.py --claim <slug>` — never hand-pick it from `ls`, because two sessions running at once will otherwise claim the same number.
+
+## Health checks
+
+Deterministic scripts in `scripts/workspace/`. All flag-only (never modify memory) except where noted.
+
+| Script | What it checks | When to run |
+|--------|----------------|-------------|
+| `validate.py` | Skills frontmatter, wikilinks, project top-note frontmatter/index/link integrity, structural rules | After editing skills or the wiki |
+| `health-check.py` | Workspace structural sanity | On demand |
+| `memory-audit.py` | Decision pruning, repo drift, stalled projects, past-due threads, review cadence, stale staging (>14d) | Weekly; also runs inside `weekly-recap` |
+| `project-status.py` | Last session activity per project (`--stale-only --days N`) | Session start when choosing work |
+| `validate-repos.py` | `memory/work-repos.md` matches `work/` on disk (honours `machine_scope`) | After adding/removing repos |
+| `agent-eval.py` | Golden-task eval harness (results in `memory/eval/`) | After changing workspace tooling |
+| `prune-decisions.py` | Archives old "Recent decisions" blocks from `memory/index.md` (`--prune` modifies) | When flagged by memory-audit |
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
 
 ## Token Efficiency (Headroom)
@@ -124,7 +139,7 @@ headroom mcp install                        # register with OpenCode
      - GitHub Issues (lightweight)
      Delete or replace this section to match your setup. -->
 
-**Linear (default, opt-in):** Linear is configured as a remote MCP server in `.opencode/opencode.json` but disabled by default. Enable it via `bash scripts/setup` (the Linear block flips `enabled: false → true`) or by editing the JSON directly. On first use, OpenCode prompts for OAuth.
+**Linear (default, opt-in):** Linear is configured as a remote MCP server in `.opencode/opencode.json` but disabled by default. Enable it via `bash scripts/setup` (the Linear block flips `disabled: true → false`) or by editing the JSON directly. On first use, OpenCode prompts for OAuth.
 
 The `linearize` skill (`.opencode/skills/engineering/linearize/SKILL.md`) encodes the spec/repo → Linear issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"linearize artifacts/NN-foo.md"* or *"linearize work/my-repo"*.
 
