@@ -77,9 +77,9 @@ async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<nu
   try {
     const env: Record<string, string> = {};
     // Strip session-binding env when spawning headless runs: a runner invoked
-    // from inside a Paseo/OpenCode session would otherwise leak
-    // OPENCODE_CONFIG_CONTENT (Paseo's plugin + runtime token) into the child,
-    // whose Bash tool then dies with "not bound to a Paseo agent".
+    // from inside a bound agent session would otherwise leak
+    // OPENCODE_CONFIG_CONTENT (the host's plugin + runtime token) into the child,
+    // whose Bash tool then dies with a "not bound to an agent" error.
     const BLOCKED_PREFIXES = ["PASEO_", "OPENCODE_CONFIG", "OPENCODE_PID"];
     for (const [k, v] of Object.entries(process.env)) {
       if (v === undefined) continue;

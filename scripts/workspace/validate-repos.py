@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Validate work-repos.md registry against the actual work/ directory.
 
-Checks that every repo listed in memory/work-repos.md exists on disk in work/,
-and flags repos on disk that aren't in the registry.
+Checks that every repo listed in memory/work-repos.md that is scoped to this
+machine exists on disk in work/, and flags repos on disk that aren't in the
+registry. Machine scoping comes from frontmatter `machine_scope`; repos with no
+scope entry are checked everywhere. The current machine is resolved from the
+hostname via MACHINE_ALIASES.
 
 Usage:
     python scripts/workspace/validate-repos.py
@@ -13,17 +16,32 @@ from __future__ import annotations
 
 import argparse
 import re
+import socket
 import sys
 from pathlib import Path
 
-from lib import WORKSPACE
+from lib import WORKSPACE, parse
 
 WORK_DIR = WORKSPACE / "work"
 REPOS_MD = WORKSPACE / "memory" / "work-repos.md"
 
+# Hostname → machine id used in work-repos.md frontmatter `machine_scope`.
+# Add your own machines, e.g. {"my-laptop": "laptop", "build-box": "linux"}.
+MACHINE_ALIASES: dict[str, str] = {}
+# Repos with no machine_scope entry are checked on every machine.
+DEFAULT_SCOPE = None
+
 # Parse table rows from work-repos.md main table: | Repo Name | `work/path/` | ... |
 # Only matches rows with `work/` in the path column
 TABLE_ROW_RE = re.compile(r"^\|\s*\[?([^\]|]+?)\]?(?:\|[^\]]+)?\|\s*`work/([^`]+)`\s*\|")
+
+
+def current_machine() -> tuple[str, bool]:
+    """Resolve this machine's id from the hostname. Returns (id, known)."""
+    host = socket.gethostname().strip()
+    if host in MACHINE_ALIASES:
+        return MACHINE_ALIASES[host], True
+    return host, False
 
 
 def parse_registry(content: str) -> dict[str, str]:
@@ -93,8 +111,15 @@ def main() -> None:
         sys.exit(1)
 
     content = REPOS_MD.read_text()
+    fm, _body = parse(content)
+    machine_scope_raw = (fm or {}).get("machine_scope") or {}
+    machine, machine_known = current_machine()
     registry = parse_registry(content)
     disk_repos = find_disk_repos()
+
+    machine_scope: dict[str, list[str]] = {}
+    for key, val in machine_scope_raw.items():
+        machine_scope[key] = [str(val)] if isinstance(val, str) else [str(m) for m in val]
 
     # Normalize registry paths: they look like work/my-app/
     registry_dirs = {}
@@ -106,8 +131,25 @@ def main() -> None:
     errors: list[str] = []
     warnings: list[str] = []
 
-    # Check registry repos exist on disk
+    # Only warn about an unmapped hostname when the registry actually uses scoping.
+    if not machine_known and machine_scope:
+        warnings.append(
+            f"Unknown machine '{machine}' — not in validate-repos.py MACHINE_ALIASES; "
+            "add it there and to machine_scope entries"
+        )
+
+    # Scope keys that don't match a registry row (typo guard)
+    for key in sorted(machine_scope):
+        if key not in registry_dirs:
+            warnings.append(
+                f"machine_scope key '{key}' matches no registry row (typo?)"
+            )
+
+    # Check registry repos expected on THIS machine exist on disk
     for dir_name, repo_name in sorted(registry_dirs.items()):
+        machines = machine_scope.get(dir_name, DEFAULT_SCOPE)
+        if machines is not None and machine not in machines:
+            continue
         if dir_name not in disk_repos:
             errors.append(
                 f"MISSING: '{repo_name}' (work/{dir_name}/) is in registry but not on disk"
@@ -125,6 +167,7 @@ def main() -> None:
             )
 
     # Print results
+    print(f"Machine: {machine}" + ("" if machine_known else " (unknown)"))
     print(f"Registry: {len(registry_dirs)} repos")
     print(f"Disk: {len([d for d in disk_repos.values() if (d / '.git').exists()])} git repos")
     print()
