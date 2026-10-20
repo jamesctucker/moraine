@@ -1,15 +1,15 @@
 ---
 name: orchestrate-build-chain
-description: Orchestrate a multi-issue build chain by delegating each issue to a fresh subagent, running a review pass between issues, and merging stacked PRs bottom-up. Use when the user says "run the build chain", "resume the pods chain", "delegate the milestones", or has a linearized spec with a chain of dependent issues to build end-to-end. Not for a single issue — use implement-milestone directly.
+description: Orchestrate a multi-issue build chain by delegating each issue to a fresh subagent, running a review pass between issues, and merging stacked PRs bottom-up. Use when the user says "run the build chain", "resume the pods chain", "delegate the milestones", or has a spec broken into a chain of dependent issues to build end-to-end. Not for a single issue — use implement-milestone directly.
 ---
 
 # orchestrate-build-chain
 
-One orchestrator session drives a chain of dependent issues (e.g. PROJ-101–110) from a linearized spec. The orchestrator stays small: each issue is built by a fresh `general` subagent following `implement-milestone`, a review pass runs between issues, and stacked PRs merge bottom-up.
+One orchestrator session drives a chain of dependent issues (e.g. PROJ-101–110) from a spec that has already been broken into issues. The orchestrator stays small: each issue is built by a fresh `general` subagent following `implement-milestone`, a review pass runs between issues, and stacked PRs merge bottom-up.
 
 ## When to use
 
-- A spec has been linearized into a dependency chain (Linear `Blocked by` wiring + milestone order).
+- A spec has been broken into a dependency chain (tracker `Blocked by` wiring + milestone order).
 - The user wants the chain built in one sustained run rather than manually issue-by-issue.
 - Not for a single issue or a research/triage task.
 
@@ -26,7 +26,7 @@ One orchestrator session drives a chain of dependent issues (e.g. PROJ-101–110
 ## Setup
 
 1. Read the artifact + Linear chain (`get_issue` with `includeRelations: true`) to confirm order and blockers.
-2. Read each issue's `Route:` tag (set by `linearize`; missing ⇒ treat as creative, ask the user before delegating). Surface the split up front: which issues delegate, which park for the user. **Rotation:** if every issue is rote, say so and suggest the user hand-build one — their call, not a gate.
+2. Read each issue's `Route:` tag (set by `to-issue`; missing ⇒ treat as creative, ask the user before delegating). Surface the split up front: which issues delegate, which park for the user. **Rotation:** if every issue is rote, say so and suggest the user hand-build one — their call, not a gate.
 3. Persist a **restart anchor** to `memory/staging/<YYYY-MM-DD>.md`: progress, next issue, human gates, mechanics learnings. This is what survives a context loss.
 4. Confirm the human's standing gates up front (e.g. app login, on-device smoke, upload approval).
 

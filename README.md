@@ -131,7 +131,7 @@ openbench/
     ├── opencode.json       # MCP servers
     ├── cron.config.yaml    # Cron runner config
     ├── cron/               # TypeScript cron runner + modules
-    └── skills/             # Agent skill definitions (auto-discovered, 35 skills)
+    └── skills/             # Agent skill definitions (auto-discovered, 32 skills)
 ```
 
 ## Integrations

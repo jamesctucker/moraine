@@ -83,7 +83,7 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
 - `wiki/` is an Obsidian vault — open the folder in the Obsidian desktop app (not the repo root) to browse, edit, and follow wikilinks. Obsidian creates `.obsidian/` on first open (gitignored).
-- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `readwise/`, `design/`.
+- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
 - Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`. Allocate the number with `python scripts/workspace/next-artifact.py --claim <slug>` — never hand-pick it from `ls`, because two sessions running at once will otherwise claim the same number.
@@ -139,9 +139,9 @@ headroom mcp install                        # register with OpenCode
      - GitHub Issues (lightweight)
      Delete or replace this section to match your setup. -->
 
-**Nothing is configured by default.** Add a tracker MCP server to `.opencode/opencode.json` — Linear, Jira, GitHub Issues, or anything else with an MCP server — then enable it there. The `linearize` skill's workflow (read source → propose breakdown table → wait for human approval → create projects/issues with cross-links) works with whichever tracker the agent has available.
+**Nothing is configured by default.** Add a tracker MCP server to `.opencode/opencode.json` — Linear, Jira, GitHub Issues, or anything else with an MCP server — then enable it there. The `to-issue` skill's workflow (read source → propose breakdown table → wait for human approval → create projects/issues with cross-links) works with whichever tracker the agent has available.
 
-The `linearize` skill (`.opencode/skills/engineering/linearize/SKILL.md`) encodes the spec/repo → tracker issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"linearize artifacts/NN-foo.md"* or *"linearize work/my-repo"*.
+The `to-issue` skill (`.opencode/skills/engineering/to-issue/SKILL.md`) encodes the spec/repo → tracker issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"turn artifacts/NN-foo.md into issues"* or *"create issues from work/my-repo"*.
 
 **Layer model — each tool owns one question, cross-link by URL, never duplicate:**
 
