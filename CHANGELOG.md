@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`linearize` renamed to `to-issue` and made tracker-agnostic** — same propose-then-create workflow and `Route: rote|creative` tag, but it no longer assumes Linear tool names, a 0–4 priority scale, a hardcoded team key, or the initiative → project → issue model. It names the operations and defers to whichever tracker MCP is configured. `orchestrate-build-chain`, `implement-milestone`, `AGENTS.md`, and the setup featured-skills list follow the new name.
+
 ### Removed
 
-- **Readwise, Granola, and Linear MCP integrations** — dropped from `.opencode/opencode.json`, the README integrations list, and the setup script (the Linear opt-in flow is gone). Only Semble and Headroom ship configured; add your own tracker, reader, or meeting-notes server to `opencode.json` when you want it. The `readwise/` and `linearize` skills remain and work against whatever server you wire up.
+- **`readwise/` skills** (`build-persona`, `reader-recap`, `triage`, plus the shared `REFERENCE.md` and `SETUP.md`) — the Readwise MCP server is no longer shipped, so the whole category is gone. Skill count 35 → 32.
+- **Readwise, Granola, and Linear MCP integrations** — dropped from `.opencode/opencode.json`, the README integrations list, and the setup script (the Linear opt-in flow is gone). Only Semble and Headroom ship configured; add your own tracker, reader, or meeting-notes server to `opencode.json` when you want it.
 
 ## [0.2.0] - 2026-10-20
 

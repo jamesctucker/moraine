@@ -1,11 +1,11 @@
 ---
 name: implement-milestone
-description: Spec-driven implementation of a single milestone/feature with a mandatory PR-review pass and a green test gate. Use when the user says "implement milestone X", "build M3", "work on PROJ-5", or points at a Linear issue / artifact section and wants it built end-to-end. Not for research, triage, or pure code review.
+description: Spec-driven implementation of a single milestone/feature with a mandatory PR-review pass and a green test gate. Use when the user says "implement milestone X", "build M3", "work on PROJ-5", or points at a tracker issue / artifact section and wants it built end-to-end. Not for research, triage, or pure code review.
 ---
 
 # implement-milestone
 
-Implement one milestone from a spec (artifact section or Linear issue), ship it on a branch with tests, run the **test gate**, do a **self-review pass**, then hand off for **human PR review** and apply every piece of feedback before the issue is closed.
+Implement one milestone from a spec (artifact section or tracker issue), ship it on a branch with tests, run the **test gate**, do a **self-review pass**, then hand off for **human PR review** and apply every piece of feedback before the issue is closed.
 
 This skill encodes the loop that matured across the Auction Reseller M2/M3 sessions: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
 
@@ -16,10 +16,10 @@ Follow the layer model in `AGENTS.md` → Issue Tracking. Read the spec section 
 ## Workflow
 
 ### 1. Load context
-- Read the milestone's spec section (artifact or Linear issue description) and any linked decisions/comments. If the spec or comment thread is large, compress with `headroom_compress` first.
+- Read the milestone's spec section (artifact or issue description) and any linked decisions/comments. If the spec or comment thread is large, compress with `headroom_compress` first.
 - Read the repo's `AGENTS.md` for commands, branch naming, and conventions.
 - Skim the relevant existing code so the new code matches surrounding style.
-- Identify the Linear issue ID and target branch name (repo convention, e.g. `feature/proj-5-m3-comp-fetcher-pipeline`).
+- Identify the issue ID and target branch name (repo convention, e.g. `feature/proj-5-m3-comp-fetcher-pipeline`).
 
 ### 2. Branch
 - Create the branch from the repo's default base. Announce the branch name.
@@ -48,7 +48,7 @@ Before opening the PR, re-read your own diff against the recurring bug classes b
 
 ### 6. Open PR + comment, transition issue
 - Push the branch and open a PR (or just push if PRs aren't used).
-- Add a Linear comment: what was implemented, key decisions, the test-gate result, and the self-review note. Link the spec section and PR.
+- Add a comment on the issue: what was implemented, key decisions, the test-gate result, and the self-review note. Link the spec section and PR.
 - Before transitioning, check `includeRelations: true` for blocking issues — don't start if someone flagged a blocker.
 - Transition the issue **Backlog → Todo → In Progress** (allowed without asking).
 
@@ -77,9 +77,9 @@ These categories surfaced in human PR reviews on HTTP-scraper / data-pipeline mi
 
 ## Autonomy gates
 
-Follow `AGENTS.md` → Issue Tracking → Autonomy gates (same model as `linearize`). Additionally: apply **all** PR review feedback; never close an issue with outstanding review findings.
+Follow `AGENTS.md` → Issue Tracking → Autonomy gates (same model as `to-issue`). Additionally: apply **all** PR review feedback; never close an issue with outstanding review findings.
 
 ## Reference
 - Pattern source: `memory/sessions/2026-07-09-m2-spec-lookup-pipeline.md` (ENG-64), `memory/sessions/2026-07-10-m3-comp-fetcher-pipeline.md` (ENG-65) — auction-reseller project; the review checklist above derives from findings in these sessions
 - Test gate + review loop observed in: `memory/reviews/2026-06-23.md` ("review-then-fix double-check" pattern)
-- Linear workflow: `AGENTS.md` → Issue Tracking
+- Tracker workflow: `AGENTS.md` → Issue Tracking
