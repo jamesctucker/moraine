@@ -1,0 +1,16 @@
+id: py-swallowed-exception
+language: Python
+severity: hint
+message: "Exception swallowed with bare pass — handle, log, or re-raise"
+rule:
+  any:
+    - pattern: |
+        try:
+            $$$B
+        except $E:
+            pass
+    - pattern: |
+        try:
+            $$$B
+        except $E as $A:
+            pass

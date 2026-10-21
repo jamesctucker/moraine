@@ -1,0 +1,6 @@
+id: ts-filter-length
+language: TypeScript
+severity: hint
+message: ".filter(...).length rebuilds the array to count it — use .some()/.find() or .reduce()"
+rule:
+  pattern: "$X.filter($$$F).length"

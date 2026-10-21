@@ -1,0 +1,12 @@
+id: ts-empty-catch
+language: TypeScript
+severity: hint
+message: "Empty catch swallows errors — handle, log, or re-throw"
+rule:
+  pattern:
+    context: |
+      try {
+          $$$B
+      } catch ($E) {
+      }
+    selector: catch_clause

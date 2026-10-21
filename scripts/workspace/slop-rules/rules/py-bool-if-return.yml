@@ -1,0 +1,18 @@
+id: py-bool-if-return
+language: Python
+severity: hint
+message: "if/return True/return False ladder — return the condition directly"
+rule:
+  any:
+    - pattern:
+        context: |
+          if $C:
+              return True
+          return False
+        selector: if_statement
+    - pattern:
+        context: |
+          if $C:
+              return False
+          return True
+        selector: if_statement

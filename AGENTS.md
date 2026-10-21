@@ -81,6 +81,7 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 ## Conventions
 
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
+- **Anti-slop checklist (milestone/feature work — not tight fix loops or review-apply passes).** While writing code, avoid the patterns SlopCodeBench showed agents overproduce: abnormal defensive checks a human wouldn't add; casts or guards that fight the type system; single-use variables that just rename an expression; comments restating what the code says; trivial one-line wrappers; nesting depth ≥ 4; if/elif ladders ≥ 3 that should be dispatch; helper-method sprawl (single-call helpers that exist to make the diff look organized). This checklist is the shared vocabulary for the structure check in `implement-milestone` step 4b — write code you wouldn't flag.
 - Opening `wiki/` in Obsidian creates a `.obsidian/` config directory on first open (gitignored) — per-user vault state stays out of git.
 - Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `design/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
@@ -101,6 +102,7 @@ Deterministic scripts in `scripts/workspace/`. All flag-only (never modify memor
 | `validate-repos.py` | `memory/work-repos.md` matches `work/` on disk (honours `machine_scope`) | After adding/removing repos |
 | `agent-eval.py` | Golden-task eval harness (results in `memory/eval/`) | After changing workspace tooling |
 | `prune-decisions.py` | Archives old "Recent decisions" blocks from `memory/index.md` (`--prune` modifies) | When flagged by memory-audit |
+| `slop-check.py` | Code-quality measurement: erosion (complexity mass) + verbosity (rule violations + clones); `--range` deltas, `--fail-on-new-cc` blocks new CC>10 callables; weekly sweep via `slop-sweep` cron; snapshots in `memory/eval/slop/` | In `implement-milestone` step 4b; on demand before/after big agent-built chains |
 
 ## Token Efficiency (Headroom)
 

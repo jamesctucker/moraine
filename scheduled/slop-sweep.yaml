@@ -1,0 +1,34 @@
+name: slop-sweep
+cron: 0 9 * * 1
+# hostname: my-machine        # optional — restrict this job to one machine
+# model: some/model           # optional — pin a model; omitted = agent default
+output: wiki/2 Areas/Daily Notes/YYYY-MM-DD.md
+append: true
+prompt: >
+  Weekly code-quality measurement. Flag-only: report, never modify code,
+  skills, or memory indexes.
+
+  1. Run the snapshot sweep:
+
+       python3 scripts/workspace/slop-check.py --all --json --write
+
+     It writes per-repo snapshots under memory/eval/slop/snapshots/ and never
+     fails the run; missing repos are recorded as null, not imputed.
+
+  2. Output ONLY the following markdown to stdout (no code fences). Reproduce
+     the script's numbers verbatim; add at most one sentence of interpretation
+     per flag.
+
+     # Slop sweep (week of <today>)
+
+     ## Repo snapshots
+
+     - One line per repo: name, erosion, verbosity, Δ vs last week, band
+       (green ≤ human mean / warn ≤ agent mean / red above; thresholds in
+       slop-check.py's module docstring).
+     - Flag any repo whose Δerosion > 0.0053 or Δverbosity > 0.0022 (human
+       velocity) this week — that repo is slopping faster than a human would.
+
+     ## Trend
+
+     - Pointer to memory/eval/slop/snapshots/ for the full series.
