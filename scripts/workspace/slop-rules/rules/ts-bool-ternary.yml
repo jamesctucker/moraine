@@ -1,0 +1,9 @@
+id: ts-bool-ternary
+language: TypeScript
+severity: hint
+message: "Ternary returning booleans — the condition is already the value"
+rule:
+  any:
+    # Quoted: a bare leading `?` starts a YAML mapping key and silently breaks parsing.
+    - pattern: "$C ? true : false"
+    - pattern: "$C ? false : true"

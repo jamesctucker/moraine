@@ -45,6 +45,8 @@ Map the natural grouping:
 - Slices within a phase → issues
 - Feature / bug / refactor / task → labels
 
+**Prefer vertical slices over horizontal layers.** Agents default to horizontal decomposition (migrations → service → API → frontend), which defers anything touchable to the last issue and makes mid-chain review meaningless. Where the source allows it, cut issues as **end-to-end slices** (tracer bullets): each issue should produce something a human can run and verify in minutes, even if thin. A horizontal split is sometimes genuinely right (shared schema must land first) — when you propose one, say why in the breakdown table's notes.
+
 ### Phase 2 — Pull tracker context
 
 Before proposing, check current tracker state so you don't duplicate:

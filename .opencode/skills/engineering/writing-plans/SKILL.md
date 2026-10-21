@@ -33,6 +33,16 @@ Before defining tasks, map out which files will be created or modified and what 
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
 
+## Program Design (for plans above ~5 tasks)
+
+Between the file structure and the task list, pin the **shape of the code** — this is where god-functions get killed before they exist. Three blocks:
+
+1. **Call-stack tree** — the entry point's call graph in diff syntax: new functions prefixed `+`, modified `~`, showing which function owns which responsibility. If a `+` branch lands inside a function already near CC 10, add the extraction task to this plan — don't draw it and then ignore it.
+2. **File-tree diff** — created/modified files as a tree with `+`/`~` markers, one line of responsibility each.
+3. **Key signatures** — the types and function signatures tasks will produce/consume (name, params, return type). These become the tasks' Interfaces blocks; drift between this block and a task is a plan bug.
+
+Skip for small plans (≤5 tasks, single file) — there the File Structure section already carries the shape.
+
 ## Task Right-Sizing
 
 A task is the smallest unit that carries its own test cycle and is worth a

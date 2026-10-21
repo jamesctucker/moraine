@@ -29,11 +29,26 @@ Follow the layer model in `AGENTS.md` → Issue Tracking. Read the spec section 
 - Favor injectable dependencies (pass `fetchFn`/clock/clients) so network and time are testable.
 - Preserve risk signals: when a value is estimated/uncertain, encode it explicitly (e.g. `confidence:"low"`) rather than silently guessing.
 - Graceful degradation: on upstream/network failure, fall back and propagate a partial/failed status — never fabricate data (especially dates/timestamps).
+- **Extract before you extend (CC-10 edit rule).** If the function you are about to modify has cyclomatic complexity > 10 or is > 60 lines, extract the seam first in a **separate commit**, then add the feature. Never add a branch to a function already over threshold — patching new logic into eroding functions is the exact mechanism that compounds erosion (SlopCodeBench §3.2).
+- **Anti-slop checklist** (`AGENTS.md` → Conventions): run it mentally while writing. It defines the vocabulary the step-4b structure check measures — code you wouldn't flag, the gate won't either.
 
 ### 4. Test gate (MANDATORY — do not skip)
 Run the repo's full test command **and** typecheck. Both must be green before you claim done.
 - Record the result: test count, typecheck status, and any framework-specific metrics the repo reports.
 - If red, fix until green. A red gate blocks the PR.
+- **Regression-test custody.** Test count must be **non-decreasing** across the milestone. If green requires editing or deleting a prior milestone's assertion, treat that as a **code defect by default, not a test defect** — the code regressed, not the test. Changing/removing a prior assertion requires explicit justification in the PR body (what behavior changed and why the old assertion is now wrong). Silent assertion edits are how error-pass decays over long horizons (SlopCodeBench: 80.1% → 62.2% across checkpoints).
+
+### 4b. Structure check (BLOCKING on new CC>10)
+Run the deterministic structural check over the whole diff:
+
+```bash
+python3 scripts/workspace/slop-check.py --range <base>..HEAD --repo <path-to-repo> --fail-on-new-cc
+```
+
+- **Blocking:** if the diff introduces a **new** callable with CC > 10 (exit 1), the PR is blocked — extract the seam first in a separate commit, then re-run. This is the sharpest, lowest-noise signal from the upstream rehearsal (in the rehearsal's A/B run, the one checkpoint that broke threshold was the one that never recovered).
+- **Advisory:** report Δerosion, Δverbosity in the PR comment. A red delta is a conversation, not a failed gate. If you want more teeth, tighten this to blocking on Δerosion red after a month of clean signal.
+- Gate on whole files the diff touches, not hunks — erosion is a cross-diff property.
+- Grandfathered repos (`slop-check.json` → `grandfathered`) are delta-gated only: the CC>10 block applies to *new* callables, which is already the rule — no absolute-band failure applies to them.
 
 ### 5. Self-review pass
 Before opening the PR, re-read your own diff against the recurring bug classes below and fix anything found. If none of the scraper/pipeline items apply, check the generic list. Produce a 3–5 line self-review note in the PR/issue comment.
@@ -49,6 +64,7 @@ Before opening the PR, re-read your own diff against the recurring bug classes b
 ### 6. Open PR + comment, transition issue
 - Push the branch and open a PR (or just push if PRs aren't used).
 - Add a comment on the issue: what was implemented, key decisions, the test-gate result, and the self-review note. Link the spec section and PR.
+- **Churn telemetry**: include in the comment — files touched, net lines added/removed, and **% of each touched file replaced** (`git diff --stat` + file sizes). Tripwires to flag (not block): >10 files touched, or any single file >60% rewritten → note that a rewrite-vs-extend verdict is warranted; three consecutive milestones of shrinking %-replaced with rising effort → park and reassess.
 - Before transitioning, check `includeRelations: true` for blocking issues — don't start if someone flagged a blocker.
 - Transition the issue **Backlog → Todo → In Progress** (allowed without asking).
 

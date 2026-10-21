@@ -1,0 +1,10 @@
+id: py-broad-except
+language: Python
+severity: hint
+message: "except Exception is an abnormal defensive check — catch the specific error"
+rule:
+  pattern: |
+    try:
+        $$$B
+    except Exception:
+        $$$C

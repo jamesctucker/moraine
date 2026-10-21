@@ -1,0 +1,6 @@
+id: py-identity-comprehension
+language: Python
+severity: hint
+message: "Identity comprehension rebuilds the iterable — use list()/filter()/the iterable itself"
+rule:
+  pattern: "[$X for $X in $IT]"

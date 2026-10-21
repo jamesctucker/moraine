@@ -1,0 +1,13 @@
+id: ts-unnecessary-else
+language: TypeScript
+severity: hint
+message: "else after a returning if — drop the else and de-nest"
+rule:
+  pattern: |
+    if ($C) {
+        $$$A
+        return $V;
+        $$$B
+    } else {
+        $$$D
+    }

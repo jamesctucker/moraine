@@ -1,0 +1,9 @@
+id: py-len-zero-guard
+language: Python
+severity: hint
+message: "len() guard on a collection — prefer truthiness or iterating (SlopCodeBench Listing 5)"
+rule:
+  any:
+    - pattern: "len($X) == 0"
+    - pattern: "len($X) != 0"
+    - pattern: "len($X) > 0"

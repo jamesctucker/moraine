@@ -1,0 +1,8 @@
+id: ts-explicit-true
+language: TypeScript
+severity: hint
+message: "Explicit comparison against a boolean literal — use truthiness"
+rule:
+  any:
+    - pattern: "$X === true"
+    - pattern: "$X !== false"

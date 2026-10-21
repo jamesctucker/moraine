@@ -1,0 +1,8 @@
+id: py-trivial-wrapper
+language: Python
+severity: hint
+message: "One-line wrapper that only delegates — call the target directly (SlopCodeBench Listing 9)"
+rule:
+  pattern: |
+    def $F($$$P):
+        return $G($$$A)
