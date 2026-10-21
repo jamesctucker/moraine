@@ -1,0 +1,5 @@
+# ast-grep scan config for slop-check.py
+# Rules implement the verbosity half of the SlopCodeBench metric
+# (artifacts/42-long-horizon-degradation.md §7 A2).
+ruleDirs:
+  - rules

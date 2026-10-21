@@ -39,6 +39,7 @@ On top of whatever the repo documents, the Standards axis always carries the **s
 
 - **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.
 - **Always a judgement call.** Each smell is a labelled heuristic ("possible Feature Envy"), never a hard violation. Like any standard here, skip anything tooling already enforces.
+- **Structure comes from the metric, not taste.** When the workspace has `scripts/workspace/slop-check.py`, complexity verdicts cite its numbers (`--fail-on-new-cc` exit code, Δerosion) rather than a reviewer's sense of "too complex" — see step 4.
 
 Each smell reads *what it is* → *how to fix*; match it against the diff:
 
@@ -63,6 +64,7 @@ Issue both sub-agent calls together, in the foreground, and aggregate the report
 
 - The full diff command and commit list.
 - The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
+- **The deterministic structure readout, when available:** if the workspace root has `scripts/workspace/slop-check.py`, run `python3 scripts/workspace/slop-check.py --range <fixed-point>..HEAD --repo <repo-path> --fail-on-new-cc` yourself before spawning, and paste its output into the prompt. New CC>10 callables (exit 1) are hard findings cited from the tool, not judgement calls; Δerosion/Δverbosity are advisory context.
 - The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
 
 **Spec sub-agent prompt** should include:
