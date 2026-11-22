@@ -1,5 +1,7 @@
 # Moraine
 
+[![CI](https://github.com/jamesctucker/moraine/actions/workflows/ci.yml/badge.svg)](https://github.com/jamesctucker/moraine/actions/workflows/ci.yml)
+
 **A git-backed workspace your coding agent can remember.**
 
 Every session with a coding agent starts from zero: it doesn't know your projects, your conventions, or what you decided last week. Moraine closes that gap with a repo the agent reads on startup — project notes, session summaries, decisions — plus skills that encode how work gets done here.
@@ -30,7 +32,7 @@ moraine/
 └── .opencode/         # config, cron runner, skills
 ```
 
-Everything outside `work/` is plain markdown in one git repo, so the agent's context is reviewable, diffable, and yours.
+Everything the agent needs for context — `memory/`, `wiki/`, `artifacts/` — is plain markdown in one git repo, so it is reviewable, diffable, and yours. (`scripts/` and `.opencode/` hold the Python/TypeScript/shell tooling that keeps it that way.)
 
 ## Install
 
@@ -38,6 +40,8 @@ Everything outside `work/` is plain markdown in one git repo, so the agent's con
 
 - `git`, `bun`, `python3` 3.11+
 - A model provider for OpenCode (Anthropic, DeepSeek, OpenRouter, …). Setup installs OpenCode; you authenticate after setup, below.
+
+**Platforms:** developed and tested on macOS; the full test suite and workspace validation also run on Ubuntu Linux in CI. Windows is untested — use WSL if you try it.
 
 ### Setup
 
@@ -102,7 +106,7 @@ Onboarding has one test: **in a second session, the agent recalls what you did i
 
 1. **Scaffold a project.** Start `opencode` in the repo root and say *"Scaffold a project called Checkout."* The `scaffold-project` skill creates the wiki top note and the index row.
 2. **Do one small piece of work.** *"Add a health endpoint to Checkout, with a test."* Steer as it goes; that's normal.
-3. **Wrap up.** *"Wrap up this session."* The `session-handoff` skill writes `memory/sessions/<date>-*.md` and updates `memory/index.md`.
+3. **Wrap up.** *"Wrap up this session."* The `session-handoff` skill writes `memory/sessions/<date>-*.md`, updates `memory/index.md`, and commits those memory writes (scoped to `memory/` paths — it never sweeps unrelated changes into the commit).
 4. **Prove recall.** Start a fresh session and ask *"What did I work on in my last session, and what's the next step?"*
 
 If step 4 works, onboarding worked. You'll know: the agent answers from its own reading — naming the project, what you did, and the next step — without you pasting anything. [Full walkthrough with expected output →](docs/first-session.md)
@@ -138,7 +142,7 @@ For code across repos, ask the agent — the Semble MCP server searches `work/` 
 
 ### Scheduled jobs
 
-A lightweight cron scheduler runs automated agent tasks. It ships with one job, `weekly-recap` (Mondays 8am): a deterministic memory audit plus a week-in-review appended to your daily note. Jobs are YAML files in `scheduled/`; copy `weekly-recap.yaml` to add your own.
+A lightweight cron scheduler runs automated agent tasks. Two jobs ship: `weekly-recap` (Mondays 8am — a deterministic memory audit plus a week-in-review appended to your daily note) and `slop-sweep` (Mondays 9am — weekly code-quality measurement across your `work/` repos, flag-only). Jobs are YAML files in `scheduled/`; copy either one to add your own.
 
 ```bash
 bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.moraine/cron/
@@ -168,7 +172,7 @@ hostname: my-machine     # optional — restrict to one machine
 Configured in `.opencode/opencode.json`. Two ship enabled:
 
 - **Semble** — semantic code search across `work/` repos (local, `uvx`).
-- **Headroom** — context compression, 60–95% fewer tokens on tool output, reversible — the agent can retrieve the original via CCR (local).
+- **Headroom** — context compression. Headroom reports 60–95% fewer tokens on tool output for typical sessions; reversible — the agent can retrieve the original via CCR (local).
 
 Add your own tracker, reader, or meeting-notes server there when you want it; `to-issue` and the other skills will use whatever the agent can see.
 
@@ -180,11 +184,11 @@ Add your own tracker, reader, or meeting-notes server there when you want it; `t
 | [Semble](https://github.com/MinishLab/semble) | Semantic code search with model2vec embeddings |
 | [SQLite FTS5](https://www.sqlite.org/fts5.html) | Full-text search for session search |
 | [Obsidian](https://obsidian.md) | PARA knowledge vault (human-curated side) |
-| [Headroom](https://github.com/headroomlabs-ai/headroom) | Context compression (60–95% savings, reversible via CCR) |
+| [Headroom](https://github.com/headroomlabs-ai/headroom) | Context compression (its own docs report 60–95% savings, reversible via CCR) |
 
 ## Make it yours
 
-Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No signup, no cloud dependency, no vendor lock-in.
+Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No Moraine-operated backend and no signup. Your selected model provider and any MCP integrations you enable are external services with their own data policies, and the bundled automation currently targets OpenCode — memory itself stays portable Markdown you can read without any tool.
 
 - **`AGENTS.md`** — the main lever: conventions, commands, issue tracking, remote access.
 - **`.opencode/skills/`** — 30 skills. Edit them, or write your own with the `create-skill` skill.
@@ -193,7 +197,12 @@ Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, pr
 
 ### Ejecting
 
-Everything Moraine-specific lives in the clone. To remove it: delete the directory, remove the crontab line if you added one, and uninstall whatever you let setup install globally (`opencode`, `headroom`, Obsidian). Nothing else touches your system.
+Everything Moraine-specific lives in the clone, but a few things do land outside it:
+
+- Cron state: installed jobs live under `~/.moraine/cron/` and the crontab line you added runs the runner.
+- OpenCode and Headroom: whatever you let setup install globally (`opencode`, `headroom`, Obsidian), plus Headroom's MCP registration in your OpenCode config if you accepted it.
+
+To remove it all: delete the clone directory, remove the crontab line and `~/.moraine/`, run `headroom mcp uninstall` (if registered), and uninstall the global tools you opted into.
 
 ### What not to commit
 
@@ -202,6 +211,10 @@ Everything Moraine-specific lives in the clone. To remove it: delete the directo
 - **Never paste** customer data, PII, credentials, incident details, or NDA material into `memory/`, `wiki/`, or `artifacts/`.
 - Keep secrets in `.env` (gitignored) and reference them by name in notes.
 - If you need a private scratch space, keep it out of the repo or in a separate private clone.
+
+**Moraine is for personal workspaces.** Do not put employer-confidential code, customer data, credentials, or NDA material into it. Use it for work only in an employer-approved environment.
+
+Deterministic scanning (secret scanning, credential hooks) is only a backstop: it catches known secret patterns, not arbitrary confidential prose or source code. The boundary above is the primary control.
 
 ### Staying in sync
 
@@ -212,7 +225,21 @@ git remote add upstream https://github.com/jamesctucker/moraine.git
 git fetch upstream && git merge upstream/main
 ```
 
-Or just tell the agent *"Sync with upstream"* — the `sync-upstream` skill classifies changes, preserves your `[CUSTOMIZE]` sections, and commits with a rollback branch. Details, conflict tips, and what's safe to merge: [docs/upstream-sync.md](docs/upstream-sync.md).
+Or just tell the agent *"Sync with upstream"* — the `sync-upstream` skill classifies changes and commits with a rollback branch. Details, conflict tips, and what's safe to merge: [docs/upstream-sync.md](docs/upstream-sync.md).
+
+### Trust model
+
+- **Review upstream skills and config before syncing.** Skills and config files are instructions your agent will follow — read the diff in a sync like you'd read a dependency update.
+- **Permission rules are not a sandbox.** OpenCode's deny/ask lists guard commands, not OS-level file or network access.
+- **Provider and MCP data policies apply.** Everything you or the agent sends through your model provider and MCP servers is governed by those services, not by Moraine.
+
+## Roadmap
+
+- More deterministic health checks over the memory/wiki structures the agent relies on.
+- Easier exclusion of large third-party skill bundles, to shrink install and review surface.
+- Cross-platform setup and first-session verification (currently macOS-tested, Linux-CI).
+
+Ideas tracked in [issues](https://github.com/jamesctucker/moraine/issues); see [CONTRIBUTING.md](CONTRIBUTING.md) for how to pitch in.
 
 ## License
 

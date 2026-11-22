@@ -198,7 +198,13 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.repo:
+        # A repo "name" that is really a path would recursively scan config
+        # outside work/. Enforce that the argument resolves to a direct
+        # child of work/ (rejects absolute, nested, and traversing values).
         repo_path = WORK_DIR / args.repo
+        if repo_path.resolve().parent != WORK_DIR.resolve():
+            print(f"error: --repo expects a single directory name under work/, not a path: {args.repo}", file=sys.stderr)
+            sys.exit(1)
         if not repo_path.is_dir():
             print(f"error: work/{args.repo} not found", file=sys.stderr)
             sys.exit(1)

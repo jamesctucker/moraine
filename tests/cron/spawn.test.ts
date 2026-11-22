@@ -13,6 +13,18 @@ function pidAlive(pid: number): boolean {
   }
 }
 
+// A process group SIGKILL is immediate, but the killed process can remain
+// signalable (an unreaped zombie) for a moment afterwards — especially on
+// loaded CI runners. Poll briefly instead of asserting on a single check.
+async function waitForExit(pid: number, deadlineMs = 5_000): Promise<boolean> {
+  const deadline = Date.now() + deadlineMs;
+  while (Date.now() < deadline) {
+    if (!pidAlive(pid)) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return !pidAlive(pid);
+}
+
 describe("runWithTimeout", () => {
   it("returns exit code and output for a completing child", async () => {
     const result = await runWithTimeout(
@@ -48,7 +60,7 @@ describe("runWithTimeout", () => {
     expect(result.stdout).toContain("SIGTERM trapped");
     // And it is genuinely gone afterwards.
     const pid = parseInt(result.stdout.match(/pid (\d+)/)![1], 10);
-    expect(pidAlive(pid)).toBe(false);
+    expect(await waitForExit(pid)).toBe(true);
   }, 15_000);
 
   it("clears a surviving grandchild holding the pipes (group SIGKILL)", async () => {
@@ -61,7 +73,7 @@ describe("runWithTimeout", () => {
     expect(result.timedOut).toBe(true);
     expect(result.exitCode).toBe(0);
     const grand = parseInt(result.stdout.match(/grand (\d+)/)![1], 10);
-    expect(pidAlive(grand)).toBe(false);
+    expect(await waitForExit(grand)).toBe(true);
   }, 15_000);
 
   it("settles even when a grandchild escapes the process group", async () => {

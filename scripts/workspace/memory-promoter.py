@@ -14,10 +14,11 @@ import argparse
 import re
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from lib import WORKSPACE, extract_wikilinks
+
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 SESSIONS_DIR = WORKSPACE / "memory" / "sessions"
 PROJECTS_DIR = WORKSPACE / "wiki" / "1 Projects"
@@ -139,8 +140,8 @@ def already_promoted(topic_normalized: str) -> bool:
 
 def write_report(candidates: dict[str, tuple[int, str]], dry_run: bool) -> Path:
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     lines = [
         f"# Promotion Candidates — {today}",
@@ -171,6 +172,65 @@ def write_report(candidates: dict[str, tuple[int, str]], dry_run: bool) -> Path:
     return report_path
 
 
+PROJECTS_INDEX_TEMPLATE = """# Projects
+
+<!-- Add one row per project, in the section matching its status. Link to the project's top note. -->
+
+## Active
+
+| Project | Status | Priority | Next Action |
+|---------|--------|----------|-------------|
+"""
+
+
+def index_row(dir_name: str, title: str) -> str:
+    """One projects.md row linking the promoted note (Obsidian table-escaped pipe)."""
+    # Square brackets would break wikilink parsing in both Obsidian and the
+    # workspace's own link regex; strip them from the display alias.
+    display = title.replace("[", "").replace("]", "").replace("|", r"\|")
+    return f"| [[{dir_name}/00 Top Note\\|{display}]] | Active | Medium | Define scope and refine from staging notes |"
+
+
+def add_to_projects_index(dir_name: str, title: str) -> None:
+    """List the promoted note in projects.md so it is indexed and linked."""
+    index_path = PROJECTS_DIR / "projects.md"
+    row = index_row(dir_name, title)
+    if not index_path.exists():
+        index_path.write_text(PROJECTS_INDEX_TEMPLATE + row + "\n")
+        return
+
+    lines = index_path.read_text().splitlines()
+    active = next((i for i, line in enumerate(lines) if line.strip() == "## Active"), None)
+    if active is None:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.extend(["## Active", "", "| Project | Status | Priority | Next Action |",
+                      "|---------|--------|----------|-------------|", row])
+        index_path.write_text("\n".join(lines) + "\n")
+        return
+
+    # Insert after the last table row of the Active section; if the section
+    # has no table at all, create one under the heading.
+    insert_at = active + 1
+    saw_table = False
+    for i in range(active + 1, len(lines)):
+        if lines[i].startswith("## "):
+            break
+        if lines[i].startswith("|"):
+            insert_at = i + 1
+            saw_table = True
+    if saw_table:
+        lines.insert(insert_at, row)
+    else:
+        lines[insert_at:insert_at] = [
+            "",
+            "| Project | Status | Priority | Next Action |",
+            "|---------|--------|----------|-------------|",
+            row,
+        ]
+    index_path.write_text("\n".join(lines) + "\n")
+
+
 def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
     created: list[Path] = []
     for norm, (count, sample) in sorted(candidates.items(), key=lambda x: -x[1][0]):
@@ -186,13 +246,17 @@ def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
             continue
         note_path = target_dir / "00 Top Note.md"
         rel = note_path.relative_to(WORKSPACE)
+        next_action = "Define scope and refine from staging notes"
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         note_content = (
             f"---\nstatus: active\npriority: medium\n"
             f"tags: [auto-promoted]\n"
-            f"created: {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n"
+            f"created: {today}\n"
+            f"last-reviewed: {today}\n"
+            f"next-action: {next_action}\n"
             f"---\n\n## Overview\n\n"
             f"Auto-promoted from staging. Referenced {count} times across staging.\n\n"
-            f"## Next Action\n\nDefine scope and refine from staging notes.\n"
+            f"## Next Action\n\n{next_action}.\n"
         )
         new_dir = not target_dir.exists()
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -207,6 +271,7 @@ def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
                 target_dir.rmdir()
             print(f"  Skipped {rel}: {e}")
             continue
+        add_to_projects_index(dir_name, sample)
         created.append(note_path)
         print(f"  Promoted: {rel} (referenced {count}x)")
     return created
@@ -225,8 +290,8 @@ def main() -> int:
     candidates = scan_staging()
     if not candidates:
         print("No promotion candidates found.")
-        report_path = STAGING_DIR / f"promotion-candidates-{datetime.now(timezone.utc).strftime('%Y-%m-%d')}.md"
-        report_path.write_text(f"# Promotion Candidates — {datetime.now(timezone.utc).strftime('%Y-%m-%d')}\n\nNo candidates.\n")
+        report_path = STAGING_DIR / f"promotion-candidates-{datetime.now(UTC).strftime('%Y-%m-%d')}.md"
+        report_path.write_text(f"# Promotion Candidates — {datetime.now(UTC).strftime('%Y-%m-%d')}\n\nNo candidates.\n")
         print(f"Report: {report_path.relative_to(WORKSPACE)}")
         return 0
 

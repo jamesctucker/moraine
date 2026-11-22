@@ -19,6 +19,16 @@ describe("config.ts", () => {
     const config = loadConfig(join(tmpDir, "nonexistent.yaml"));
     expect(config.default.timeout).toBe(600);
     expect(config.log_dir).toBe("scheduled/.logs");
+    expect(config.locks_dir).toBe("~/.moraine/cron/.locks");
+    expect(config.install_dir).toBe("~/.moraine/cron");
+  });
+
+  it("should keep Moraine defaults when config is invalid", () => {
+    const configPath = join(tmpDir, "invalid-schema.yaml");
+    writeFileSync(configPath, "default: 3\n"); // wrong type → schema failure
+    const config = loadConfig(configPath);
+    expect(config.locks_dir).toBe("~/.moraine/cron/.locks");
+    expect(config.install_dir).toBe("~/.moraine/cron");
   });
 
   it("should load a valid config file", () => {

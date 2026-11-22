@@ -273,7 +273,7 @@ def jscpd_lines(path: Path, excludes: list[str]) -> set[tuple[str, int]] | None:
             "--ignore", ",".join(excludes), "--silent",
         ]
         try:
-            res = run(cmd, timeout=600)
+            run(cmd, timeout=600)
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
         report = Path(tmp) / "jscpd-report.json"
@@ -309,6 +309,12 @@ def computed_checks(path: Path) -> tuple[set[tuple[str, int]], dict[str, int]]:
 
     files = [path] if path.is_file() else sorted(path.rglob("*.py"))
     for f in files:
+        # Same directory exclusions as the rest of the metric — without this,
+        # a checkout-local .venv or node_modules floods the Python checks
+        # with site-packages code and the verbosity numerator stops matching
+        # its denominator.
+        if set(f.parts) & EXCLUDE_DIRS:
+            continue
         if any(part in {"tests", "test", "__tests__", "fixtures"} for part in f.parts):
             continue
         try:
@@ -322,7 +328,7 @@ def computed_checks(path: Path) -> tuple[set[tuple[str, int]], dict[str, int]]:
                 self._func(node)
                 self.generic_visit(node)
 
-            visit_AsyncFunctionDef = visit_FunctionDef
+            visit_AsyncFunctionDef = visit_FunctionDef  # noqa: N815 — ast visitor protocol naming
 
             def _func(self, node):
                 # Single-use variable: `tmp = <expr>` immediately followed by
@@ -453,7 +459,7 @@ def snapshot(repo_rel: str, repo_path: Path, include_tests: bool = False) -> dic
         "commit": git_commit(repo_path),
         "date": date.today().isoformat(),
         "tool_versions": tool_versions(),
-        "exclude_globs_hash": hashlib.sha1(exclude_blob).hexdigest()[:12],
+        "exclude_globs_hash": hashlib.sha1(exclude_blob).hexdigest()[:12],  # noqa: S324 — snapshot fingerprint, not a security hash
         "tests_excluded": not include_tests,
         **m,
         "grandfathered": repo_rel.split("/")[-1] in GRANDFATHERED,

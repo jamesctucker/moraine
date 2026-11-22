@@ -76,7 +76,7 @@ PATH=$HOME/.bun/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin:/bin
 * * * * * cd /path/to/moraine && bun run .opencode/cron/runner.ts
 ```
 
-Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audit, then appends a week-in-review to the daily note; optional email delivery via the commented `email:` block. Add your own jobs as new YAML files in `scheduled/`.
+Default jobs: `weekly-recap` (Mondays 8am) — runs the deterministic memory audit, then appends a week-in-review to the daily note; optional email delivery via the commented `email:` block. `slop-sweep` (Mondays 9am) — weekly code-quality measurement across `work/` repos; flag-only, never modifies code or memory. Add your own jobs as new YAML files in `scheduled/`.
 
 ## Conventions
 
@@ -87,6 +87,7 @@ Default job: `weekly-recap` (Mondays 8am) — runs the deterministic memory audi
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
 - `memory/`, `wiki/`, and `artifacts/` are committed to git. Never write customer data, PII, credentials, incident details, or NDA material into them; keep secrets in `.env` (gitignored) and reference them by name.
+- **Moraine is for personal workspaces.** Do not put employer-confidential code, customer data, credentials, or NDA material into it; use it for work only in an employer-approved environment. Deterministic scanning is a backstop for known secret patterns, not a way to detect confidential prose or source code — this boundary is the primary control.
 - Artifacts are numbered sequentially (`01-`, `02-`, etc.) and must include a Table of Contents with anchor links to each section. Start from `artifacts/_TEMPLATE.md`. Allocate the number with `python scripts/workspace/next-artifact.py --claim <slug>` — never hand-pick it from `ls`, because two sessions running at once will otherwise claim the same number.
 
 ## Health checks
@@ -106,15 +107,18 @@ Deterministic scripts in `scripts/workspace/`. All flag-only (never modify memor
 
 ## Token Efficiency (Headroom)
 
-[Headroom](https://github.com/headroomlabs-ai/headroom) is a context optimization layer that compresses tool outputs, logs, files, and search results before they reach the model. 60–95% fewer tokens, same answers.
+[Headroom](https://github.com/headroomlabs-ai/headroom) is a context optimization layer that compresses tool outputs, logs, files, and search results before they reach the model. Headroom's own docs report 60–95% fewer tokens for typical sessions, with the same answers.
 
 **How it works:** Content-type-aware compressors (JSON, code, logs, diffs, search results, text) feed into a Compress-Cache-Retrieve (CCR) store so compression stays reversible — the LLM can ask for the original whenever it wants.
 
 **Initialization:**
 ```bash
-pip install "headroom-ai[mcp]"              # one-time install
-headroom mcp install                        # register with OpenCode
+bash scripts/setup                # preferred — prompts, installs into isolated envs
+# or, isolated and manually:
+uv tool install "headroom-ai[mcp]"   # (or: pipx install "headroom-ai[mcp]")
+headroom mcp install                  # register with OpenCode
 ```
+Avoid bare `pip install` into a system Python — setup keeps every install workspace-local or tool-isolated, and manual installs should too.
 
 **Available MCP tools:**
 - `headroom_compress(content)` — compress content on demand, returns compressed text + hash for retrieval
@@ -128,7 +132,7 @@ headroom mcp install                        # register with OpenCode
 ## Tech Stack
 
 - OpenCode for AI/agentic workflows
-- [Headroom](https://github.com/headroomlabs-ai/headroom) for context compression (60–95% savings, reversible via CCR)
+- [Headroom](https://github.com/headroomlabs-ai/headroom) for context compression (its docs report 60–95% savings, reversible via CCR)
 - Markdown + git for knowledge management (PARA via `wiki/`)
 - Python and TypeScript for tooling/automation
 
