@@ -49,13 +49,14 @@ The agent creates the project repo, reads the project note, writes the code, run
 
 > Wrap up this session.
 
-The `session-handoff` skill writes `memory/sessions/<date>-<slug>.md` and updates `memory/index.md`.
+The `session-handoff` skill writes `memory/sessions/<date>-<slug>.md`, updates `memory/index.md`, and commits those memory writes (scoped to `memory/` paths — unrelated working-tree changes are left alone, and it doesn't push). Working from a clone where `origin` points at your private repo, that's exactly what you want; say so if you'd rather commit yourself.
 
 **Expect:**
 
 - a new file in `memory/sessions/`
 - the project under **Active projects** in `memory/index.md`
 - any real decision under **Recent decisions**
+- a memory commit in `git log`
 
 Review the summary before you move on. It is what the next session will believe.
 

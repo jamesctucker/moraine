@@ -11,7 +11,7 @@ User wants to pull changes from the upstream Moraine repo into their clone or fo
 
 ## Overview
 
-This is a **merge** operation, not a reset. The goal is to take upstream improvements (new skills, script fixes, cron updates) while keeping the user's personal content intact. The agent does **semantic merging** for files with `[CUSTOMIZE]` markers and structural auto-merging for files that are pure upstream code.
+This is a **merge** operation, not a reset. The goal is to take upstream improvements (new skills, script fixes, cron updates) while keeping the user's personal content intact. For files with `[CUSTOMIZE]` markers the agent proposes a merge that keeps the marked regions; for markerless config it applies explicit preservation rules (e.g. the user's MCP server set). Every personalized file is shown to the user for approval — nothing personalized is auto-overwritten.
 
 ## Pre-flight
 
@@ -116,8 +116,8 @@ These files are pure upstream code. The user should not have personalized them. 
 These files have structure that upstream maintains, but contain `[CUSTOMIZE]` sections where the user adds their own content. The agent should **propose** a merge, not auto-take upstream.
 
 - `AGENTS.md` — has `[CUSTOMIZE]` markers for issue tracker, remote access
-- `README.md` — has `[CUSTOMIZE]` markers in some sections
-- `.opencode/opencode.json` — user may have trimmed MCP servers via setup
+- `README.md` — user-edited setup notes and integrations (no markers; whole file is user-owned in spirit)
+- `.opencode/opencode.json` — user may have trimmed MCP servers via setup (no markers; preserve the server set explicitly)
 - `work/README.md` — user adds their repos here
 - `memory/README.md` (if user customized stubs)
 - `artifacts/README.md`
@@ -163,7 +163,7 @@ cat <file>  # current version
 
 ### 2. Identify the merge structure
 
-For files with `[CUSTOMIZE]` markers (AGENTS.md, README.md sections):
+Markers are a convention, not a machine-enforced boundary: `AGENTS.md` uses them consistently, `opencode.json` has none (it gets the MCP-preservation rule below instead). For files that do carry them (`AGENTS.md`):
 
 - The user's content lives between `<!-- [CUSTOMIZE] ... -->` markers
 - Upstream changes outside those markers should be taken

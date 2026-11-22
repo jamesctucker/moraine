@@ -47,7 +47,7 @@ Files like `AGENTS.md` contain HTML-comment markers:
 <!-- [CUSTOMIZE] Configure your issue tracker below. ... -->
 ```
 
-Sections wrapped in these markers are intentionally generic placeholders you replace with your own setup. The `sync-upstream` skill treats them as merge-protected — when upstream changes the surrounding scaffolding, your customized sections are preserved. If you sync by hand, just be aware these marked regions are yours; everything else is upstream-owned.
+Sections wrapped in these markers are intentionally generic placeholders you replace with your own setup. Treat marked regions as yours and everything else as upstream-owned when you resolve a merge: upstream changes outside the markers are usually safe to take; changes inside a marked region deserve a look before you overwrite your version. Neither git nor any tool enforces this — it's a convention, so review the diff rather than assuming your sections survived untouched.
 
 ## Conflict tips
 
@@ -74,4 +74,4 @@ Instead of merging manually, ask OpenCode to sync for you:
 
 > Sync with upstream
 
-The `sync-upstream` skill handles the whole flow: classifies changes (safe vs. personalized vs. user-owned), auto-merges structural files, smart-merges your `[CUSTOMIZE]` sections in `AGENTS.md` and `opencode.json`, runs a smoke test, and commits with a backup branch you can roll back to. It's the magical version of the manual flow above.
+The `sync-upstream` skill handles the whole flow: classifies changes (safe vs. personalized vs. user-owned), auto-merges structural files, proposes merges for your `[CUSTOMIZE]` sections in `AGENTS.md` (you approve each one), runs a smoke test, and commits with a backup branch you can roll back to. It automates the manual flow above; the judgment calls still come to you.
