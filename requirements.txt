@@ -3,4 +3,4 @@ pyyaml>=6.0,<7
 
 # Development
 pytest>=8.0
-ruff>=0.4.0
+ruff>=0.17.5
