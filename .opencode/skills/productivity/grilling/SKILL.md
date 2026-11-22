@@ -45,7 +45,7 @@ Discussing a specific software project inside `work/<project>/`. Documentation l
 ```
 work/
 └── my-app/
-    ├── CONTEXT.md
+    ├── GLOSSARY.md
     ├── docs/
     │   └── adr/
     │       ├── 0001-event-sourced-orders.md
@@ -60,13 +60,13 @@ If no `work/` project is active, default to workspace level.
 The user may discuss a project that isn't physically present in `work/` (e.g., repos tracked in `memory/index.md` but not yet checked out). In this case:
 - Check `memory/index.md` for any recorded context about the project
 - Ask the user for the relevant domain terms and constraints rather than assuming you can read code
-- If a `CONTEXT.md` would be valuable, suggest the user clone the repo first, or offer to draft one in `artifacts/` as a temporary holding doc until the repo is available
+- If a `GLOSSARY.md` would be valuable, suggest the user clone the repo first, or offer to draft one in `artifacts/` as a temporary holding doc until the repo is available
 
 ### File creation rules
 
 - **Workspace architecture docs** → `artifacts/` using sequential numbering (`python scripts/workspace/next-artifact.py --claim <slug>`)
 - **Workspace decisions** → `memory/index.md` under a dated "Recent decisions" section
-- **Project glossary** → `work/<project>/CONTEXT.md`
+- **Project glossary** → `work/<project>/GLOSSARY.md`
 - **Project ADRs** → `work/<project>/docs/adr/` with sequential numbering
 
 Create files lazily — only when you have something to write.
@@ -79,7 +79,7 @@ When the user uses a term or proposes a design, check for conflicts:
 - **Artifacts**: Does an existing artifact already address this? (e.g., `01-self-improving-loop.md` covers the skill ecosystem)
 - **Memory**: Does `memory/index.md` record a prior decision that contradicts this plan?
 - **Knowledge base**: Is there a note in the PARA vault with relevant domain knowledge?
-- **Project CONTEXT.md**: If in a project context, does the glossary define this term differently?
+- **Project GLOSSARY.md**: If in a project context, does the glossary define this term differently?
 
 Call out conflicts immediately: "`memory/index.md` records that we chose X on 2026-05-09, but this plan assumes Y — has something changed?"
 
@@ -104,7 +104,7 @@ When a term is resolved or a decision crystallises, update documentation right t
 - New decision → append to `memory/index.md` under the current date
 
 **At project level:**
-- New term → update `work/<project>/CONTEXT.md` using the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md)
+- New term → update `work/<project>/GLOSSARY.md` using the format in [GLOSSARY-FORMAT.md](../../engineering/domain-modeling/GLOSSARY-FORMAT.md)
 - Hard-to-reverse, surprising, trade-off decision → offer an ADR using the format in [ADR-FORMAT.md](./ADR-FORMAT.md)
 
 ### Offer workspace artifacts generously
@@ -131,7 +131,7 @@ If any of the three is missing, skip the ADR. Record the decision in `memory/ind
 When the grilling session winds down (user signals they're satisfied, or all branches are resolved):
 
 1. **Recap what was decided.** Give a concise numbered list of:
-   - Terms that were sharpened or added to `CONTEXT.md`
+   - Terms that were sharpened or added to `GLOSSARY.md`
    - Decisions recorded in `memory/index.md` or as ADRs
    - Artifacts created or updated
    - Open questions that remain unresolved

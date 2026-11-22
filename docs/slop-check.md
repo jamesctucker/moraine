@@ -15,7 +15,7 @@ Both are computed per repo and per diff. Missing or unmeasurable values are reco
 python3 scripts/workspace/slop-check.py --all --write
 ```
 
-This snapshots every repo under `work/` plus `scripts/workspace` into `memory/eval/slop/snapshots/<month>/`. These are *your* reference points — the template ships no baselines, because they belong to your repos.
+This snapshots every repo under `work/` plus `scripts/workspace` into `memory/eval/slop/snapshots/<ISO-date>/` — one directory per day, so weekly sweeps never overwrite each other. Rerunning on the same day keeps the existing snapshot; pass `--replace-today` to replace it deliberately. These are *your* reference points — the template ships no baselines, because they belong to your repos.
 
 **Read bands as reference points, not gates.** The absolute green/warn/red bands come from the paper's human-vs-agent population means. A repo above the band is not a failure — it's a measurement. What matters is the *delta*: is this repo getting worse, and how fast?
 
@@ -39,14 +39,14 @@ Grandfathered repos are **delta-gated only**: their absolute band never fails, b
 python3 scripts/workspace/slop-check.py --range <base>..HEAD --repo <repo> --fail-on-new-cc
 ```
 
-- **Blocking:** a diff that introduces a *new* callable with CC > 10 exits 1. The fix is to extract the seam first in a separate commit, then add the feature. This is the one blocking rule — in the upstream rehearsal it was the sharpest, lowest-noise signal.
+- **Blocking:** a diff that introduces a *new* callable with CC > 10 exits 1. New is judged by identity — (function name, repo-relative path) — so a replacement, a rename, or an existing callable crossing the threshold all fail, and removing another high-CC callable cannot offset them. If either side of the range can't be measured, the gate fails closed rather than passing. The fix is to extract the seam first in a separate commit, then add the feature. This is the one blocking rule — in the upstream rehearsal it was the sharpest, lowest-noise signal.
 - **Advisory:** Δerosion and Δverbosity are reported in the PR comment but never block on their own.
 
 The matching write-time rules live in `AGENTS.md` (the anti-slop checklist) and `implement-milestone` step 3 (extract-before-extend: never add a branch to a function already over CC 10 or 60 lines). The checklist and the gate share a vocabulary: write code you wouldn't flag.
 
 ## Weekly sweep
 
-`scheduled/slop-sweep.yaml` runs the full `--all --write` sweep every Monday and appends a flag-only report to the daily note. A repo is flagged when its weekly Δ exceeds human velocity (erosion +0.0053, verbosity +0.0022 per checkpoint, from the paper) — meaning it's slopping faster than a human would, which points at agent activity.
+`scheduled/slop-sweep.yaml` runs the full `--all --write` sweep every Monday and appends a flag-only report to the daily note. Each snapshot lands in its own date directory, and deltas compare against the latest earlier snapshot — normally the previous Monday, even across month boundaries. A repo is flagged when its weekly Δ exceeds human velocity (erosion +0.0053, verbosity +0.0022 per checkpoint, from the paper) — meaning it's slopping faster than a human would, which points at agent activity.
 
 Install with the other cron jobs:
 
@@ -70,4 +70,4 @@ Run after any change to the rule pack or the script: `python3 scripts/workspace/
 - `ast-grep` (rule pack) — `brew install ast-grep` or see its docs
 - `jscpd` (clones) — run via `npx -y jscpd@5.4.2`, or install it
 
-Missing tools degrade gracefully: the corresponding half of verbosity is skipped and recorded as unavailable, not zero.
+Missing tools degrade gracefully: the corresponding half of verbosity is skipped and recorded as unavailable, not zero. In blocking modes (`--fail-on-new`, `--fail-on-new-cc`), a failed detector or failed git command exits 1 rather than reporting clean.

@@ -40,6 +40,47 @@ Content
         assert len(ctx.errors) >= 1
         assert any("kebab-case" in e for e in ctx.errors)
 
+    def test_valid_skill_passes(self, val, tmp_path):
+        skill_dir = tmp_path / ".opencode" / "skills" / "good-skill"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("""---
+name: good-skill
+description: does the thing
+---
+Content
+""")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+        assert ctx.errors == []
+
+    def test_absent_frontmatter_is_an_error(self, val, tmp_path):
+        skill_dir = tmp_path / ".opencode" / "skills" / "no-frontmatter"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("# No frontmatter here\nJust a body.\n")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+        assert any("frontmatter" in e for e in ctx.errors)
+
+    def test_malformed_frontmatter_is_an_error(self, val, tmp_path):
+        skill_dir = tmp_path / ".opencode" / "skills" / "broken-skill"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("---\nname: broken-skill\n")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+        assert any("malformed_delimiter" in e for e in ctx.errors)
+
+    def test_empty_frontmatter_is_an_error(self, val, tmp_path):
+        skill_dir = tmp_path / ".opencode" / "skills" / "empty-skill"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("---\n---\nBody\n")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+        assert len(ctx.errors) >= 1
+
 
 class TestValidateArtifacts:
     def test_good_artifact_passes(self, val, tmp_path):

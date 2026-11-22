@@ -1,6 +1,16 @@
 import { Cron } from "croner";
 
+/**
+ * The runner is fired once a minute from the system crontab, so
+ * seconds-precision (6/7-field) expressions can never match — reject
+ * them instead of accepting a schedule that silently never fires.
+ */
+function hasSubMinuteFields(expression: string): boolean {
+  return expression.trim().split(/\s+/).length > 5;
+}
+
 export function isValid(expression: string): boolean {
+  if (hasSubMinuteFields(expression)) return false;
   try {
     new Cron(expression);
     return true;
@@ -10,6 +20,7 @@ export function isValid(expression: string): boolean {
 }
 
 export function matches(expression: string, date?: Date): boolean {
+  if (hasSubMinuteFields(expression)) return false;
   try {
     const now = date ?? new Date();
     const cron = new Cron(expression);
@@ -25,6 +36,7 @@ export function matches(expression: string, date?: Date): boolean {
 }
 
 export function getNextRun(expression: string, date?: Date): Date | null {
+  if (hasSubMinuteFields(expression)) return null;
   try {
     const now = date ?? new Date();
     const cron = new Cron(expression);

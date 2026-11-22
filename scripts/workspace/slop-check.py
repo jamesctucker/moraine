@@ -19,7 +19,7 @@ Tool requirements (resolved on demand, nothing to pip-install):
 Usage:
   slop-check.py --repo work/rolodex            # snapshot a working tree
   slop-check.py --repo . --range main..HEAD    # base-vs-head delta (temp worktree)
-  slop-check.py --all --json --write           # monthly sweep -> memory/eval/slop/
+  slop-check.py --all --json --write           # weekly sweep -> memory/eval/slop/
   slop-check.py --changed-only --fail-on-new   # pre-commit / PR gate
 
 Thresholds (straight from the paper, SlopCodeBench arXiv 2603.24755):
@@ -29,11 +29,17 @@ Thresholds (straight from the paper, SlopCodeBench arXiv 2603.24755):
   delta     verbosity green<=0.0022 warn<=0.0144
 
 Conventions:
-  - Flag-only: exit 0 always, except --fail-on-new / --fail-on-new-cc (exit 1).
+  - Flag-only: exit 0 always, except --fail-on-new / --fail-on-new-cc (exit 1,
+    including when a detector or git itself fails — blocking gates fail closed).
   - Missing/unmeasurable values are recorded as null, never imputed (paper §2.4).
   - Gate on delta, report absolute. Repos listed in slop-check.json's
     "grandfathered" (ported legacy) are delta-gated only — absolute bands
     never fail them.
+  - Snapshots live in memory/eval/slop/snapshots/<ISO-date>/ — one directory
+    per day, so weekly sweeps never overwrite each other. A same-day rerun
+    keeps the existing snapshot unless --replace-today is passed. Deltas
+    compare against the latest earlier snapshot (with the weekly cadence,
+    ~7 days back), across month boundaries.
   - Test files are excluded by default (--include-tests to override); the
     paper's repo panel did not exclude tests, so snapshot comparability with
     paper numbers is approximate. Pick one and freeze it.
@@ -157,8 +163,22 @@ def run(cmd: list[str], timeout: int = 300) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
 
+def _repo_relative(file: str, root: Path) -> str:
+    """Normalize a tool-reported path to the measured root.
+
+    lizard reports paths rooted at whatever was passed on the command line,
+    so an absolute scan root yields absolute file paths. CC-gate identities
+    must match between a live tree and a throwaway worktree, which share
+    only the repo-relative tail.
+    """
+    try:
+        return str(Path(file).relative_to(root))
+    except ValueError:
+        return file
+
+
 def lizard_callables(path: Path, excludes: list[str]) -> list[dict] | None:
-    """Per-callable {file, start, end, ccn, nloc} from lizard CSV."""
+    """Per-callable {name, file, start, end, ccn, nloc} from lizard CSV."""
     cmd = ["uvx", "--from", f"lizard=={LIZARD_VERSION}", "lizard", "--csv"]
     for pat in excludes:
         cmd += ["-x", pat]
@@ -180,7 +200,8 @@ def lizard_callables(path: Path, excludes: list[str]) -> list[dict] | None:
             continue  # tolerate a header if a future lizard adds one
         try:
             rows.append({
-                "file": row[6],
+                "name": row[8] or row[7],
+                "file": _repo_relative(row[6], path),
                 "start": int(row[9]), "end": int(row[10]),
                 "ccn": int(row[1]), "nloc": int(row[0]),
             })
@@ -208,15 +229,21 @@ def erosion_from(callables: list[dict]) -> tuple[float | None, int, int]:
 
 
 def astgrep_lines(path: Path) -> tuple[set[tuple[str, int]], dict[str, int]] | None:
-    """(file, 1-based line) set flagged by the slop-rules pack + hits by rule id."""
+    """(file, 1-based line) set flagged by the slop-rules pack + hits by rule id.
+
+    None = detector unavailable (missing, timed out, or broken rules) —
+    callers must not read that as zero findings.
+    """
     cmd = ["ast-grep", "scan", "--config", str(RULES_CONFIG), "--json", str(path)]
     try:
         res = run(cmd)
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return None
+    if res.returncode not in (0, 1):
+        return None
     out = res.stdout.strip()
     if not out:
-        return set(), {}
+        return (set(), {})
     try:
         matches = json.loads(out)
     except json.JSONDecodeError:
@@ -365,7 +392,8 @@ def measure(repo_path: Path, include_tests: bool = False) -> dict:
         return {"error": "lizard failed or timed out", "erosion": None,
                 "verbosity": None, "nloc": None}
     erosion, func_nloc, max_cc = erosion_from(callables)
-    cc_over_10 = sum(1 for c in callables if c["ccn"] > 10)
+    high_cc = sorted([c["name"], c["file"]] for c in callables if c["ccn"] > 10)
+    cc_over_10 = len(high_cc)
     nloc = count_nloc(repo_path, include_tests)
 
     rule_result = astgrep_lines(repo_path)
@@ -391,6 +419,7 @@ def measure(repo_path: Path, include_tests: bool = False) -> dict:
         "func_nloc": func_nloc,
         "max_cc": max_cc,
         "cc_over_10": cc_over_10,
+        "high_cc_callables": high_cc,
         "rule_hits_by_id": rule_hits,
         "rule_lines": len(flagged),
         "clone_lines": len(clone_lines) if clone_lines is not None else None,
@@ -467,24 +496,32 @@ def print_snapshot(snap: dict) -> None:
         print("   top rules: " + ", ".join(f"{rid} x{n}" for rid, n in top))
 
 
-def snapshot_path(repo_rel: str, month: str) -> Path:
+def snapshot_path(repo_rel: str, day: str) -> Path:
+    """Snapshot file for a repo on an ISO date — one directory per day, so
+    weekly sweeps never overwrite each other."""
     slug = repo_rel.replace("/", "__")
-    return SLOP_DIR / "snapshots" / month / f"{slug}.json"
+    return SLOP_DIR / "snapshots" / day / f"{slug}.json"
 
 
-def link_prev(snap: dict, month: str) -> None:
-    """Find the most recent earlier snapshot for this repo and compute deltas."""
+def link_prev(snap: dict, today: str) -> None:
+    """Find the most recent earlier snapshot for this repo and compute deltas.
+
+    Snapshot directories are ISO dates, so lexicographic order is
+    chronological and the baseline crosses month boundaries (a legacy
+    %Y-%m month dir sorts before every date within its month). With the
+    weekly sweep cadence the latest earlier snapshot is ~7 days old.
+    """
     slug = snap["repo"].replace("/", "__")
     candidates = sorted(
         p for p in SLOP_DIR.glob(f"snapshots/*/{slug}.json")
-        if p.parent.name < month
+        if p.parent.name < today
     )
     if not candidates:
         return
     prev_path = candidates[-1]
     try:
         prev = json.loads(prev_path.read_text())
-    except json.JSONDecodeError:
+    except (OSError, json.JSONDecodeError):
         return
     snap["prev"] = str(prev_path.relative_to(WORKSPACE))
     for key in ("erosion", "verbosity"):
@@ -506,22 +543,30 @@ def discover_repos() -> list[tuple[str, Path]]:
 
 
 def mode_all(args) -> int:
-    month = date.today().strftime("%Y-%m")
+    today = date.today().isoformat()
     snaps = []
     for rel, path in discover_repos():
         print(f"measuring {rel} ...", file=sys.stderr)
         snap = snapshot(rel, path, args.include_tests)
         if args.write:
-            link_prev(snap, month)
+            link_prev(snap, today)
         snaps.append(snap)
         print_snapshot(snap)
     if args.write:
-        out_dir = SLOP_DIR / "snapshots" / month
+        out_dir = SLOP_DIR / "snapshots" / today
         out_dir.mkdir(parents=True, exist_ok=True)
+        written = kept = 0
         for snap in snaps:
-            p = snapshot_path(snap["repo"], month)
+            p = snapshot_path(snap["repo"], today)
+            if p.exists() and not args.replace_today:
+                kept += 1  # same-day rerun: preserve history
+                continue
             p.write_text(json.dumps(snap, indent=2) + "\n")
-        print(f"\nwrote {len(snaps)} snapshots -> {out_dir.relative_to(WORKSPACE)}")
+            written += 1
+        msg = f"\nwrote {written} snapshots -> {out_dir.relative_to(WORKSPACE)}"
+        if kept:
+            msg += f" (kept {kept} same-day snapshot(s); pass --replace-today to replace)"
+        print(msg)
     if args.json:
         print(json.dumps(snaps, indent=2))
     return 0
@@ -538,13 +583,32 @@ def mode_repo(args) -> int:
     else:
         print_snapshot(snap)
     if args.write:
-        month = date.today().strftime("%Y-%m")
-        link_prev(snap, month)
-        p = snapshot_path(rel, month)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(snap, indent=2) + "\n")
-        print(f"wrote {p.relative_to(WORKSPACE)}")
+        today = date.today().isoformat()
+        link_prev(snap, today)
+        p = snapshot_path(rel, today)
+        if p.exists() and not args.replace_today:
+            print(f"kept existing same-day snapshot {p.relative_to(WORKSPACE)} "
+                  f"(pass --replace-today to replace)")
+        else:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps(snap, indent=2) + "\n")
+            print(f"wrote {p.relative_to(WORKSPACE)}")
     return 0
+
+
+def new_high_cc(base_snap: dict, head_snap: dict) -> list[tuple[str, str]] | None:
+    """(name, repo-relative path) identities newly over CC 10, or None.
+
+    Identity comparison, not counts: a replacement, rename, or threshold
+    crossing fails even when another high-CC callable was removed and the
+    net count delta is zero or negative. None means a side could not be
+    measured — blocking callers must treat that as failed, not clean.
+    """
+    base_list = base_snap.get("high_cc_callables")
+    head_list = head_snap.get("high_cc_callables")
+    if base_list is None or head_list is None:
+        return None
+    return sorted({tuple(i) for i in head_list} - {tuple(i) for i in base_list})
 
 
 def mode_range(args, repo_path: Path, rel: str) -> int:
@@ -586,9 +650,8 @@ def mode_range(args, repo_path: Path, rel: str) -> int:
     for key in ("erosion", "verbosity"):
         b, h = base_snap.get(key), head_snap.get(key)
         result["delta"][key] = round(h - b, 4) if b is not None and h is not None else None
-    b_cc, h_cc = base_snap.get("cc_over_10"), head_snap.get("cc_over_10")
-    new_cc = (h_cc - b_cc) if b_cc is not None and h_cc is not None else 0
-    result["delta"]["new_cc_over_10"] = new_cc
+    new_high = new_high_cc(base_snap, head_snap)
+    result["delta"]["new_cc_over_10"] = None if new_high is None else len(new_high)
     if args.json:
         print(json.dumps(result, indent=2))
     else:
@@ -598,47 +661,83 @@ def mode_range(args, repo_path: Path, rel: str) -> int:
             bnd = band(d, *DELTA_THRESH[key]) if d is not None else None
             print(f"   {key:9s} base {fmt(base_snap.get(key))} -> head {fmt(head_snap.get(key))}  "
                   f"delta {d:+.4f} ({bnd})" if d is not None else f"   {key:9s} unavailable")
-        print(f"   new CC>10 callables: {new_cc}")
-    if args.fail_on_new_cc and new_cc > 0:
-        print(f"FAIL: diff introduces {new_cc} new callable(s) with CC > 10 "
+        ncc = result["delta"]["new_cc_over_10"]
+        print(f"   new CC>10 callables: {ncc}" if ncc is not None
+              else "   new CC>10 callables: unavailable")
+    if not args.fail_on_new_cc:
+        return 0
+    if new_high is None:
+        print("FAIL: CC gate unavailable — base or head measurement failed; "
+              "refusing to pass a diff it could not measure", file=sys.stderr)
+        return 1
+    if new_high:
+        print(f"FAIL: diff introduces {len(new_high)} new callable(s) with CC > 10 "
               f"(extract the seam first — implement-milestone step 4b)", file=sys.stderr)
+        for name, path in new_high:
+            print(f"  {path} :: {name}", file=sys.stderr)
         return 1
     return 0
 
 
+def changed_files() -> list[str] | None:
+    """Staged ACM files, falling back to every change vs HEAD.
+
+    Output is parsed from `git diff -z`, so filenames with spaces survive.
+    None means git failed — callers must not read that as "no changes".
+    """
+    staged = run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM", "-z"], timeout=15)
+    if staged.returncode != 0:
+        return None
+    names = [n for n in staged.stdout.split("\0") if n]
+    if names:
+        return names
+    vs_head = run(["git", "diff", "--name-only", "--diff-filter=ACM", "-z", "HEAD"], timeout=15)
+    if vs_head.returncode != 0:
+        return None
+    return [n for n in vs_head.stdout.split("\0") if n]
+
+
 def mode_changed(args) -> int:
-    res = run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"], timeout=15)
-    names = res.stdout.split() if res.returncode == 0 else []
-    if not names:
-        res = run(["git", "diff", "--name-only", "--diff-filter=ACM", "HEAD"], timeout=15)
-        names = res.stdout.split() if res.returncode == 0 else []
+    names = changed_files()
+    if names is None:
+        print("error: git diff failed — cannot determine changed files", file=sys.stderr)
+        return 1 if args.fail_on_new else 0
     files = [WORKSPACE / f for f in names
              if Path(f).suffix in SCANNABLE_SUFFIXES and (WORKSPACE / f).is_file()]
     if not files:
         print("no scannable changed files")
         return 0
     new_hits: list[str] = []
+    detector_failed = False
     for f in files:
         rule_result = astgrep_lines(f)
-        if rule_result:
-            lines, hits = rule_result
-            for _f, ln in sorted(lines):
-                new_hits.append(f"{f.relative_to(WORKSPACE)}:{ln}")
+        if rule_result is None:
+            detector_failed = True
+            continue
+        lines, hits = rule_result
+        for _f, ln in sorted(lines):
+            new_hits.append(f"{f.relative_to(WORKSPACE)}:{ln}")
         _, comp_hits = computed_checks(f)
         if comp_hits:
             new_hits.append(f"{f.relative_to(WORKSPACE)}: computed {comp_hits}")
         callables = lizard_callables(f, [])
-        for c in callables or []:
+        if callables is None:
+            detector_failed = True
+            continue
+        for c in callables:
             if c["ccn"] > 20:
                 new_hits.append(f"{f.relative_to(WORKSPACE)}:{c['start']} CC {c['ccn']} > 20")
     if new_hits:
         print("slop-check findings in changed files:")
         for h in new_hits:
             print(f"  {h}")
-        if args.fail_on_new:
-            return 1
-    else:
+    elif not detector_failed:
         print(f"clean: {len(files)} changed files, no findings")
+    if detector_failed:
+        print("error: detector scan failed (ast-grep or lizard) — findings incomplete, clean not certified",
+              file=sys.stderr)
+    if args.fail_on_new and (new_hits or detector_failed):
+        return 1
     return 0
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -647,6 +746,8 @@ def main() -> int:
     p.add_argument("--all", action="store_true", help="Measure all work/ repos + scripts/workspace")
     p.add_argument("--json", action="store_true", help="Emit JSON")
     p.add_argument("--write", action="store_true", help="Write snapshots to memory/eval/slop/")
+    p.add_argument("--replace-today", action="store_true",
+                   help="With --write: replace an existing same-day snapshot instead of keeping it")
     p.add_argument("--changed-only", action="store_true", help="Scan staged/changed files only")
     p.add_argument("--fail-on-new", action="store_true", help="Exit 1 on findings in changed files")
     p.add_argument("--fail-on-new-cc", action="store_true",

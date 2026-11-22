@@ -106,6 +106,47 @@ prompt: "test"
     expect(jobs.find(j => j.name === "bad-cron")).toBeUndefined();
   });
 
+  it("should skip job names that are not bounded slugs", () => {
+    // JSON is valid YAML and sidesteps quoting issues.
+    const badNames = [
+      "../evil",     // lock-path traversal
+      "a/b",
+      "a\\b",
+      "bad name",
+      "",
+      "-leading",
+      "semi;colon",
+      "x".repeat(65), // one past the bound
+    ];
+    for (const name of badNames) {
+      writeFileSync(join(tmpDir, "bad-name.yaml"), JSON.stringify({
+        name, cron: "* * * * *", prompt: "test",
+      }));
+      expect(loadJobs(tmpDir).find(j => j.name === name)).toBeUndefined();
+    }
+  });
+
+  it("should accept a 64-character slug name", () => {
+    writeFileSync(join(tmpDir, "long-name.yaml"), JSON.stringify({
+      name: "a".repeat(64), cron: "* * * * *", prompt: "test",
+    }));
+    const jobs = loadJobs(tmpDir);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].name).toBe("a".repeat(64));
+  });
+
+  it("should reject duplicate job names across files", () => {
+    writeFileSync(join(tmpDir, "dup-a.yaml"), JSON.stringify({
+      name: "dup", cron: "* * * * *", prompt: "first",
+    }));
+    writeFileSync(join(tmpDir, "dup-b.yaml"), JSON.stringify({
+      name: "dup", cron: "* * * * *", prompt: "second",
+    }));
+    const jobs = loadJobs(tmpDir).filter(j => j.name === "dup");
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].prompt).toBe("first"); // entries sort: dup-a wins
+  });
+
   it("should return empty array for non-existent directory", () => {
     const jobs = loadJobs("/nonexistent/path/12345");
     expect(jobs).toEqual([]);

@@ -16,7 +16,9 @@ Designed for the weekly-review cron job; also runnable on demand:
     python scripts/workspace/memory-audit.py [--days 7]
 
 Never modifies memory files. Always exits 0 — findings are data, not
-failures, so cron logs stay clean.
+failures, so cron logs stay clean. A delegated script that fails or exits
+nonzero is reported as an "audit unavailable" finding rather than a clean
+result, and still never changes the exit code.
 """
 
 from __future__ import annotations
@@ -230,30 +232,50 @@ def stale_staging(today: date) -> list[StaleStagingFile]:
 # Checks 1–3: delegate to the existing scripts, keep their summary lines
 # ---------------------------------------------------------------------------
 
-def _run_script(script: str, *args: str) -> str:
-    result = subprocess.run(
-        [sys.executable, str(WORKSPACE_SCRIPTS / script), *args],
-        cwd=WORKSPACE,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout + result.stderr
+def _run_script(script: str, *args: str) -> tuple[str, int]:
+    """Run a workspace script; returns (combined output, exit code).
+
+    A script that cannot even be launched (missing file, bad interpreter)
+    yields exit code 127 so callers treat it as a failure, not a clean run.
+    """
+    try:
+        result = subprocess.run(
+            [sys.executable, str(WORKSPACE_SCRIPTS / script), *args],
+            cwd=WORKSPACE,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as e:
+        return str(e), 127
+    return result.stdout + result.stderr, result.returncode
 
 
-def prune_candidates() -> list[str]:
+def _script_failure(script: str, code: int, output: str) -> str:
+    """One-line reason a delegated check could not run."""
+    last = output.strip().splitlines()[-1].strip() if output.strip() else "no output"
+    return f"{script} failed (exit {code}): {last}"
+
+
+def prune_candidates() -> tuple[list[str], str | None]:
     """Candidate decision-block dates from prune-decisions.py dry run."""
-    out = _run_script("prune-decisions.py")
-    return re.findall(r"^\s+- (\d{4}-\d{2}-\d{2}) ", out, re.MULTILINE)
+    out, code = _run_script("prune-decisions.py")
+    if code != 0:
+        return [], _script_failure("prune-decisions.py", code, out)
+    return re.findall(r"^\s+- (\d{4}-\d{2}-\d{2}) ", out, re.MULTILINE), None
 
 
-def repo_registry_issues() -> list[str]:
-    out = _run_script("validate-repos.py")
-    issues = [l.rstrip() for l in out.splitlines() if l.lstrip().startswith(("✗", "⚠"))]
-    return issues
+def repo_registry_issues() -> tuple[list[str], str | None]:
+    out, code = _run_script("validate-repos.py")
+    if code != 0:
+        return [], _script_failure("validate-repos.py", code, out)
+    issues = [line.rstrip() for line in out.splitlines() if line.lstrip().startswith(("✗", "⚠"))]
+    return issues, None
 
 
-def stalled_projects(days: int) -> list[str]:
-    out = _run_script("project-status.py", "--stale-only", "--days", str(days))
+def stalled_projects(days: int) -> tuple[list[str], str | None]:
+    out, code = _run_script("project-status.py", "--stale-only", "--days", str(days))
+    if code != 0:
+        return [], _script_failure("project-status.py", code, out)
     rows = []
     for line in out.splitlines():
         if "*STALE*" in line:
@@ -262,7 +284,7 @@ def stalled_projects(days: int) -> list[str]:
                 rows.append(f"{m.group(2).strip()} ({m.group(1)})")
             else:
                 rows.append(line.strip())
-    return rows
+    return rows, None
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +296,11 @@ def build_report(days: int, today: date) -> str:
     findings = 0
 
     # Check 1: pruning candidates
-    cands = prune_candidates()
-    if cands:
+    cands, prune_err = prune_candidates()
+    if prune_err:
+        findings += 1
+        lines.append(f"- **Decision pruning**: audit unavailable — {prune_err}")
+    elif cands:
         findings += 1
         lines.append(
             f"- **Decision pruning**: {len(cands)} block(s) ready to archive "
@@ -286,8 +311,11 @@ def build_report(days: int, today: date) -> str:
         lines.append("- **Decision pruning**: no candidates (clean)")
 
     # Check 2: repo registry
-    issues = repo_registry_issues()
-    if issues:
+    issues, repo_err = repo_registry_issues()
+    if repo_err:
+        findings += 1
+        lines.append(f"- **Repo registry**: audit unavailable — {repo_err}")
+    elif issues:
         findings += 1
         lines.append(f"- **Repo registry**: {len(issues)} issue(s):")
         for i in issues:
@@ -297,8 +325,12 @@ def build_report(days: int, today: date) -> str:
         lines.append("- **Repo registry**: matches disk (clean)")
 
     # Check 3: stalled projects
-    stalled = stalled_projects(days)
-    if stalled:
+    stalled, stalled_err = stalled_projects(days)
+    if stalled_err:
+        findings += 1
+        lines.append(f"- **Stalled projects**: audit unavailable — {stalled_err}")
+    elif stalled:
+        findings += 1
         lines.append(
             f"- **Stalled projects** (no session in {days}d): "
             + ", ".join(stalled)

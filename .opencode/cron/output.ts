@@ -1,12 +1,25 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { createHash, randomBytes } from "node:crypto";
+import { tmpdir } from "node:os";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { acquireLock, releaseLock } from "./lock";
 import { resolvePath } from "./util";
 import type { Job } from "./types";
 
 interface Frontmatter {
   [key: string]: unknown;
 }
+
+export interface OutputRouteOptions {
+  /** Directory holding the per-path output locks. */
+  locksDir?: string;
+  /** How long to wait for a contended output lock before failing. */
+  lockWaitMs?: number;
+}
+
+const DEFAULT_LOCK_WAIT_MS = 10_000;
+const LOCK_POLL_MS = 100;
 
 function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; body: string } {
   const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
@@ -62,11 +75,88 @@ function ensureParentDir(filePath: string): void {
   mkdirSync(dirname(filePath), { recursive: true });
 }
 
-export function routeOutput(
+/**
+ * Locks are keyed by canonical output path, so two different jobs
+ * targeting the same note serialize against each other — the per-job
+ * lock alone cannot protect a shared output file.
+ */
+function outputLockKey(outputPath: string): string {
+  const hash = createHash("sha256").update(outputPath).digest("hex").slice(0, 32);
+  return `output-${hash}`;
+}
+
+async function acquireOutputLock(lockKey: string, locksDir: string, waitMs: number): Promise<boolean> {
+  const deadline = Date.now() + waitMs;
+  while (!acquireLock(lockKey, locksDir)) {
+    if (Date.now() >= deadline) return false;
+    await new Promise(resolve => setTimeout(resolve, LOCK_POLL_MS));
+  }
+  return true;
+}
+
+/** Writes via a same-directory temp file and an atomic rename, so a
+ * reader never observes a truncated note. */
+function atomicWrite(outputPath: string, data: string): void {
+  const tmpPath = `${outputPath}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
+  try {
+    writeFileSync(tmpPath, data, "utf-8");
+    renameSync(tmpPath, outputPath);
+  } catch (err) {
+    try { unlinkSync(tmpPath); } catch { /* nothing was written */ }
+    throw err;
+  }
+}
+
+function prependOutput(outputPath: string, content: string): void {
+  if (!existsSync(outputPath)) {
+    atomicWrite(outputPath, content + "\n");
+    return;
+  }
+
+  const existingContent = readFileSync(outputPath, "utf-8").trimEnd();
+  const newParsed = parseFrontmatter(content);
+  const existingParsed = parseFrontmatter(existingContent);
+  if (!newParsed.frontmatter && !existingParsed.frontmatter) {
+    atomicWrite(outputPath, content + "\n\n---\n\n" + existingContent + "\n");
+    return;
+  }
+
+  const mergedFm = mergeFrontmatter(
+    existingParsed.frontmatter ?? {},
+    newParsed.frontmatter ?? {},
+  );
+  const merged = buildWithFrontmatter(
+    mergedFm,
+    newParsed.body + "\n\n---\n\n" + existingParsed.body,
+  );
+  atomicWrite(outputPath, merged);
+}
+
+function appendOutput(outputPath: string, content: string): void {
+  if (!existsSync(outputPath)) {
+    atomicWrite(outputPath, content + "\n");
+    return;
+  }
+  const existingContent = readFileSync(outputPath, "utf-8").trimEnd();
+  atomicWrite(outputPath, existingContent + "\n\n---\n\n" + content + "\n");
+}
+
+function writeOutput(outputPath: string, job: Job, content: string): void {
+  if (job.prepend) {
+    prependOutput(outputPath, content);
+  } else if (job.append) {
+    appendOutput(outputPath, content);
+  } else {
+    atomicWrite(outputPath, content + "\n");
+  }
+}
+
+export async function routeOutput(
   content: string,
   job: Job,
   workspaceRoot: string,
-): string | null {
+  options: OutputRouteOptions = {},
+): Promise<string | null> {
   if (!job.output) return null;
 
   const outputPath = resolveOutputPath(job.output, workspaceRoot);
@@ -74,42 +164,17 @@ export function routeOutput(
 
   const trimmedContent = content.trimEnd();
 
-  if (job.prepend) {
-    if (!existsSync(outputPath)) {
-      writeFileSync(outputPath, trimmedContent + "\n", "utf-8");
-    } else {
-      const existingContent = readFileSync(outputPath, "utf-8").trimEnd();
-      const newParsed = parseFrontmatter(trimmedContent);
-      const existingParsed = parseFrontmatter(existingContent);
+  const locksDir = options.locksDir ?? join(tmpdir(), "moraine-cron-output-locks");
+  const lockKey = outputLockKey(outputPath);
 
-      let merged: string;
+  if (!await acquireOutputLock(lockKey, locksDir, options.lockWaitMs ?? DEFAULT_LOCK_WAIT_MS)) {
+    throw new Error(`could not acquire output lock for ${outputPath} (held by another process)`);
+  }
 
-      if (newParsed.frontmatter || existingParsed.frontmatter) {
-        // Existing frontmatter is the base; the new (prepended) content's frontmatter wins.
-        const mergedFm = mergeFrontmatter(
-          existingParsed.frontmatter ?? {},
-          newParsed.frontmatter ?? {},
-        );
-        const mergedBody = buildWithFrontmatter(
-          mergedFm,
-          newParsed.body + "\n\n---\n\n" + existingParsed.body,
-        );
-        merged = mergedBody;
-      } else {
-        merged = trimmedContent + "\n\n---\n\n" + existingContent + "\n";
-      }
-
-      writeFileSync(outputPath, merged, "utf-8");
-    }
-  } else if (job.append) {
-    if (!existsSync(outputPath)) {
-      writeFileSync(outputPath, trimmedContent + "\n", "utf-8");
-    } else {
-      const existingContent = readFileSync(outputPath, "utf-8").trimEnd();
-      writeFileSync(outputPath, existingContent + "\n\n---\n\n" + trimmedContent + "\n", "utf-8");
-    }
-  } else {
-    writeFileSync(outputPath, trimmedContent + "\n", "utf-8");
+  try {
+    writeOutput(outputPath, job, trimmedContent);
+  } finally {
+    releaseLock(lockKey, locksDir);
   }
 
   return outputPath;

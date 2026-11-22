@@ -79,6 +79,7 @@ def validate_skills(ctx: ValidationContext) -> None:
             ctx.error(f"{rel}: {result.error.kind.name.lower()}: {result.error.detail}")
             continue
         if result.frontmatter is None:
+            ctx.error(f"SKILL.md missing frontmatter in {skill_md.relative_to(WORKSPACE)}")
             continue
 
         frontmatter = result.frontmatter

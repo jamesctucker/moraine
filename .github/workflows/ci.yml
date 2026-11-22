@@ -59,6 +59,13 @@ jobs:
       - name: Test with vitest
         run: npx vitest run --config tests/vitest.config.ts
 
+      - name: Test process timeouts under Bun
+        run: bun run test:cron:bun
+
+      - name: Typecheck cron runner
+        working-directory: .opencode
+        run: npx tsc --noEmit
+
   validate-workspace:
     name: Validate workspace structure
     runs-on: ubuntu-latest

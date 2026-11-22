@@ -10,26 +10,35 @@ fi
 
 echo "[husky] Running pre-push checks..."
 FAILED=0
+PYTHON=python
+if [ -x .venv/bin/python ]; then
+  PYTHON=.venv/bin/python
+  PATH="$PWD/.venv/bin:$PATH"
+  export PATH
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+fi
 
 # ── Python dev deps ──────────────────────────────────────────
 if [ -n "$EVAL_DEPS" ]; then
-  if ! python -m pytest --version >/dev/null 2>&1; then
+  if ! "$PYTHON" -m pytest --version >/dev/null 2>&1; then
     echo "[husky] Installing Python dev dependencies..."
-    pip install -r requirements.txt -q
+    "$PYTHON" -m pip install -r requirements.txt -q
   fi
 fi
 
 # ── Python tests ─────────────────────────────────────────────
 echo ""
 echo "[husky] pytest..."
-if python -m pytest --version >/dev/null 2>&1; then
-  python -m pytest tests/ --tb=short -q
+if "$PYTHON" -m pytest --version >/dev/null 2>&1; then
+  "$PYTHON" -m pytest tests/ --tb=short -q
   if [ $? -ne 0 ]; then
     echo "[husky] ❌ pytest failed"
     FAILED=1
   fi
 else
-  echo "[husky] ⚠ pytest not installed — run: pip install -r requirements.txt"
+  echo "[husky] ❌ pytest not installed — run: bash scripts/setup"
+  FAILED=1
 fi
 
 # ── Python lint ──────────────────────────────────────────────
@@ -41,14 +50,15 @@ if command -v ruff >/dev/null 2>&1; then
     echo "[husky] ❌ ruff check failed"
     FAILED=1
   fi
-elif python -m ruff --version >/dev/null 2>&1; then
-  python -m ruff check tests/
+elif "$PYTHON" -m ruff --version >/dev/null 2>&1; then
+  "$PYTHON" -m ruff check tests/
   if [ $? -ne 0 ]; then
     echo "[husky] ❌ ruff check failed"
     FAILED=1
   fi
 else
-  echo "[husky] ⚠ ruff not installed — skipping lint"
+  echo "[husky] ❌ ruff not installed — run: bash scripts/setup"
+  FAILED=1
 fi
 
 # ── TypeScript tests (vitest via bun) ────────────────────────
@@ -60,8 +70,14 @@ if command -v bun >/dev/null 2>&1; then
     echo "[husky] ❌ tests failed"
     FAILED=1
   fi
+  bun run test:cron:bun 2>&1
+  if [ $? -ne 0 ]; then
+    echo "[husky] ❌ Bun process-timeout tests failed"
+    FAILED=1
+  fi
 else
-  echo "[husky] ⚠ bun not installed — skipping TypeScript tests"
+  echo "[husky] ❌ bun not installed — install it first: https://bun.sh/docs/installation"
+  FAILED=1
 fi
 
 echo ""

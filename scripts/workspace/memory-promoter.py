@@ -70,6 +70,14 @@ def normalize(topic: str) -> str:
     return re.sub(r"\s+", " ", topic).strip().lower()
 
 
+def dir_slug(topic: str) -> str:
+    """Return a bounded slug, rejecting paths instead of renaming them."""
+    if "/" in topic or "\\" in topic or ".." in topic:
+        return ""
+    slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
+    return "-".join(slug.split("-")[:6])
+
+
 def scan_staging() -> Counter:
     counter: Counter = Counter()
     if not STAGING_DIR.is_dir():
@@ -115,15 +123,16 @@ def find_original_forms(topics: dict[str, int]) -> dict[str, tuple[int, str]]:
 
 
 def already_promoted(topic_normalized: str) -> bool:
-    parts = topic_normalized.split()
-    dir_name = "-".join(parts)
+    dir_name = dir_slug(topic_normalized)
+    if not dir_name:
+        return False
     if PROJECTS_DIR.is_dir():
         for pdir in PROJECTS_DIR.iterdir():
-            if pdir.is_dir() and dir_name in pdir.name.lower().replace("_", "-"):
+            if pdir.is_dir() and dir_name in dir_slug(pdir.name):
                 return True
     if SESSIONS_DIR.is_dir():
         for sf in SESSIONS_DIR.iterdir():
-            if sf.suffix == ".md" and dir_name in sf.stem.lower():
+            if sf.suffix == ".md" and dir_name in dir_slug(sf.stem):
                 return True
     return False
 
@@ -167,13 +176,16 @@ def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
     for norm, (count, sample) in sorted(candidates.items(), key=lambda x: -x[1][0]):
         if already_promoted(norm):
             continue
-        topic_name = sample.strip()
-        dir_name = "-".join(norm.split()[:6])
-        target_dir = PROJECTS_DIR / dir_name
-        if target_dir.exists():
+        dir_name = dir_slug(norm)
+        if not dir_name:
             continue
-        target_dir.mkdir(parents=True, exist_ok=True)
+        # Validate the destination before creating anything so a rejected
+        # topic can never leave a half-written promotion behind.
+        target_dir = PROJECTS_DIR / dir_name
+        if not target_dir.resolve().is_relative_to(PROJECTS_DIR.resolve()):
+            continue
         note_path = target_dir / "00 Top Note.md"
+        rel = note_path.relative_to(WORKSPACE)
         note_content = (
             f"---\nstatus: active\npriority: medium\n"
             f"tags: [auto-promoted]\n"
@@ -182,9 +194,21 @@ def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
             f"Auto-promoted from staging. Referenced {count} times across staging.\n\n"
             f"## Next Action\n\nDefine scope and refine from staging notes.\n"
         )
-        note_path.write_text(note_content)
+        new_dir = not target_dir.exists()
+        target_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with note_path.open("x", encoding="utf-8") as f:
+                f.write(note_content)
+        except FileExistsError:
+            continue
+        except OSError as e:
+            # Undo the directory so a failed write leaves no partial state.
+            if new_dir:
+                target_dir.rmdir()
+            print(f"  Skipped {rel}: {e}")
+            continue
         created.append(note_path)
-        print(f"  Promoted: {note_path.relative_to(WORKSPACE)} (referenced {count}x)")
+        print(f"  Promoted: {rel} (referenced {count}x)")
     return created
 
 

@@ -48,6 +48,83 @@ class TestExtractDecisionsFromSessions:
         assert len(decisions["2026-06-15"]) >= 2
 
 
+class TestDecisionMerge:
+    """Same-date manual and session decisions must both survive regeneration."""
+
+    def test_manual_and_session_decisions_merged_under_one_date(self, ui, tmp_path, monkeypatch):
+        index = tmp_path / "index.md"
+        index.write_text("## Recent decisions (2026-06-15)\n- Manual decision\n")
+        session = tmp_path / "2026-06-15-session.md"
+        session.write_text("## Decisions\n- Session decision\n")
+        monkeypatch.setattr(ui, "INDEX_PATH", index)
+
+        new_index = ui.build_index([session], [], [], [])
+
+        assert "## Recent decisions (2026-06-15)" in new_index
+        assert "- Session decision" in new_index
+        assert "- Manual decision" in new_index
+
+    def test_duplicate_decision_lines_deduplicated(self, ui, tmp_path, monkeypatch):
+        index = tmp_path / "index.md"
+        index.write_text("## Recent decisions (2026-06-15)\n- Shared decision\n")
+        session = tmp_path / "2026-06-15-session.md"
+        session.write_text("## Decisions\n- Shared decision\n- Session only\n")
+        monkeypatch.setattr(ui, "INDEX_PATH", index)
+
+        new_index = ui.build_index([session], [], [], [])
+
+        assert new_index.count("- Shared decision") == 1
+        assert "- Session only" in new_index
+
+    def test_manual_only_decision_survives(self, ui, tmp_path, monkeypatch):
+        index = tmp_path / "index.md"
+        index.write_text("## Recent decisions (2026-06-15)\n- Manual decision\n")
+        monkeypatch.setattr(ui, "INDEX_PATH", index)
+
+        new_index = ui.build_index([], [], [], [])
+
+        assert "- Manual decision" in new_index
+
+
+class TestGatherSkills:
+    def test_finds_nested_category_skills(self, ui, tmp_path, monkeypatch):
+        skills_dir = tmp_path / ".opencode" / "skills"
+        skill = skills_dir / "engineering" / "tdd" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: tdd\ndescription: test driven\n---\nBody")
+        monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
+
+        skills = ui.gather_skills()
+
+        assert ("tdd", "test driven") in skills
+
+    def test_finds_flat_layout_skills(self, ui, tmp_path, monkeypatch):
+        skills_dir = tmp_path / ".opencode" / "skills"
+        skill = skills_dir / "tdd" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: tdd\ndescription: test driven\n---\nBody")
+        monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
+
+        skills = ui.gather_skills()
+
+        assert ("tdd", "test driven") in skills
+
+    def test_name_falls_back_to_skill_directory(self, ui, tmp_path, monkeypatch):
+        skills_dir = tmp_path / ".opencode" / "skills"
+        skill = skills_dir / "engineering" / "tdd" / "SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\ndescription: no name field\n---\nBody")
+        monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
+
+        skills = ui.gather_skills()
+
+        assert ("tdd", "no name field") in skills
+
+    def test_missing_skills_dir(self, ui, tmp_path, monkeypatch):
+        monkeypatch.setattr(ui, "SKILLS_DIR", tmp_path / "does-not-exist")
+        assert ui.gather_skills() == []
+
+
 class TestIsKnownHeading:
     def test_known_headings(self, ui):
         for section in ui.KNOWN_SECTIONS:

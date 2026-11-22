@@ -7,12 +7,14 @@
   "packageManager": "bun@1.3.14",
   "scripts": {
     "test": "vitest run --config tests/vitest.config.ts",
+    "test:cron:bun": "bun --bun node_modules/vitest/vitest.mjs run --config tests/vitest.config.ts tests/cron/spawn.test.ts",
     "test:watch": "vitest --config tests/vitest.config.ts",
     "prepare": "husky"
   },
   "devDependencies": {
     "husky": "^9.0.0",
-    "vitest": "^3.0.0"
+    "vite": "7.3.7",
+    "vitest": "4.1.11"
   },
   "dependencies": {
     "@opencode-ai/sdk": "^1.17.8"

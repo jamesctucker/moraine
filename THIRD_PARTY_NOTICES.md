@@ -19,13 +19,13 @@ The following components derive from [mattpocock/skills](https://github.com/matt
 
 | Bundled path | Upstream path and snapshot | Moraine changes |
 |---|---|---|
-| `engineering/code-review/` | `skills/engineering/code-review` @ [`3da8c01`](https://github.com/mattpocock/skills/tree/3da8c01116264675eeefbd6e9d59c734de9095cc/skills/engineering/code-review) | Two slop-check review additions |
-| `engineering/tdd/` | `skills/engineering/tdd` @ [`3216582`](https://github.com/mattpocock/skills/tree/321658273cb1d20b76026717d027d505790106d4/skills/engineering/tdd) | None |
+| `engineering/code-review/` | `skills/engineering/code-review` @ [`3da8c01`](https://github.com/mattpocock/skills/tree/3da8c01116264675eeefbd6e9d59c734de9095cc/skills/engineering/code-review) | Two slop-check review additions; tracker-agnostic spec fallback |
+| `engineering/tdd/` | `skills/engineering/tdd` @ [`3216582`](https://github.com/mattpocock/skills/tree/321658273cb1d20b76026717d027d505790106d4/skills/engineering/tdd) | Shared GLOSSARY vocabulary; shipped architecture reference |
 | `engineering/diagnose/` | `skills/engineering/diagnose` @ [`7afa86d`](https://github.com/mattpocock/skills/tree/7afa86d3a5dd96edde06ffa014e16c64e733681e/skills/engineering/diagnose) | Workspace-awareness guidance and genericized paths |
 | `engineering/improve-codebase-architecture/` | `skills/engineering/improve-codebase-architecture` @ [`a36584e`](https://github.com/mattpocock/skills/tree/a36584e09eaee067c425938fd66bc7ccddf089e2/skills/engineering/improve-codebase-architecture) | Workspace adaptations and genericized paths |
-| `productivity/grilling/` | `skills/productivity/grilling` @ [`bc4cf90`](https://github.com/mattpocock/skills/tree/bc4cf903ff4855ce23199a8dd3bf98b3dbd7ad71/skills/productivity/grilling); companion formats derive from `skills/engineering/grill-with-docs` @ [`e7df78b`](https://github.com/mattpocock/skills/tree/e7df78bb81da39c537be810e622d2b90bbdc7dc5/skills/engineering/grill-with-docs) | Routing adaptations, merged companion formats, genericized examples |
-| `engineering/domain-modeling/` | `skills/engineering/domain-modeling` @ [`d80fa0f`](https://github.com/mattpocock/skills/tree/d80fa0f4ebe0c5714af0adf8670336065233ecc6/skills/engineering/domain-modeling) | Description and OpenCode metadata adaptations |
-| `engineering/wayfinder/` | `skills/engineering/wayfinder` @ [`8295b8e`](https://github.com/mattpocock/skills/tree/8295b8e10d4cdb6cce772a56dda7b7c37075074d/skills/engineering/wayfinder) | Local tracker setup pointer |
+| `productivity/grilling/` | `skills/productivity/grilling` @ [`bc4cf90`](https://github.com/mattpocock/skills/tree/bc4cf903ff4855ce23199a8dd3bf98b3dbd7ad71/skills/productivity/grilling); companion formats derive from `skills/engineering/grill-with-docs` @ [`e7df78b`](https://github.com/mattpocock/skills/tree/e7df78bb81da39c537be810e622d2b90bbdc7dc5/skills/engineering/grill-with-docs) | Routing adaptations, merged companion formats, genericized examples, shared GLOSSARY convention |
+| `engineering/domain-modeling/` | `skills/engineering/domain-modeling` @ [`d80fa0f`](https://github.com/mattpocock/skills/tree/d80fa0f4ebe0c5714af0adf8670336065233ecc6/skills/engineering/domain-modeling) | Description and OpenCode metadata adaptations; plain-text example paths |
+| `engineering/wayfinder/` | `skills/engineering/wayfinder` @ [`8295b8e`](https://github.com/mattpocock/skills/tree/8295b8e10d4cdb6cce772a56dda7b7c37075074d/skills/engineering/wayfinder) | Local tracker setup pointer; placeholder example cleanup |
 | `engineering/wizard/` | `skills/engineering/wizard` @ [`49dd158`](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336/skills/engineering/wizard) | None |
 | `engineering/prototype/` | `skills/engineering/prototype` @ [`3216582`](https://github.com/mattpocock/skills/tree/321658273cb1d20b76026717d027d505790106d4/skills/engineering/prototype) | None |
 | `productivity/to-questionnaire/` | `skills/productivity/to-questionnaire` @ [`3216582`](https://github.com/mattpocock/skills/tree/321658273cb1d20b76026717d027d505790106d4/skills/productivity/to-questionnaire) | Description/trigger adaptations; `disable-model-invocation` dropped |
@@ -38,9 +38,9 @@ These components derive from [obra/superpowers](https://github.com/obra/superpow
 
 | Bundled path | Upstream path and snapshot | Moraine changes |
 |---|---|---|
-| `productivity/brainstorming/` | `skills/brainstorming` @ [`b36e082`](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/brainstorming) | Narrowed trigger description |
-| `engineering/writing-plans/` | `skills/writing-plans` @ [`b36e082`](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/writing-plans) | Added Program Design guidance |
-| `engineering/executing-plans/` | `skills/executing-plans` @ [`09fc6e0`](https://github.com/obra/superpowers/tree/09fc6e0f3be2a3d74e95c6058408a76972e4571b/skills/executing-plans) | None |
+| `productivity/brainstorming/` | `skills/brainstorming` @ [`b36e082`](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/brainstorming) | Narrowed trigger description; numbered artifact conventions |
+| `engineering/writing-plans/` | `skills/writing-plans` @ [`b36e082`](https://github.com/obra/superpowers/tree/b36e0829c6d0140e93cfef2ca599b1b07d4a7797/skills/writing-plans) | Added Program Design guidance; Moraine artifact and execution conventions |
+| `engineering/executing-plans/` | `skills/executing-plans` @ [`09fc6e0`](https://github.com/obra/superpowers/tree/09fc6e0f3be2a3d74e95c6058408a76972e4571b/skills/executing-plans) | Moraine worktree, subagent, and human-review handoff conventions |
 
 ## Humanize / Wikipedia
 
