@@ -17,6 +17,18 @@ describe("scheduler.ts", () => {
       expect(isValid("* * *")).toBe(false);
       expect(isValid("99 * * * *")).toBe(false);
     });
+
+    it("should reject seconds-based (6-field) expressions", () => {
+      // Croner accepts these, but the runner only fires once a minute,
+      // so they could never match.
+      expect(isValid("30 * * * * *")).toBe(false);
+      expect(isValid("*/10 * * * * *")).toBe(false);
+      expect(isValid("0 30 8 * * *")).toBe(false);
+    });
+
+    it("should reject 7-field expressions", () => {
+      expect(isValid("0 0 0 1 1 * 2027")).toBe(false);
+    });
   });
 
   describe("matches", () => {
@@ -48,6 +60,10 @@ describe("scheduler.ts", () => {
       expect(matches("*/5 * * * *", at5)).toBe(true);
       expect(matches("*/5 * * * *", at3)).toBe(false);
     });
+
+    it("should refuse sub-minute expressions", () => {
+      expect(matches("30 * * * * *", new Date())).toBe(false);
+    });
   });
 
   describe("getNextRun", () => {
@@ -61,6 +77,10 @@ describe("scheduler.ts", () => {
 
     it("should return null for invalid expressions", () => {
       expect(getNextRun("invalid")).toBeNull();
+    });
+
+    it("should return null for sub-minute expressions", () => {
+      expect(getNextRun("30 * * * * *")).toBeNull();
     });
   });
 });

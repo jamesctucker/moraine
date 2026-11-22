@@ -12,8 +12,10 @@ prompt: >
 
        python3 scripts/workspace/slop-check.py --all --json --write
 
-     It writes per-repo snapshots under memory/eval/slop/snapshots/ and never
-     fails the run; missing repos are recorded as null, not imputed.
+     It writes per-repo snapshots under memory/eval/slop/snapshots/<date>/
+     (one directory per ISO date; same-day reruns keep the earlier snapshot
+     unless --replace-today is passed) and never fails the run; missing
+     repos are recorded as null, not imputed.
 
   2. Output ONLY the following markdown to stdout (no code fences). Reproduce
      the script's numbers verbatim; add at most one sentence of interpretation
@@ -23,7 +25,7 @@ prompt: >
 
      ## Repo snapshots
 
-     - One line per repo: name, erosion, verbosity, Δ vs last week, band
+     - One line per repo: name, erosion, verbosity, Δ vs the previous snapshot (normally last Monday), band
        (green ≤ human mean / warn ≤ agent mean / red above; thresholds in
        slop-check.py's module docstring).
      - Flag any repo whose Δerosion > 0.0053 or Δverbosity > 0.0022 (human

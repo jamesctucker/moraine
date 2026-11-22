@@ -1,10 +1,29 @@
 """Tests for scripts/workspace/memory-audit.py."""
 
+import sys
 from datetime import date
 
+import pytest
 from test_helpers import load_module
 
 TODAY = date(2026, 9, 2)
+
+
+@pytest.fixture
+def ma(scripts_dir):
+    return load_module("memory_audit", scripts_dir / "memory-audit.py")
+
+
+@pytest.fixture
+def fake_scripts(ma, tmp_path, monkeypatch):
+    """Point WORKSPACE_SCRIPTS at an empty dir tests fill with fake scripts."""
+    root = tmp_path / "fake-scripts"
+    root.mkdir()
+    monkeypatch.setattr(ma, "WORKSPACE_SCRIPTS", root)
+    return root
+
+
+STALE_ROW = "Active  Old Project   medium  2026-05-01  120d  *STALE*"
 
 
 class TestExtractDates:
@@ -104,3 +123,92 @@ class TestStaleThreads:
         assert ma.stale_threads(
             "## Open threads\n- Task: done by 2026-08-27.\n", TODAY, stale_days=7
         ) == []
+
+
+class TestDelegatedScripts:
+    """Child failures must surface as findings, never as clean results."""
+
+    def test_failing_prune_reported_not_clean(self, ma, fake_scripts):
+        (fake_scripts / "prune-decisions.py").write_text(
+            "import sys\n"
+            "sys.stderr.write('Traceback (most recent call last):\\n"
+            "ModuleNotFoundError: No module named yaml\\n')\n"
+            "sys.exit(1)\n"
+        )
+        rows, err = ma.prune_candidates()
+        assert rows == []
+        assert "prune-decisions.py" in err
+        assert "exit 1" in err
+        assert "ModuleNotFoundError" in err
+
+    def test_missing_script_reported_not_clean(self, ma, fake_scripts):
+        rows, err = ma.prune_candidates()
+        assert rows == []
+        assert err is not None
+        assert "prune-decisions.py" in err
+
+    def test_failing_registry_reported_not_clean(self, ma, fake_scripts):
+        (fake_scripts / "validate-repos.py").write_text("import sys\nsys.exit(2)\n")
+        issues, err = ma.repo_registry_issues()
+        assert issues == []
+        assert "validate-repos.py" in err
+        assert "exit 2" in err
+
+    def test_stalled_projects_parsed_from_output(self, ma, fake_scripts):
+        (fake_scripts / "project-status.py").write_text(f"print('{STALE_ROW}')\n")
+        rows, err = ma.stalled_projects(7)
+        assert err is None
+        assert rows == ["Old Project (Active)"]
+
+    def test_stalled_projects_child_failure_reported(self, ma, fake_scripts):
+        (fake_scripts / "project-status.py").write_text("import sys\nsys.exit(3)\n")
+        rows, err = ma.stalled_projects(7)
+        assert rows == []
+        assert "project-status.py" in err
+
+
+class TestBuildReport:
+    def _patch_workspace(self, ma, tmp_path, monkeypatch):
+        monkeypatch.setattr(ma, "INDEX", tmp_path / "index.md")
+        (tmp_path / "index.md").write_text("## Open threads\n- nothing pending\n")
+        for dirname in ("sessions", "reviews", "staging"):
+            monkeypatch.setattr(ma, f"{dirname.upper()}_DIR", tmp_path / dirname)
+            (tmp_path / dirname).mkdir()
+
+    def test_child_failure_and_stalled_counted_while_exit_stays_zero(
+        self, ma, fake_scripts, tmp_path, monkeypatch, capsys
+    ):
+        (fake_scripts / "prune-decisions.py").write_text("import sys\nsys.exit(1)\n")
+        (fake_scripts / "validate-repos.py").write_text("print('ok')\n")
+        (fake_scripts / "project-status.py").write_text(f"print('{STALE_ROW}')\n")
+        self._patch_workspace(ma, tmp_path, monkeypatch)
+
+        monkeypatch.setattr(sys, "argv", ["memory-audit.py", "--days", "7"])
+        with pytest.raises(SystemExit) as exc:
+            ma.main()
+        assert exc.value.code == 0
+
+        out = capsys.readouterr().out
+        assert "audit unavailable" in out
+        assert "Old Project" in out
+        assert "Nothing needs attention" not in out
+
+    def test_clean_workspace_reports_nothing_to_attention(
+        self, ma, fake_scripts, tmp_path, monkeypatch, capsys
+    ):
+        (fake_scripts / "prune-decisions.py").write_text("print('No candidate blocks found.')\n")
+        (fake_scripts / "validate-repos.py").write_text("print('ok')\n")
+        (fake_scripts / "project-status.py").write_text(
+            "print('All Active/Paused projects have session activity.')\n"
+        )
+        self._patch_workspace(ma, tmp_path, monkeypatch)
+        review = tmp_path / "reviews" / f"{date.today().isoformat()}-weekly.md"
+        review.write_text("review\n")
+
+        monkeypatch.setattr(sys, "argv", ["memory-audit.py", "--days", "7"])
+        with pytest.raises(SystemExit) as exc:
+            ma.main()
+        assert exc.value.code == 0
+
+        out = capsys.readouterr().out
+        assert "Nothing needs attention" in out

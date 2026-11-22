@@ -8,4 +8,4 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-exec bunx -y @brave/brave-search-mcp-server "$@"
+exec bunx -y @brave/brave-search-mcp-server@2.2.0 "$@"

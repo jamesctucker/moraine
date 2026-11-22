@@ -5,13 +5,15 @@ Validates:
   1. git installed and repo is clean-ish
   2. python3 available with required packages
   3. node available with correct version
-  4. MCP servers reachable (from opencode.json config)
+  4. MCP servers in opencode.json — 'mcp.servers' shape validated; local
+     commands resolved on PATH. Servers are never started and remote URLs
+     are never probed, so this is not a reachability or handshake check.
 
 Writes a summary to memory/staging/health-check-{YYYY-MM-DD}.md.
 
 Usage:
   python scripts/workspace/health-check.py          # full check
-  python scripts/workspace/health-check.py --quick  # skip MCP reachability
+  python scripts/workspace/health-check.py --quick  # skip MCP server checks
 """
 
 import argparse
@@ -108,10 +110,53 @@ def check_node() -> dict:
     return result
 
 
-def check_mcp_servers() -> list[dict]:
-    """Check MCP servers from opencode.json config."""
-    results = []
+def _check_local_mcp(name: str, command: object) -> dict:
+    entry = {"tool": f"mcp/{name}", "status": "ok", "details": {}}
+    if not (isinstance(command, list) and command and all(isinstance(part, str) for part in command)):
+        entry["status"] = "error"
+        entry["details"]["error"] = "local server needs a non-empty 'command' list of strings"
+        return entry
 
+    entry["details"]["command"] = " ".join(command)
+    first = command[0]
+    rc, _, _ = run(["which", first] if not first.startswith(("/", ".")) else ["test", "-x", first])
+    if rc != 0:
+        entry["status"] = "warn"
+        entry["details"]["warning"] = f"executable '{first}' not found on PATH"
+    else:
+        entry["details"]["note"] = "command resolves on PATH (server not started)"
+    return entry
+
+
+def _check_mcp_server(name: str, server: object) -> dict:
+    if not isinstance(server, dict):
+        return {
+            "tool": f"mcp/{name}",
+            "status": "error",
+            "details": {"error": f"server config must be a mapping, got {type(server).__name__}"},
+        }
+
+    server_type = server.get("type")
+    if server_type == "local":
+        return _check_local_mcp(name, server.get("command"))
+
+    entry = {"tool": f"mcp/{name}", "status": "ok", "details": {}}
+    if server_type == "remote":
+        url = server.get("url")
+        if not isinstance(url, str) or not url:
+            entry["status"] = "error"
+            entry["details"]["error"] = "remote server needs a 'url' string"
+        else:
+            entry["details"]["url"] = url
+            entry["details"]["note"] = "remote — URL not probed (no network check)"
+    else:
+        entry["status"] = "error"
+        entry["details"]["error"] = f"unknown server type: {server_type!r}"
+    return entry
+
+
+def check_mcp_servers() -> list[dict]:
+    """Check MCP servers from opencode.json's 'mcp.servers' mapping."""
     if not OPECODE_CONFIG.is_file():
         return [{"tool": "mcp_config", "status": "error", "details": {"error": "opencode.json not found"}}]
 
@@ -120,32 +165,21 @@ def check_mcp_servers() -> list[dict]:
     except json.JSONDecodeError as e:
         return [{"tool": "mcp_config", "status": "error", "details": {"error": f"invalid JSON: {e}"}}]
 
-    mcp = config.get("mcp", {})
+    mcp = config.get("mcp")
     if not mcp:
         return [{"tool": "mcp_servers", "status": "warn", "details": {"warning": "no MCP servers configured"}}]
+    if not isinstance(mcp, dict):
+        return [{"tool": "mcp_servers", "status": "error",
+                 "details": {"error": f"'mcp' must be a mapping, got {type(mcp).__name__}"}}]
 
-    for name, server in mcp.items():
-        entry = {"tool": f"mcp/{name}", "status": "ok", "details": {}}
+    servers = mcp.get("servers")
+    if not isinstance(servers, dict):
+        return [{"tool": "mcp_servers", "status": "error",
+                 "details": {"error": "'mcp' config has no 'servers' mapping (expected one entry per server)"}}]
+    if not servers:
+        return [{"tool": "mcp_servers", "status": "warn", "details": {"warning": "no MCP servers configured"}}]
 
-        if server.get("type") == "local":
-            command = server.get("command", [])
-            if command:
-                entry["details"]["command"] = " ".join(command)
-                # Quick check: can we run the first part of the command?
-                first = command[0]
-                rc, _, _ = run(["which", first] if not first.startswith(("/", ".")) else ["test", "-x", first])
-                if rc != 0:
-                    entry["status"] = "warn"
-                    entry["details"]["warning"] = f"executable '{first}' not found on PATH"
-        elif server.get("type") == "remote":
-            url = server.get("url", "unknown")
-            entry["details"]["url"] = url
-            # Can't meaningfully health-check remote without curl dependency
-            entry["details"]["note"] = "remote — reachability not checked (no curl dependency)"
-
-        results.append(entry)
-
-    return results
+    return [_check_mcp_server(name, server) for name, server in servers.items()]
 
 
 def write_report(checks: list[dict], quick: bool) -> Path:
@@ -183,7 +217,7 @@ def write_report(checks: list[dict], quick: bool) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Agent health check for workspace startup.")
-    parser.add_argument("--quick", "-q", action="store_true", help="Skip MCP reachability check")
+    parser.add_argument("--quick", "-q", action="store_true", help="Skip MCP server checks")
     args = parser.parse_args()
 
     print("=== Workspace — Agent Health Check ===\n")

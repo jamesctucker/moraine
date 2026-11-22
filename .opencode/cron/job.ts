@@ -3,10 +3,14 @@ import { join, extname } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
 import { isValid } from "./scheduler";
+import { LOCK_KEY_PATTERN } from "./lock";
+import { recipientError, recipientsError, subjectError } from "./email";
 import type { CronConfig, Job } from "./types";
 
 export const JobSchema = z.object({
-  name: z.string(),
+  name: z.string().regex(LOCK_KEY_PATTERN, {
+    message: "must be a slug: letters, digits, '_' or '-', at most 64 chars, no separators",
+  }),
   cron: z.string(),
   prompt: z.string(),
   skills: z.array(z.string()).optional(),
@@ -20,9 +24,15 @@ export const JobSchema = z.object({
   disabled: z.boolean().optional(),
   scope: z.enum(["work", "personal"]).optional(),
   email: z.object({
-    to: z.string(),
-    from: z.string().optional(),
-    subject: z.string().optional(),
+    to: z.string().refine(v => recipientsError(v) === null, {
+      message: "must be valid address(es) — 'user@host' or 'Name <user@host>', comma-separated, no CR/LF",
+    }),
+    from: z.string().refine(v => recipientError(v) === null, {
+      message: "must be a valid address — 'user@host' or 'Name <user@host>', no CR/LF",
+    }).optional(),
+    subject: z.string().refine(v => subjectError(v) === null, {
+      message: "must not contain CR/LF",
+    }).optional(),
   }).optional(),
 });
 
@@ -52,6 +62,7 @@ export function buildPrompt(job: Job): string {
 
 export function loadJobs(directory: string): Job[] {
   const jobs: Job[] = [];
+  const seenNames = new Set<string>();
   let entries: string[];
 
   try {
@@ -95,6 +106,12 @@ export function loadJobs(directory: string): Job[] {
         console.warn(`Warning: skipping ${entry}: invalid cron expression '${job.cron}'`);
         continue;
       }
+
+      if (seenNames.has(job.name)) {
+        console.warn(`Warning: skipping ${entry}: duplicate job name '${job.name}' (already defined by another file)`);
+        continue;
+      }
+      seenNames.add(job.name);
 
       jobs.push(job);
     } catch (e) {

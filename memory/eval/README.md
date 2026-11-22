@@ -12,13 +12,19 @@ This directory tracks the agent evaluation harness results. The harness (`script
 |------|---------------|
 | `license-exists` | `LICENSE` exists and contains MIT text |
 | `validate-passes` | `validate.py` exits 0 |
-| `session-search-works` | session-index.py returns results for "session" |
+| `session-search-works` | a known two-file index returns structured results and never accepts the no-match response |
 | `gitattributes-exists` | `.gitattributes` exists |
 | `editorconfig-exists` | `.editorconfig` exists |
+| `slop-rules-valid` | every slop rule parses and scans successfully |
+| `slop-fixture-clean` | the clean fixture has zero erosion and verbosity |
+| `slop-fixture-sloppy` | the sloppy fixture exceeds the verbosity threshold |
 
 ## Usage
 
 ```bash
-python scripts/workspace/agent-eval.py        # run all tasks
-python scripts/workspace/agent-eval.py --history  # view weekly trends
+bash scripts/setup --yes                         # provision the workspace-local .venv
+.venv/bin/python scripts/workspace/agent-eval.py # run all eight tasks
+.venv/bin/python scripts/workspace/agent-eval.py --history
 ```
+
+The slop tasks also require `ast-grep`, `uvx`, and `npx` on `PATH` (see `docs/slop-check.md`). The session-search task builds its own fixture, so a fresh clone needs no existing memory index.

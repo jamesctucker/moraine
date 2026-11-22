@@ -18,10 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Memory tooling safety and correctness** — staging topics cannot escape the project directory; same-date manual decisions survive index regeneration; nested skills are discovered; frontmatter delimiters are line-aware; missing skill frontmatter and child audit failures are reported accurately.
+- **Slop measurement integrity** — weekly snapshots use ISO dates, retain same-day history by default, and compare against the latest earlier snapshot. The CC gate compares callable identities, and detector/Git failures no longer look like clean results.
+- **Cron safety** — lock ownership, process-group timeout escalation, atomic output writes, job-name/schedule validation, and email header handling now cover concurrent and adversarial cases.
+- **Validation and evaluation** — MCP health checks inspect the real server configuration, the eval builds a deterministic search fixture and runs all eight tasks, and pre-push fails closed when required tools are absent. CI also typechecks the cron runner.
+- **Workflow references** — bundled skills use shipped Moraine workflows, numbered artifacts, and the shared `GLOSSARY.md` convention instead of missing dependencies. Static tests reject broken local links and unshipped references.
 - **The CI Node job never ran the tests.** `npm ci` and `setup-node`'s npm cache both need an npm lockfile, and `package-lock.json` is gitignored — so the job failed at setup on every push. It now installs from the committed `bun.lock`, installs `.opencode/` dependencies (the cron runner imports `yaml`, `zod`, and `marked` from there), and runs vitest under the Node version in `.nvmrc`.
 
 ### Changed
 
+- **Runtime and test dependencies** — Brave Search and Semble downloads are exactly pinned, weekly PDF rendering uses the locked `.opencode` package without Chromium's `--no-sandbox`, and Vitest/Vite moved to 4.1.11/7.3.7. Dependabot version updates are configured for Bun, pip, and GitHub Actions.
 - **Renamed Joinery → Moraine.** Repo, package names, clone URLs, and the cron install path (`~/.joinery/cron/` → `~/.moraine/cron/`). Nothing about the workspace itself changed. If you had cron jobs installed under the old path, re-run `bun run .opencode/cron/runner.ts --install-defaults` to install them at the new one.
 - **Renamed OpenBench → Joinery** (earlier the same day). Repo, package names, clone URLs, and the cron install path (`~/.openbench/cron/` → `~/.joinery/cron/`).
 - **README rewritten for onboarding** — problem-first framing, a `For / Not for` fit check, the four-store model (work / memory / wiki / artifacts), install with provider-auth prerequisites, a first-20-minutes activation loop, and verify commands. The fork-sync guide moved to `docs/upstream-sync.md`; the deep file tree is trimmed to the eight entries that teach the model.

@@ -132,6 +132,6 @@ This workspace is not a single project. Where the bug lives determines how you w
 
 ### Project level (`work/<project>/`)
 
-- Check the project's `CONTEXT.md` for domain vocabulary before exploring code
+- Check the project's `GLOSSARY.md` for domain vocabulary before exploring code
 - Check `docs/adr/` for architectural decisions that explain why things are the way they are
 - If no `work/` project is active, ask which project the bug is in before proceeding

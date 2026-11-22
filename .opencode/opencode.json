@@ -29,7 +29,7 @@
     "servers": {
       "semble": {
         "type": "local",
-        "command": ["uvx", "--from", "semble[mcp]", "semble"]
+        "command": ["uvx", "--from", "semble[mcp]==0.7.3", "semble"]
       },
       "headroom": {
         "type": "local",

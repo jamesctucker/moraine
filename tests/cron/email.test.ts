@@ -42,7 +42,65 @@ describe("buildMessage", () => {
 
   it("falls back to a default From when omitted", () => {
     const msg = buildMessage({ to: "user@example.com" }, "hi", "some-job", NOW);
-    expect(msg).toContain("From: Garage Cron <garage-cron@localhost>");
+    expect(msg).toContain("From: Moraine Cron <moraine-cron@localhost>");
+  });
+
+  it("accepts a comma-separated recipient list", () => {
+    const msg = buildMessage(
+      { to: "a@example.com, Display Name <b@example.com>" },
+      "hi",
+      "some-job",
+      NOW,
+    );
+    expect(msg).toContain("To: a@example.com, Display Name <b@example.com>");
+  });
+
+  it("rejects a Bcc injection in To", () => {
+    expect(() =>
+      buildMessage({ to: "user@example.com\r\nBcc: attacker@evil.example" }, "hi", "job", NOW),
+    ).toThrow(/email\.to/);
+    expect(() =>
+      buildMessage({ to: "user@example.com\nBcc: attacker@evil.example" }, "hi", "job", NOW),
+    ).toThrow(/email\.to/);
+  });
+
+  it("rejects CR/LF in From", () => {
+    expect(() =>
+      buildMessage(
+        { to: "user@example.com", from: "x@example.com\r\nBcc: attacker@evil.example" },
+        "hi",
+        "job",
+        NOW,
+      ),
+    ).toThrow(/email\.from/);
+  });
+
+  it("rejects CR/LF in the expanded subject", () => {
+    expect(() =>
+      buildMessage(
+        { to: "user@example.com", subject: "Weekly\nBcc: attacker@evil.example" },
+        "hi",
+        "job",
+        NOW,
+      ),
+    ).toThrow(/email\.subject/);
+  });
+
+  it("rejects malformed addresses", () => {
+    expect(() => buildMessage({ to: "not an address" }, "hi", "job", NOW)).toThrow(/email\.to/);
+    expect(() => buildMessage({ to: "user@" }, "hi", "job", NOW)).toThrow(/email\.to/);
+    expect(() => buildMessage({ to: "user@example.com," }, "hi", "job", NOW)).toThrow(/email\.to/);
+    expect(() =>
+      buildMessage({ to: "user@example.com", from: "<>" }, "hi", "job", NOW),
+    ).toThrow(/email\.from/);
+  });
+});
+
+describe("renderHtml escaping", () => {
+  it("escapes HTML in the job name footer", () => {
+    const html = renderHtml("# Title", `<script>alert("x")</script>`);
+    expect(html).toContain("job: &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    expect(html).not.toContain("<script>");
   });
 });
 
@@ -80,5 +138,42 @@ describe("JobSchema", () => {
       email: { subject: "no to" },
     });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects a Bcc injection in any email field", () => {
+    const injections = [
+      { email: { to: "user@example.com\r\nBcc: attacker@evil.example" } },
+      { email: { to: "user@example.com", from: "x@y.example\nBcc: attacker@evil.example" } },
+      { email: { to: "user@example.com", subject: "s\r\nBcc: attacker@evil.example" } },
+    ];
+    for (const email of injections) {
+      const result = JobSchema.safeParse({
+        name: "evil-job",
+        cron: "0 8 * * 1",
+        prompt: "do things",
+        ...email,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects malformed recipient addresses", () => {
+    const result = JobSchema.safeParse({
+      name: "evil-job",
+      cron: "0 8 * * 1",
+      prompt: "do things",
+      email: { to: "not an address" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a display-name recipient and a comma-separated list", () => {
+    const result = JobSchema.safeParse({
+      name: "weekly-recap",
+      cron: "0 8 * * 1",
+      prompt: "do things",
+      email: { to: "Moraine <recap@example.com>, user@example.com" },
+    });
+    expect(result.success).toBe(true);
   });
 });

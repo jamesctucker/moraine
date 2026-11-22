@@ -41,16 +41,15 @@ def gather_skills() -> list[tuple[str, str]]:
     if not SKILLS_DIR.is_dir():
         return []
     skills = []
-    for d in sorted(SKILLS_DIR.iterdir()):
-        if d.is_dir():
-            md = d / "SKILL.md"
-            if md.is_file():
-                content = md.read_text()
-                fm, _body = parse(content)
-                if fm is not None:
-                    name = fm.get("name", d.name)
-                    desc = fm.get("description", "")
-                    skills.append((name, desc))
+    # Skills live at .opencode/skills/<category>/<name>/SKILL.md, but the
+    # flat .opencode/skills/<name>/SKILL.md layout is honoured too.
+    for md in sorted(SKILLS_DIR.rglob("SKILL.md")):
+        content = md.read_text()
+        fm, _body = parse(content)
+        if fm is not None:
+            name = fm.get("name", md.parent.name)
+            desc = fm.get("description", "")
+            skills.append((name, desc))
     return skills
 
 
@@ -219,8 +218,10 @@ def build_index(
         lines.append("_No open threads._")
         lines.append("")
 
-    # Merge decisions: extract from sessions AND preserve existing dated sections
-    # from the current index (so manually-added decisions aren't lost).
+    # Merge decisions: extract from sessions AND preserve existing dated
+    # sections from the current index. Same-date entries from both sources
+    # are combined and deduplicated, so manually-added decisions survive
+    # regeneration even when a session covers the same date.
     decisions = extract_decisions_from_sessions(sessions)
     if INDEX_PATH.is_file():
         existing_content = INDEX_PATH.read_text()
@@ -229,12 +230,11 @@ def build_index(
             date_match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", heading)
             if date_match:
                 date_str = date_match.group(1)
-                if date_str not in decisions:
-                    decisions[date_str] = []
-                    for line in body.strip().split("\n"):
-                        cleaned = re.sub(r"^[-\s]+", "", line).strip()
-                        if cleaned:
-                            decisions[date_str].append(cleaned)
+                merged = decisions.setdefault(date_str, [])
+                for line in body.strip().split("\n"):
+                    cleaned = re.sub(r"^[-\s]+", "", line).strip()
+                    if cleaned and cleaned not in merged:
+                        merged.append(cleaned)
 
     if decisions:
         for date_str in sorted(decisions.keys(), reverse=True):

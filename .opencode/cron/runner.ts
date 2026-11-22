@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
-import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { existsSync, readdirSync } from "node:fs";
 import { hostname } from "node:os";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config";
 import { loadJobs, buildPrompt, workScopeViolation } from "./job";
 import { matches } from "./scheduler";
 import { acquireLock, releaseLock } from "./lock";
+import { runWithTimeout } from "./spawn";
 import { routeOutput } from "./output";
 import { sendJobEmail } from "./email";
 import { createLogger } from "./logger";
@@ -14,7 +15,7 @@ import { installDefaults } from "./install";
 import { resolvePath } from "./util";
 import type { CronConfig, Job, RunResult } from "./types";
 
-const WORKSPACE_ROOT = resolve(import.meta.dir, "../..");
+const WORKSPACE_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
 
 function parseArgs(args: string[]) {
   const list = args.includes("--list");
@@ -34,7 +35,8 @@ function parseArgs(args: string[]) {
   return { list, dryRun, installDefaults, once, jobDir };
 }
 
-async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<number> {
+/** Run one job and preserve its log even when output routing fails. */
+export async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<number> {
   // Work-model gate: work-scoped jobs may only run on models in the
   // OpenRouter allowlist. Refuse real runs; dry runs still show the verdict.
   const violation = workScopeViolation(job, config);
@@ -94,62 +96,51 @@ async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<nu
     if (job.agent) cmdArgs.push("--agent", job.agent);
     cmdArgs.push(buildPrompt(job));
 
-    const startTime = performance.now();
-
     // Stream child output live while buffering it for output routing and
     // email delivery. execFileSync would hide all progress for minutes
     // (the job scans ~100 session files before printing anything).
-    const result: RunResult = await new Promise((resolve) => {
-      const child = spawn("opencode", cmdArgs, {
-        env,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      let stdout = "";
-      let stderr = "";
-      let timedOut = false;
-      const watchdog = setTimeout(() => {
-        timedOut = true;
-        child.kill("SIGTERM");
-      }, timeout * 1000);
-
-      child.stdout.on("data", (d: Buffer) => {
-        stdout += d.toString();
-        process.stdout.write(d);
-      });
-      child.stderr.on("data", (d: Buffer) => {
-        stderr += d.toString();
-        process.stderr.write(d);
-      });
-      child.on("error", (err) => {
-        clearTimeout(watchdog);
-        resolve({ exitCode: 1, stdout, stderr: stderr || String(err), duration: 0 });
-      });
-      child.on("close", (code) => {
-        clearTimeout(watchdog);
-        const duration = Math.round((performance.now() - startTime) / 1000);
-        if (timedOut) stderr += `\n[killed after ${timeout}s timeout]`;
-        resolve({ exitCode: code ?? 1, stdout, stderr, duration });
-      });
+    const result = await runWithTimeout("opencode", cmdArgs, {
+      timeout,
+      env,
+      onStdout: (d) => process.stdout.write(d),
+      onStderr: (d) => process.stderr.write(d),
     });
 
-    if (result.exitCode !== 0) {
-      const previewLines = result.stdout
+    let stderr = result.stderr;
+    if (result.timedOut) stderr += `\n[killed after ${timeout}s timeout]`;
+    const runResult: RunResult = {
+      exitCode: result.exitCode ?? 1,
+      stdout: result.stdout,
+      stderr,
+      duration: result.duration,
+    };
+
+    if (runResult.exitCode !== 0) {
+      const previewLines = runResult.stdout
         .trim()
         .split("\n")
         .filter(Boolean)
-        .concat(result.stderr.trim().split("\n").filter(Boolean));
+        .concat(runResult.stderr.trim().split("\n").filter(Boolean));
       logger.writeToConsole("FAILED", previewLines);
-      const logPath = logger.writeLogFile(result, model);
+      const logPath = logger.writeLogFile(runResult, model);
       console.log(`    log: ${logPath}`);
-      return result.exitCode;
+      return runResult.exitCode;
     }
 
-    const routed = routeOutput(result.stdout.trim(), job, WORKSPACE_ROOT);
-    if (routed) console.log(`    written: ${routed}`);
+    let outputError: Error | null = null;
+    try {
+      const routed = await routeOutput(runResult.stdout.trim(), job, WORKSPACE_ROOT, { locksDir });
+      if (routed) console.log(`    written: ${routed}`);
+    } catch (e) {
+      outputError = e as Error;
+      runResult.exitCode = 1;
+      runResult.stderr += `\n[output routing failed: ${outputError.message}]`;
+      console.warn(`    output failed: ${outputError.message}`);
+    }
 
-    if (job.email) {
+    if (job.email && !outputError) {
       try {
-        sendJobEmail(job.email, job.name, result.stdout.trim());
+        sendJobEmail(job.email, job.name, runResult.stdout.trim());
         console.log(`    emailed: ${job.email.to}`);
       } catch (e) {
         // Email delivery failure must not fail the job — the output is
@@ -158,14 +149,14 @@ async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<nu
       }
     }
 
-    const previewLines = result.stdout.trim().split("\n").filter(Boolean).slice(0, 3);
-    logger.writeToConsole("OK", previewLines);
-    const logPath = logger.writeLogFile(result, model);
+    const previewLines = runResult.stdout.trim().split("\n").filter(Boolean).slice(0, 3);
+    logger.writeToConsole(outputError ? "FAILED" : "OK", previewLines);
+    const logPath = logger.writeLogFile(runResult, model);
 
-    if (result.stdout.trim().split("\n").filter(Boolean).length > 3) {
+    if (outputError || runResult.stdout.trim().split("\n").filter(Boolean).length > 3) {
       console.log(`    log: ${logPath}`);
     }
-    return 0;
+    return outputError ? 1 : 0;
   } finally {
     releaseLock(job.name, locksDir);
   }
@@ -271,9 +262,11 @@ async function main(): Promise<number> {
   return exitCode;
 }
 
-main()
-  .then(code => process.exit(code))
-  .catch(err => {
-    console.error("Fatal:", err);
-    process.exit(1);
-  });
+if (import.meta.main) {
+  main()
+    .then(code => process.exit(code))
+    .catch(err => {
+      console.error("Fatal:", err);
+      process.exit(1);
+    });
+}

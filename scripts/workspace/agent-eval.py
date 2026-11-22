@@ -12,9 +12,13 @@ Usage:
 """
 
 import argparse
+import contextlib
+import importlib.util
+import io
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,12 +30,31 @@ SLOP_CHECK = WORKSPACE / "scripts" / "workspace" / "slop-check.py"
 SLOP_FIXTURES = WORKSPACE / "scripts" / "workspace" / "slop-fixtures"
 SLOP_RULES = WORKSPACE / "scripts" / "workspace" / "slop-rules"
 
+# Known session-search fixture: indexed in a temp dir by check_session_search
+# so the golden task is deterministic on a fresh clone (where memory/sessions/
+# holds only READMEs and no index exists yet).
+FIXTURE_QUERY = "evalfixture"
+FIXTURE_DATES = {"2026-01-15", "2026-01-16"}
+FIXTURE_SESSION = """# 2026-01-15: Eval fixture session
+
+## Notes
+Indexed a known evalfixture session so the session-search golden task is
+deterministic on a fresh clone, where no real index exists yet.
+
+## Decisions
+- The session-search golden task builds its own small index fixture.
+"""
+FIXTURE_STAGING = """# Staging — 2026-01-16
+
+- evalfixture staging note covers the memory/staging half of the index.
+"""
+
 
 def run_slop_fixture(name: str) -> dict | None:
     """Run slop-check on one fixture file; None if the script errors."""
     import json as _json
     result = subprocess.run(
-        ["python3", str(SLOP_CHECK), "--repo", str(SLOP_FIXTURES / name), "--json"],
+        [sys.executable, str(SLOP_CHECK), "--repo", str(SLOP_FIXTURES / name), "--json"],
         capture_output=True, text=True, timeout=300,
     )
     if result.returncode != 0:
@@ -96,7 +119,7 @@ def check_validate_script() -> tuple[bool, str]:
     if not VALIDATE_SCRIPT.is_file():
         return False, f"validate.py not found at {VALIDATE_SCRIPT.relative_to(WORKSPACE)}"
     result = subprocess.run(
-        ["python3", str(VALIDATE_SCRIPT), "--quiet"],
+        [sys.executable, str(VALIDATE_SCRIPT), "--quiet"],
         capture_output=True, text=True, timeout=30,
     )
     if result.returncode == 0:
@@ -106,16 +129,49 @@ def check_validate_script() -> tuple[bool, str]:
 
 
 def check_session_search() -> tuple[bool, str]:
+    """session-index.py builds and searches a small known index fixture.
+
+    Fresh-clone safe: on a new clone memory/sessions/ holds only READMEs and
+    no index exists, so the check builds its own fixture in a temp dir instead
+    of depending on workspace state. A no-match response is an explicit
+    failure, and results must be structured rows — not merely nonempty output.
+    """
     if not SESSIONS_INDEX.is_file():
         return False, f"session-index.py not found at {SESSIONS_INDEX.relative_to(WORKSPACE)}"
-    result = subprocess.run(
-        ["python3", str(SESSIONS_INDEX), "search", "session", "--limit", "1"],
-        capture_output=True, text=True, timeout=30,
-    )
-    if result.returncode == 0 and result.stdout.strip():
-        return True, "session search returned results for 'session'"
-    detail = result.stderr.strip() or result.stdout.strip() or "no output"
-    return False, f"session search failed: {detail[:300]}"
+
+    spec = importlib.util.spec_from_file_location("session_index_fixture", SESSIONS_INDEX)
+    if spec is None or spec.loader is None:
+        return False, "could not load session-index.py as a module"
+    index = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(index)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sessions_dir = Path(tmp) / "sessions"
+        staging_dir = Path(tmp) / "staging"
+        sessions_dir.mkdir()
+        staging_dir.mkdir()
+        (sessions_dir / "2026-01-15-eval-fixture.md").write_text(FIXTURE_SESSION, encoding="utf-8")
+        (staging_dir / "2026-01-16-eval-fixture.md").write_text(FIXTURE_STAGING, encoding="utf-8")
+
+        index.SESSIONS_DIR = sessions_dir
+        index.STAGING_DIR = staging_dir
+        index.DB_DIR = Path(tmp) / "index"
+        index.DB_PATH = index.DB_DIR / "sessions.db"
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            index.rebuild_index()
+        results = index.search_index(FIXTURE_QUERY, limit=5)
+
+    if not results:
+        return False, f"no-match response for '{FIXTURE_QUERY}' — the known fixture must match"
+    missing_keys = [k for k in ("date", "title", "snippet", "section", "project_links")
+                    if k not in results[0]]
+    if missing_keys:
+        return False, f"unstructured results (missing keys: {', '.join(missing_keys)})"
+    dates = {r["date"] for r in results}
+    if dates != FIXTURE_DATES:
+        return False, f"fixture not fully indexed: matched dates {sorted(dates)}, expected {sorted(FIXTURE_DATES)}"
+    return True, f"built a 2-file fixture index; search returned {len(results)} structured results for '{FIXTURE_QUERY}'"
 
 
 def check_gitattributes() -> tuple[bool, str]:
@@ -135,7 +191,7 @@ def check_editorconfig() -> tuple[bool, str]:
 GOLDEN_TASKS: list[dict] = [
     {"name": "license-exists", "description": "LICENSE exists with MIT text", "check": check_license},
     {"name": "validate-passes", "description": "validate.py exits 0", "check": check_validate_script},
-    {"name": "session-search-works", "description": "session-index.py returns results", "check": check_session_search},
+    {"name": "session-search-works", "description": "session-index.py builds and searches a known fixture", "check": check_session_search},
     {"name": "gitattributes-exists", "description": ".gitattributes exists", "check": check_gitattributes},
     {"name": "editorconfig-exists", "description": ".editorconfig exists", "check": check_editorconfig},
     {"name": "slop-rules-valid", "description": "slop-rules YAML all parse", "check": check_slop_rules_valid},

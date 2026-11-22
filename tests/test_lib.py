@@ -1,6 +1,6 @@
 """Tests for scripts/workspace/lib.py and scripts/workspace/frontmatter.py."""
 
-from frontmatter import parse, parse_detailed
+from frontmatter import ParseErrorKind, parse, parse_detailed
 from test_helpers import load_module
 
 
@@ -67,6 +67,69 @@ Body here."""
         content = "---\ntags: [a, b]\n---\n\n# Session\n\nBody"
         fm, _body = parse(content)
         assert fm == {"tags": ["a", "b"]}
+
+
+class TestLineAnchoredDelimiters:
+    """Dashes inside a scalar or body must never truncate frontmatter."""
+
+    def test_plain_scalar_containing_dashes(self):
+        content = "---\ntitle: a---b\n---\nBody"
+        fm, body = parse(content)
+        assert fm == {"title": "a---b"}
+        assert body == "Body"
+
+    def test_quoted_scalar_containing_dashes(self):
+        content = '---\ntitle: "a---b"\n---\nBody'
+        fm, body = parse(content)
+        assert fm == {"title": "a---b"}
+        assert body == "Body"
+
+    def test_crlf_file_parsed_and_body_preserved(self):
+        content = "---\r\nname: crlf\r\n---\r\nLine one\r\nLine two\r\n"
+        fm, body = parse(content)
+        assert fm == {"name": "crlf"}
+        assert body == "Line one\r\nLine two\r\n"
+
+    def test_body_horizontal_rule_stays_in_body(self):
+        content = "---\nname: x\n---\nBody\n\n---\n\nAfter the rule"
+        fm, body = parse(content)
+        assert fm == {"name": "x"}
+        assert body.startswith("Body")
+        assert "---" in body
+        assert "After the rule" in body
+
+    def test_malformed_opening_text_on_delimiter_line(self):
+        content = "--- name: inline\n---\nBody"
+        result = parse_detailed(content)
+        assert result.frontmatter is None
+        assert result.error is not None
+        assert "MALFORMED" in result.error.kind.name
+        assert result.body == content
+
+    def test_malformed_opening_longer_rule(self):
+        content = "----\nname: x\n----\nBody"
+        result = parse_detailed(content)
+        assert result.frontmatter is None
+        assert result.error is not None
+        assert "MALFORMED" in result.error.kind.name
+
+    def test_delimiter_with_trailing_whitespace_accepted(self):
+        content = "--- \nname: padded\n---\t\nBody"
+        fm, body = parse(content)
+        assert fm == {"name": "padded"}
+        assert body == "Body"
+
+    def test_opening_without_closing_still_malformed(self):
+        content = "---\nname: x\n"
+        result = parse_detailed(content)
+        assert result.error is not None
+        assert result.error.kind is ParseErrorKind.MALFORMED_DELIMITER
+
+    def test_empty_frontmatter_mapping(self):
+        content = "---\n---\nBody"
+        result = parse_detailed(content)
+        assert result.error is not None
+        assert result.error.kind is ParseErrorKind.NOT_A_MAPPING
 
 
 class TestWorkspace:
