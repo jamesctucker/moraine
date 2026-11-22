@@ -29,7 +29,7 @@ A personal workspace for building projects, storing documents, and running agent
 | `wiki/2 Areas/` | Ongoing responsibilities (no finish line) + `areas.md` index table | When catching up on area-level context | When updating area top notes or adding a new area |
 | `artifacts/` | Research, architecture docs, design plans | When planning or understanding design decisions | When producing research or architecture output for a project |
 | `artifacts/diagrams/` | Excalidraw drawings (`.excalidraw`) and diagram descriptions (`.md`) | When looking for architecture diagrams, flowcharts, or system visuals | When creating or updating visual documentation for an artifact |
-| `scripts/` | Tooling: MCP servers, sandbox wrappers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
+| `scripts/` | Tooling: MCP servers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
 | `docs/` | Maintenance and onboarding guides (upstream sync, first session) | When syncing a fork or onboarding | When a guide outgrows the README |
 | `.opencode/skills/` | Agent skill definitions | Automatically discovered by agents | When creating a new skill via `create-skill` |
 | `.opencode/plugins/` | OpenCode plugins (auto-discovered `*.ts` files) | Never — loaded automatically by OpenCode runtime | When adding project-local plugins |

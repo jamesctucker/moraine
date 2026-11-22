@@ -187,7 +187,7 @@ Add your own tracker, reader, or meeting-notes server there when you want it; `t
 Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No signup, no cloud dependency, no vendor lock-in.
 
 - **`AGENTS.md`** — the main lever: conventions, commands, issue tracking, remote access.
-- **`.opencode/skills/`** — 31 skills. Edit them, or write your own with the `create-skill` skill.
+- **`.opencode/skills/`** — 30 skills. Edit them, or write your own with the `create-skill` skill.
 - **`.opencode/opencode.json`** — MCP servers and shell-safety permissions.
 - **The loop** — sessions feed reviews, reviews feed new skills, skills improve future sessions. It gets more useful the longer you use it.
 
@@ -216,4 +216,4 @@ Or just tell the agent *"Sync with upstream"* — the `sync-upstream` skill clas
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT for Moraine's original work — see [LICENSE](LICENSE). Bundled third-party components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
