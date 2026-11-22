@@ -170,3 +170,36 @@ class TestPromotedStructures:
         created = mp.promote_candidates({"foo bar": (3, "foo bar")})
         assert created == []
         assert not (projects / "projects.md").exists()
+
+    def test_active_section_without_table_gets_one(self, mp, projects):
+        index = projects / "projects.md"
+        index.write_text("# Projects\n\n## Active\n\n## Paused\n")
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        lines = index.read_text().splitlines()
+        assert "| Project | Status | Priority | Next Action |" in lines
+        assert "|---------|--------|----------|-------------|" in lines
+        row = next(ln for ln in lines if "good-topic" in ln)
+        # The row lands inside a real table: header above it.
+        assert lines.index("| Project | Status | Priority | Next Action |") < lines.index(row)
+
+    def test_active_heading_at_end_of_file_gets_table(self, mp, projects):
+        index = projects / "projects.md"
+        index.write_text("# Projects\n\n## Active\n")
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        content = index.read_text()
+        assert "good-topic" in content
+        assert "| Project | Status | Priority | Next Action |" in content
+
+    def test_brackets_in_title_do_not_break_the_wikilink(self, mp, projects):
+        from vault import extract_wikilinks
+
+        mp.promote_candidates({"fix wip thing": (3, "Fix [WIP] thing")})
+        content = (projects / "projects.md").read_text()
+        row = next(ln for ln in content.splitlines() if "fix-wip-thing" in ln)
+        links = extract_wikilinks(row)
+        assert links == ["fix-wip-thing/00 Top Note"]
+
+    def test_promoted_note_carries_last_reviewed(self, mp, projects):
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        content = (projects / "good-topic" / "00 Top Note.md").read_text()
+        assert "last-reviewed:" in content

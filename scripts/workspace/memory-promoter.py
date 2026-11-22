@@ -185,7 +185,9 @@ PROJECTS_INDEX_TEMPLATE = """# Projects
 
 def index_row(dir_name: str, title: str) -> str:
     """One projects.md row linking the promoted note (Obsidian table-escaped pipe)."""
-    display = title.replace("|", r"\|")
+    # Square brackets would break wikilink parsing in both Obsidian and the
+    # workspace's own link regex; strip them from the display alias.
+    display = title.replace("[", "").replace("]", "").replace("|", r"\|")
     return f"| [[{dir_name}/00 Top Note\\|{display}]] | Active | Medium | Define scope and refine from staging notes |"
 
 
@@ -207,15 +209,25 @@ def add_to_projects_index(dir_name: str, title: str) -> None:
         index_path.write_text("\n".join(lines) + "\n")
         return
 
-    # Insert after the last table row of the Active section (or its header
-    # block when the table is still empty).
+    # Insert after the last table row of the Active section; if the section
+    # has no table at all, create one under the heading.
     insert_at = active + 1
+    saw_table = False
     for i in range(active + 1, len(lines)):
         if lines[i].startswith("## "):
             break
         if lines[i].startswith("|"):
             insert_at = i + 1
-    lines.insert(insert_at, row)
+            saw_table = True
+    if saw_table:
+        lines.insert(insert_at, row)
+    else:
+        lines[insert_at:insert_at] = [
+            "",
+            "| Project | Status | Priority | Next Action |",
+            "|---------|--------|----------|-------------|",
+            row,
+        ]
     index_path.write_text("\n".join(lines) + "\n")
 
 
@@ -235,10 +247,12 @@ def promote_candidates(candidates: dict[str, tuple[int, str]]) -> list[Path]:
         note_path = target_dir / "00 Top Note.md"
         rel = note_path.relative_to(WORKSPACE)
         next_action = "Define scope and refine from staging notes"
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
         note_content = (
             f"---\nstatus: active\npriority: medium\n"
             f"tags: [auto-promoted]\n"
-            f"created: {datetime.now(UTC).strftime('%Y-%m-%d')}\n"
+            f"created: {today}\n"
+            f"last-reviewed: {today}\n"
             f"next-action: {next_action}\n"
             f"---\n\n## Overview\n\n"
             f"Auto-promoted from staging. Referenced {count} times across staging.\n\n"

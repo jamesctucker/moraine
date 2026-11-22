@@ -5,7 +5,7 @@ Checks:
   1. All SKILL.md files have valid YAML frontmatter with required fields (name, description)
   2. Skill directory names match frontmatter `name` and follow kebab-case
   3. memory/index.md references are not orphaned
-  4. Artifact filenames follow NN-title.md convention
+  4. Artifact filenames follow the numbered <N>-title.md convention
   5. No broken wikilinks in the Obsidian vault
   6. Project top notes have required frontmatter, are indexed in projects.md,
      are linked from another note, and have a reviewed date under 60 days
@@ -162,7 +162,7 @@ def validate_artifacts(ctx: ValidationContext) -> None:
             if af.name in ("README.md", "_TEMPLATE.md"):
                 continue
             if not ARTIFACT_NAME_RE.match(af.name):
-                ctx.error(f"Artifact filename does not follow NN-title.md convention: artifacts/{af.name}")
+                ctx.error(f"Artifact filename does not follow the numbered <N>-title.md convention: artifacts/{af.name}")
             else:
                 content = af.read_text()
                 has_toc = bool(re.search(r"^## Table of Contents\s*$", content, re.MULTILINE))
