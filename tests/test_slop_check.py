@@ -290,6 +290,40 @@ class TestRangeGate:
 
 # ------------------------------------- 3.2: fail-closed detectors and git paths
 
+class TestComputedCheckExclusions:
+    def test_venv_and_node_modules_are_not_scanned(self, sc, tmp_path):
+        # A checkout-local .venv must not flood the Python computed checks
+        # with site-packages code (experienced as a bogus verbosity jump).
+        deep = tmp_path / ".venv" / "lib" / "sitepkg" / "deep.py"
+        deep.parent.mkdir(parents=True)
+        deep.write_text(
+            "def f(a):\n"
+            "    if a:\n"
+            "        if a:\n"
+            "            if a:\n"
+            "                if a:\n"
+            "                    if a:\n"
+            "                        return a\n"
+        )
+        (tmp_path / "clean.py").write_text("def g():\n    return 1\n")
+
+        _, hits = sc.computed_checks(tmp_path)
+        assert hits == {}
+
+    def test_repo_files_are_still_scanned(self, sc, tmp_path):
+        (tmp_path / "nested.py").write_text(
+            "def f(a):\n"
+            "    if a:\n"
+            "        if a:\n"
+            "            if a:\n"
+            "                if a:\n"
+            "                    if a:\n"
+            "                        return a\n"
+        )
+        _, hits = sc.computed_checks(tmp_path)
+        assert hits.get("py-deep-nesting") == 1
+
+
 class TestAstgrepAvailability:
     def test_broken_rules_are_not_zero_findings(self, sc, monkeypatch):
         monkeypatch.setattr(sc, "run",

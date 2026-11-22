@@ -309,6 +309,12 @@ def computed_checks(path: Path) -> tuple[set[tuple[str, int]], dict[str, int]]:
 
     files = [path] if path.is_file() else sorted(path.rglob("*.py"))
     for f in files:
+        # Same directory exclusions as the rest of the metric — without this,
+        # a checkout-local .venv or node_modules floods the Python checks
+        # with site-packages code and the verbosity numerator stops matching
+        # its denominator.
+        if set(f.parts) & EXCLUDE_DIRS:
+            continue
         if any(part in {"tests", "test", "__tests__", "fixtures"} for part in f.parts):
             continue
         try:
