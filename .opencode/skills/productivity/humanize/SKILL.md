@@ -1,6 +1,7 @@
 ---
 name: humanize
 description: Remove AI writing patterns and restore natural human voice. Use when user says "humanize this", "de-AI this", "make this sound more human", or pastes text that sounds AI-generated.
+license: CC-BY-SA-4.0. See NOTICE.md for Wikipedia attribution and share-alike terms.
 ---
 
 # Humanize

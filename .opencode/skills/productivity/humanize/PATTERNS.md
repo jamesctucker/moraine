@@ -1,6 +1,6 @@
 # AI Writing Patterns Reference
 
-All 29 patterns with before/after examples. Source: [Wikipedia:Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing), maintained by WikiProject AI Cleanup.
+All 29 patterns with before/after examples. Adapted from [Wikipedia:Signs of AI writing](https://en.wikipedia.org/w/index.php?title=Wikipedia:Signs_of_AI_writing&oldid=1356298499), maintained by WikiProject AI Cleanup. This adapted catalog is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/); see [NOTICE.md](NOTICE.md) for attribution and changes.
 
 Key insight: "LLMs use statistical algorithms to guess what should come next. The result tends toward the most statistically likely result that applies to the widest variety of cases."
 

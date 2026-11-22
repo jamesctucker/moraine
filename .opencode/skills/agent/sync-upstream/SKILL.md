@@ -96,7 +96,7 @@ For each changed file, classify into one of three buckets based on the path:
 
 These files are pure upstream code. The user should not have personalized them. If local changes exist, they were probably accidental — but always check (see "Auto-merge SAFE files" below for the safety check).
 
-- `scripts/**` (setup, MCP servers, workspace scripts, sandbox, obsidian-audit)
+- `scripts/**` (setup, MCP servers, workspace scripts, obsidian-audit)
 - `.opencode/skills/**` (skill definitions)
 - `.opencode/cron/**` (cron runner code)
 - `.opencode/plugins/**` (plugin scaffolding)
