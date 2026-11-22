@@ -17,8 +17,8 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from dataclasses import dataclass
 from datetime import date
-from pathlib import Path
 
 from lib import WORKSPACE
 
@@ -35,9 +35,6 @@ NAME_RE = re.compile(r"\[\[[^\[\]]*\\?\|([^\[\]]+?)\]\]")
 
 # Priority words from projects.md mapped to a sort rank.
 PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2}
-
-
-from dataclasses import dataclass
 
 
 @dataclass

@@ -19,10 +19,11 @@ import re
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from lib import WORKSPACE
+
 RESULTS_DIR = WORKSPACE / "memory" / "eval" / "results"
 SESSIONS_INDEX = WORKSPACE / "scripts" / "workspace" / "session-index.py"
 VALIDATE_SCRIPT = WORKSPACE / "scripts" / "workspace" / "validate.py"
@@ -202,7 +203,7 @@ GOLDEN_TASKS: list[dict] = [
 
 def get_week_tag(dt: datetime | None = None) -> str:
     if dt is None:
-        dt = datetime.now(timezone.utc)
+        dt = datetime.now(UTC)
     iso = dt.isocalendar()
     return f"{iso[0]}-W{iso[1]:02d}"
 
@@ -231,7 +232,7 @@ def run_all_tasks(verbose: bool) -> list[dict]:
 
 def write_results(results: list[dict]) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     week = get_week_tag(now)
     passed = sum(1 for r in results if r["passed"])
     total = len(results)
@@ -264,7 +265,7 @@ def show_history(weeks: int = 12) -> None:
     if not files:
         print("No eval history found.")
         return
-    print("=== Eval History (last {} weeks) ===\n".format(len(files)))
+    print(f"=== Eval History (last {len(files)} weeks) ===\n")
     print(f"{'Week':<16} {'Score':<10} {'Trend':<10}")
     print("-" * 36)
     scores: list[tuple[str, float]] = []

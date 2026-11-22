@@ -115,3 +115,58 @@ class TestPromoteContainment:
         created = mp.promote_candidates(enriched)
         assert len(created) == 1
         assert (projects / "shared-topic" / "00 Top Note.md").is_file()
+
+
+class TestPromotedStructures:
+    """A promotion must arrive with every structure validate.py requires."""
+
+    def test_promoted_note_has_required_frontmatter(self, mp, projects):
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        note = projects / "good-topic" / "00 Top Note.md"
+        content = note.read_text()
+        for key in ("status: active", "priority: medium", "next-action:"):
+            assert key in content
+
+    def test_promoted_note_is_listed_in_projects_index(self, mp, projects):
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        index = projects / "projects.md"
+        assert index.is_file()
+        row = index.read_text()
+        assert "[[good-topic/00 Top Note\\|Good Topic]]" in row
+        # The row sits under the Active section, above Paused/Ideas.
+        lines = row.splitlines()
+        row_at = next(i for i, ln in enumerate(lines) if "good-topic" in ln)
+        active_at = next(i for i, ln in enumerate(lines) if ln.strip() == "## Active")
+        assert row_at > active_at
+
+    def test_existing_index_rows_are_preserved(self, mp, projects):
+        index = projects / "projects.md"
+        index.write_text(
+            "# Projects\n\n## Active\n\n"
+            "| Project | Status | Priority | Next Action |\n"
+            "|---------|--------|----------|-------------|\n"
+            "| [[existing/00 Top Note\\|Existing]] | Active | Low | Keep going |\n"
+            "\n## Paused\n\n"
+            "| Project | Status | Priority | Next Action |\n"
+            "|---------|--------|----------|-------------|\n"
+        )
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        content = index.read_text()
+        assert "[[existing/00 Top Note" in content
+        assert "[[good-topic/00 Top Note" in content
+        assert content.index("good-topic") < content.index("## Paused")
+
+    def test_missing_index_is_created_with_active_section(self, mp, projects):
+        mp.promote_candidates({"good topic": (3, "Good Topic")})
+        content = (projects / "projects.md").read_text()
+        assert "## Active" in content
+        assert "good-topic" in content
+
+    def test_failed_write_does_not_touch_projects_index(self, mp, projects, monkeypatch):
+        def failing_open(self, *args, **kwargs):
+            raise OSError("simulated write failure")
+
+        monkeypatch.setattr(pathlib.Path, "open", failing_open)
+        created = mp.promote_candidates({"foo bar": (3, "foo bar")})
+        assert created == []
+        assert not (projects / "projects.md").exists()

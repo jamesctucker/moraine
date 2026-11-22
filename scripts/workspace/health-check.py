@@ -20,10 +20,11 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from lib import WORKSPACE
+
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 OPECODE_CONFIG = WORKSPACE / ".opencode" / "opencode.json"
 
@@ -59,7 +60,7 @@ def check_git() -> dict:
 
     rc, stdout, stderr = run(["git", "status", "--porcelain"])
     if rc == 0:
-        lines = [l for l in stdout.split("\n") if l.strip()]
+        lines = [line for line in stdout.split("\n") if line.strip()]
         result["details"]["uncommitted_changes"] = len(lines)
 
     return result
@@ -185,8 +186,8 @@ def check_mcp_servers() -> list[dict]:
 def write_report(checks: list[dict], quick: bool) -> Path:
     """Write health-check summary to staging."""
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
 
     ok_count = sum(1 for c in checks if c.get("status") == "ok")
     warn_count = sum(1 for c in checks if c.get("status") == "warn")

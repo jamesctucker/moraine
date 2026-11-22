@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from lib import WORKSPACE, extract_wikilinks
+
 SESSIONS_DIR = WORKSPACE / "memory" / "sessions"
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 DB_DIR = WORKSPACE / "memory" / ".index"
@@ -74,11 +75,14 @@ def parse_sections(content: str) -> list[tuple[str, str]]:
 def rebuild_index() -> None:
     DB_DIR.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.execute("PRAGMA journal_mode=OFF")
-    conn.execute("PRAGMA synchronous=OFF")
+    # Build into a temporary database in the same directory, then atomically
+    # replace the live one. Dropping/recreating the live table in place would
+    # leave searchers querying an empty or half-populated index, and disabling
+    # journaling made a mid-rebuild crash unrecoverable.
+    tmp_path = DB_DIR / (DB_PATH.name + ".tmp")
+    tmp_path.unlink(missing_ok=True)
 
-    conn.execute("DROP TABLE IF EXISTS sessions")
+    conn = sqlite3.connect(str(tmp_path))
     conn.execute(
         """CREATE VIRTUAL TABLE sessions USING fts5(
             date, title, content, section, project_links,
@@ -115,6 +119,7 @@ def rebuild_index() -> None:
     )
     conn.commit()
     conn.close()
+    tmp_path.replace(DB_PATH)
     print(f"Indexed {len(md_files)} files → {len(rows)} rows in {DB_PATH}")
 
 

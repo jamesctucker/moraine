@@ -16,9 +16,8 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from datetime import date, timedelta
 from dataclasses import dataclass
-from pathlib import Path
+from datetime import date, timedelta
 
 from lib import WORKSPACE
 
@@ -191,8 +190,6 @@ def _age_days(d: date) -> int:
 
 def report(blocks: list[Block]) -> None:
     """Print a dry-run report of all blocks and which are candidates."""
-    today = date.today()
-
     print(f"{'Date':>12}  {'Age':>5}  {'Done':>5}  {'Bullets':>7}  Status")
     print("-" * 60)
 

@@ -101,6 +101,16 @@ class TestValidateArtifacts:
         val.validate_artifacts(ctx)
         assert len(ctx.errors) == 1
 
+    def test_three_digit_artifact_number_passes(self, val, tmp_path):
+        # next-artifact.py allocates past 99; validation must accept it.
+        (tmp_path / "artifacts").mkdir()
+        af = tmp_path / "artifacts" / "100-post-century.md"
+        af.write_text("# Big\n\n## Table of Contents\n\nContent")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_artifacts(ctx)
+        assert len(ctx.errors) == 0
+
     def test_missing_toc(self, val, tmp_path):
         (tmp_path / "artifacts").mkdir()
         af = tmp_path / "artifacts" / "01-no-toc.md"
