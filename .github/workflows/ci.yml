@@ -36,10 +36,10 @@ jobs:
           pip install -r scripts/workspace/requirements.txt
 
       - name: Lint with ruff
-        run: ruff check tests/ scripts/
+        run: ruff check tests/ scripts/ packs/
 
       - name: Test with pytest
-        run: python -m pytest tests/ --tb=short -q
+        run: python -m pytest tests/ packs/ --tb=short -q
 
   test-node:
     name: Node — vitest

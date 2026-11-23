@@ -8,7 +8,7 @@ dedicated script, and emits one markdown report to stdout:
   2. Work repo registry drift (validate-repos.py)
   3. Stalled projects (project-status.py --stale-only)
   4. Open threads whose latest referenced date is past-due
-  5. review-memory cadence (sessions since the last memory review)
+  5. Review cadence (sessions since the last memory review)
   6. Stale staging files (memory/staging/*.md older than 14 days)
 
 Designed for the weekly-review cron job; also runnable on demand:
@@ -353,13 +353,13 @@ def build_report(days: int, today: date) -> str:
     cadence = review_cadence(today)
     if cadence.last_review is None:
         findings += 1
-        lines.append("- **Review cadence**: no reviews found — run `review-memory`")
+        lines.append("- **Review cadence**: no reviews found — run `review-memory` (the `reflection` pack, if it is enabled)")
     elif cadence.sessions_since > 5 or (cadence.days_since or 0) > 7:
         findings += 1
         lines.append(
             f"- **Review cadence**: last review {cadence.last_review} "
             f"({cadence.days_since}d ago, {cadence.sessions_since} sessions since) "
-            "— run `review-memory`"
+            "— run `review-memory` (the `reflection` pack, if it is enabled)"
         )
     else:
         lines.append(
@@ -375,8 +375,8 @@ def build_report(days: int, today: date) -> str:
         for s in staging:
             lines.append(f"  - `{s.name}` ({s.age_days}d old)")
         lines.append(
-            "  Promote, archive, or delete them (`memory-promoter` skill; "
-            "see `memory/staging/README.md` lifecycle)."
+            "  Promote, archive, or delete them (`memory-promoter` — the `reflection` pack, "
+            "if it is enabled; see `memory/staging/README.md` lifecycle)."
         )
     else:
         lines.append("- **Stale staging files**: none")

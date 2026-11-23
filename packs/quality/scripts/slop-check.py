@@ -57,11 +57,15 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from lib import WORKSPACE
+# The script lives in the quality pack; the core library it imports sits
+# three levels up in scripts/workspace.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "workspace"))
+
+from lib import WORKSPACE  # noqa: E402
 
 LIZARD_VERSION = "1.24.1"
 JSCPD_VERSION = "5.4.2"
-RULES_CONFIG = WORKSPACE / "scripts" / "workspace" / "slop-rules" / "sgconfig.yml"
+RULES_CONFIG = Path(__file__).resolve().parent / "slop-rules" / "sgconfig.yml"
 SLOP_DIR = WORKSPACE / "memory" / "eval" / "slop"
 
 ABS_THRESH = {"erosion": (0.34, 0.68), "verbosity": (0.19, 0.44)}

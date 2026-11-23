@@ -1,7 +1,7 @@
 """Tests for scripts/workspace/agent-eval.py."""
 
 import pytest
-from test_helpers import load_module
+from test_helpers import build_workspace, load_module
 
 
 @pytest.fixture
@@ -33,6 +33,39 @@ class TestCheckSessionSearch:
         passed, detail = ev.check_session_search()
         assert not passed
         assert "not found" in detail
+
+
+class TestPackTasks:
+    def _eval_module(self, workspace, pack):
+        source = (
+            f'TASKS = [{{"name": "{pack}-task", "description": "d",\n'
+            '          "check": lambda: (True, "ok")}]\n'
+        )
+        (workspace / "packs" / pack / "eval.py").write_text(source)
+
+    def test_no_tasks_when_no_enabled_pack_ships_eval(self, ev, tmp_path, monkeypatch):
+        workspace = build_workspace(tmp_path, packs={"demo": {"skills": ["alpha"]}})
+        monkeypatch.setattr(ev, "WORKSPACE", workspace)
+
+        assert ev.pack_tasks() == []
+
+    def test_loads_tasks_from_an_enabled_pack(self, ev, tmp_path, monkeypatch):
+        listing = "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
+        workspace = build_workspace(tmp_path, listing, packs={"demo": {"skills": ["alpha"]}})
+        self._eval_module(workspace, "demo")
+        monkeypatch.setattr(ev, "WORKSPACE", workspace)
+
+        tasks = ev.pack_tasks()
+
+        assert [t["name"] for t in tasks] == ["demo-task"]
+        assert tasks[0]["check"]() == (True, "ok")
+
+    def test_ignores_eval_in_a_disabled_pack(self, ev, tmp_path, monkeypatch):
+        workspace = build_workspace(tmp_path, packs={"demo": {"skills": ["alpha"]}})
+        self._eval_module(workspace, "demo")
+        monkeypatch.setattr(ev, "WORKSPACE", workspace)
+
+        assert ev.pack_tasks() == []
 
 
 class TestWriteResults:

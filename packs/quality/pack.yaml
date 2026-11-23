@@ -16,4 +16,4 @@ prereqs:
   - cmd: node
     why: pinned jscpd via npx
 mcp: {}
-jobs: []
+jobs: [jobs/slop-sweep.yaml]

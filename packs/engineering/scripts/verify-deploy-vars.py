@@ -22,7 +22,11 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib import WORKSPACE
+# The script lives in the engineering pack; the core library it imports
+# sits three levels up in scripts/workspace.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "workspace"))
+
+from lib import WORKSPACE  # noqa: E402
 
 WORK_DIR = WORKSPACE / "work"
 

@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`create-skill` writes to `packs/local/skills/`** and links the new folder into `.agents/skills/` with `moraine sync`, instead of writing into `.opencode/skills/`.
 - **`sync-upstream`** classifies paths for the new layout, treats `moraine.yaml` and `packs/local/` as user-owned, and never writes to a user-owned path. For `opencode.json` it takes upstream's changes outside `mcp.servers` and leaves that block to `moraine sync`.
 - **Impeccable** refers to its helper scripts at `.agents/skills/impeccable/scripts/`.
+- **Pack scripts, tests, and docs moved into their packs.** `slop-check.py`, `slop-rules/`, `slop-fixtures/`, and `docs/slop-check.md` now live under `packs/quality/`; `memory-promoter.py` under `packs/reflection/scripts/`; `verify-deploy-vars.py` under `packs/engineering/scripts/` — each with its tests under the pack's `tests/`. The `slop-sweep` job moved to `packs/quality/jobs/` (installed only while both `quality` and `automation` are enabled). Invoke the scripts at their new paths.
+- **Eval is core plus packs.** `agent-eval.py` runs five core golden tasks plus any `TASKS` contributed by enabled packs (`packs/<name>/eval.py`); the three slop tasks now come from the `quality` pack, so a core-only workspace scores 5/5 (8/8 with `quality` enabled). Core eval names no pack.
+- **`AGENTS.md` slimmed to core** (~70 lines, harness-neutral): scheduled jobs moved to `packs/automation/AGENTS.md`, Headroom to `packs/headroom/`, issue tracking to `packs/engineering/` (which keeps the `[CUSTOMIZE]` tracker section), Semble search guidance to `packs/semble/`, and every pack now has its own `AGENTS.md`. Core files name no pack's skill or script unless the line says the pack is enabled; `tests/test_skill_references.py` enforces the boundary.
+- **Pack tests run with the suite** — pytest collects `packs/` alongside `tests/`, and ruff lints it.
 
 ### Removed
 

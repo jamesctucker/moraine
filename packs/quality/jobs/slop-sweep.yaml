@@ -10,7 +10,7 @@ prompt: >
 
   1. Run the snapshot sweep:
 
-       python3 scripts/workspace/slop-check.py --all --json --write
+       python3 packs/quality/scripts/slop-check.py --all --json --write
 
      It writes per-repo snapshots under memory/eval/slop/snapshots/<date>/
      (one directory per ISO date; same-day reruns keep the earlier snapshot

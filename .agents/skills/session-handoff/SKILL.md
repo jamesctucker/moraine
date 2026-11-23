@@ -36,7 +36,7 @@ Create `memory/sessions/<YYYY-MM-DD>-<topic>.md`:
 
 ## Structural state
 
-<Omit for sessions with no code changes. For coding sessions: files touched, any function that crossed CC > 10 or 60 lines this session, and current slop numbers if a milestone shipped (`slop-check.py --range` output from the PR comment is fine — copy, don't re-run). This is the workspace-mediated degradation tripwire: the next session inherits this structure, and fresh context does not reset it.>
+<Omit for sessions with no code changes. For coding sessions: files touched, any function that crossed CC > 10 or 60 lines this session, and current slop numbers if a milestone shipped and the `quality` pack is enabled (`slop-check.py --range` output from the PR comment is fine — copy, don't re-run). This is the workspace-mediated degradation tripwire: the next session inherits this structure, and fresh context does not reset it.>
 ```
 
 ### 2. Update memory index

@@ -17,7 +17,11 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from lib import WORKSPACE, extract_wikilinks
+# The script lives in the reflection pack; the core library it imports
+# sits three levels up in scripts/workspace.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "workspace"))
+
+from lib import WORKSPACE, extract_wikilinks  # noqa: E402
 
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 SESSIONS_DIR = WORKSPACE / "memory" / "sessions"

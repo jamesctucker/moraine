@@ -85,6 +85,6 @@ The date must match the session date; `<slug>` is a short kebab-case label. A da
 
 - Evidence over vibes. Every finding cites a command, file, or moment from the session.
 - One session, not a trend. If the finding is "this keeps happening", hand off to `review-memory` after the single-session pass.
-- The review agent imposes standards, not the implementation agent. The implementation agent carries the context pressure; the review path (see `code-review`) is where rules belong.
+- The review agent imposes standards, not the implementation agent. The implementation agent carries the context pressure; the review path (see the `engineering` pack's `code-review` skill, if it is enabled) is where rules belong.
 - Do not implement. Present, then wait.
 - For a skill or doc change, follow `create-skill` rather than inventing structure.

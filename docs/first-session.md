@@ -84,7 +84,7 @@ Check the chain in order — it only takes one missing link:
 - `memory/index.md` stays short — active projects, live threads, recent decisions. It is an index, not a journal.
 - Session summaries name decisions and next actions, not a play-by-play.
 - Each project has one top note; detail lives in its own notes beneath it.
-- After a handful of sessions, run `review-memory` to find repeated work worth turning into a skill, and `retro` after any session that ran long or needed repeated correction.
+- After a handful of sessions, run `review-memory` to find repeated work worth turning into a skill, and `retro` after any session that ran long or needed repeated correction — both live in the `reflection` pack, if it is enabled.
 
 ## Where things go
 

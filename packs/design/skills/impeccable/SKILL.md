@@ -81,7 +81,7 @@ Valid `<command>` is any command from the table above. Report the script's resul
 ### Complementary skills
 
 - **`grilling`** (in `productivity/`) — when a design choice affects architecture (component boundaries, state management, API contracts), switch to grilling to resolve the structural problem.
-- **`diagnose`** (in `engineering/`) — for actual bug diagnosis. Don't use `harden` to debug runtime errors; use `diagnose` for that, then `harden` to prevent future edge cases.
+- **`diagnose`** (in the `engineering` pack, if it is enabled) — for actual bug diagnosis. Don't use `harden` to debug runtime errors; use `diagnose` for that, then `harden` to prevent future edge cases.
 
 ### Context awareness
 

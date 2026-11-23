@@ -39,11 +39,13 @@ Run the repo's full test command **and** typecheck. Both must be green before yo
 - **Regression-test custody.** Test count must be **non-decreasing** across the milestone. If green requires editing or deleting a prior milestone's assertion, treat that as a **code defect by default, not a test defect** — the code regressed, not the test. Changing/removing a prior assertion requires explicit justification in the PR body (what behavior changed and why the old assertion is now wrong). Silent assertion edits are how error-pass decays over long horizons (SlopCodeBench: 80.1% → 62.2% across checkpoints).
 
 ### 4b. Structure check (BLOCKING on new CC>10)
-Run the deterministic structural check over the whole diff:
+Run the deterministic structural check over the whole diff (if the `quality` pack is enabled):
 
 ```bash
-python3 scripts/workspace/slop-check.py --range <base>..HEAD --repo <path-to-repo> --fail-on-new-cc
+python3 packs/quality/scripts/slop-check.py --range <base>..HEAD --repo <path-to-repo> --fail-on-new-cc
 ```
+
+When the `quality` pack is not enabled, apply the AGENTS.md anti-slop checklist by hand instead: nesting ≥ 4, if/elif ladders ≥ 3, single-use variables, defensive checks a human wouldn't add.
 
 - **Blocking:** if the diff introduces a **new** callable with CC > 10 (exit 1), the PR is blocked — extract the seam first in a separate commit, then re-run. This is the sharpest, lowest-noise signal from the upstream rehearsal (in the rehearsal's A/B run, the one checkpoint that broke threshold was the one that never recovered).
 - **Advisory:** report Δerosion, Δverbosity in the PR comment. A red delta is a conversation, not a failed gate. If you want more teeth, tighten this to blocking on Δerosion red after a month of clean signal.
