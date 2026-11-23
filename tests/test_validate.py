@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from test_helpers import load_module
+from test_helpers import build_workspace, load_module
 
 
 @pytest.fixture
@@ -108,6 +108,26 @@ Content
         val.WORKSPACE = tmp_path
         val.validate_skills(ctx)
         assert len(ctx.errors) >= 1
+
+
+class TestValidateManifests:
+    def test_valid_manifests_pass(self, val, tmp_path):
+        build_workspace(tmp_path, packs={"demo": {"skills": ["alpha"]}})
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+
+        val.validate_manifests(ctx)
+
+        assert ctx.errors == []
+
+    def test_manifest_problems_become_errors(self, val, tmp_path):
+        build_workspace(tmp_path, manifest="version: 1\nharnesses: [opencode]\npacks: [nope]\n")
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+
+        val.validate_manifests(ctx)
+
+        assert ctx.errors == ["moraine.yaml: unknown pack 'nope'"]
 
 
 class TestValidateArtifacts:

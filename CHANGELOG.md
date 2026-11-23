@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`moraine` CLI** (`scripts/moraine`) — `moraine sync [--dry-run]` makes the workspace match `moraine.yaml`: skill symlinks in `.agents/skills/`, the managed block in `.git/info/exclude`, the `mcp.servers` block of `.opencode/opencode.json`, and `~/.moraine/cron/enabled.json` for the job runner. `moraine packs list|enable <name>|disable <name>` manages the enabled-pack list. Sync never installs anything and never touches a real skill folder.
+- **Manifest schema checks in `validate.py`** — `moraine.yaml` and every `packs/<name>/pack.yaml` are validated against the strict schema (unknown packs, requires cycles, harness fit, MCP name collisions); `--manifests` runs just that check.
+- **Sync drift check in `health-check.py`** — runs the sync plan in dry-run mode, warns with the exact fix command when changes are pending, and errors on manifest problems. Runs in `--quick` mode too.
+
 ### Changed
 
 - **Breaking: skills are core plus packs.** Skills moved from `.opencode/skills/<category>/<name>/` to a flat layout. Seven core skills are real folders in `.agents/skills/<name>/`: `create-skill`, `domain-modeling`, `grilling`, `scaffold-project`, `session-handoff`, `session-search`, `sync-upstream`. The other 23 moved into `packs/<pack>/skills/<name>/`, each pack described by its own `pack.yaml`: `engineering` (13 skills), `reflection` (3), `writing` (5), `design` (1), `obsidian` (1). `moraine.yaml` at the root lists your harnesses and enabled packs. Skills you write belong in `packs/local/skills/`. There is no migration tooling: if you edited a shipped skill, `git log --follow <new path>` finds its history.

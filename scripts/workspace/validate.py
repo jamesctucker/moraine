@@ -9,12 +9,14 @@ Checks:
   5. No broken wikilinks in the Obsidian vault
   6. Project top notes have required frontmatter, are indexed in projects.md,
      are linked from another note, and have a reviewed date under 60 days
+  7. moraine.yaml and every packs/<name>/pack.yaml match the manifest schema
 
 Usage:
   python scripts/workspace/validate.py          # validate entire workspace
   python scripts/workspace/validate.py --quiet  # only print errors
   python scripts/workspace/validate.py --skills # validate skills only
   python scripts/workspace/validate.py --vault  # validate obsidian vault only
+  python scripts/workspace/validate.py --manifests  # validate manifests only
 """
 
 import argparse
@@ -33,6 +35,7 @@ from lib import (
     parse_detailed,
     skill_dirs,
 )
+from manifest import ManifestError, load_manifests
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # Allocation (next-artifact.py) supports numbers beyond 99, so the prefix is
@@ -54,6 +57,21 @@ class ValidationContext:
 
     def warn(self, msg: str) -> None:
         self.warnings.append(msg)
+
+
+# ── Manifest validation ─────────────────────────────────────────────
+
+
+def validate_manifests(ctx: ValidationContext) -> None:
+    """moraine.yaml and every pack.yaml, against the one strict schema.
+
+    One shared loader, so `moraine sync` and validate agree on what is valid.
+    """
+    try:
+        load_manifests(WORKSPACE)
+    except ManifestError as e:
+        for problem in e.problems:
+            ctx.error(problem)
 
 
 # ── SKILL validation ────────────────────────────────────────────────
@@ -300,11 +318,12 @@ def main() -> int:
     parser.add_argument("--vault", action="store_true", help="Validate vault wikilinks only")
     parser.add_argument("--memory", action="store_true", help="Validate memory index only")
     parser.add_argument("--artifacts", action="store_true", help="Validate artifacts only")
+    parser.add_argument("--manifests", action="store_true", help="Validate manifests only")
     args = parser.parse_args()
 
     ctx = ValidationContext()
 
-    run_all = not any([args.skills, args.vault, args.memory, args.artifacts])
+    run_all = not any([args.skills, args.vault, args.memory, args.artifacts, args.manifests])
 
     def run(label: str, check) -> None:
         before_e, before_w = len(ctx.errors), len(ctx.warnings)
@@ -320,6 +339,8 @@ def main() -> int:
         else:
             print(f"✓ {label}")
 
+    if run_all or args.manifests:
+        run("manifests", validate_manifests)
     if run_all or args.skills:
         run("skills", validate_skills)
     if run_all or args.memory:

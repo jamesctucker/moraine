@@ -3,7 +3,8 @@
 import json
 
 import pytest
-from test_helpers import load_module
+import sync
+from test_helpers import build_workspace, load_module
 
 
 @pytest.fixture
@@ -160,6 +161,46 @@ class TestCheckMcpServers:
         result = hc.check_mcp_servers()[0]
         assert result["status"] == "error"
         assert "carrier-pigeon" in result["details"]["error"]
+
+
+class TestCheckSync:
+    """Cron state is injected, never the real ~/.moraine/cron."""
+
+    def _point_at(self, hc, monkeypatch, workspace):
+        cron_state = workspace / "cron-state"
+        monkeypatch.setattr(hc, "WORKSPACE", workspace)
+        monkeypatch.setattr(sync, "default_cron_state", lambda: cron_state)
+        return cron_state
+
+    def test_synced_workspace_is_ok(self, hc, tmp_path, monkeypatch):
+        listing = "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
+        workspace = build_workspace(tmp_path, listing, packs={"demo": {"skills": ["alpha"]}})
+        cron_state = self._point_at(hc, monkeypatch, workspace)
+        sync.run(workspace, cron_state=cron_state)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "ok"
+        assert result["details"].get("note")
+
+    def test_unsynced_workspace_warns_and_names_the_fix(self, hc, tmp_path, monkeypatch):
+        listing = "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
+        workspace = build_workspace(tmp_path, listing, packs={"demo": {"skills": ["alpha"]}})
+        self._point_at(hc, monkeypatch, workspace)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "warn"
+        assert result["details"]["warning"] == "2 change(s) pending; run: python3 scripts/moraine sync"
+
+    def test_invalid_manifest_is_an_error(self, hc, tmp_path, monkeypatch):
+        workspace = build_workspace(tmp_path, manifest="version: 1\nharnesses: [opencode]\npacks: [nope]\n")
+        self._point_at(hc, monkeypatch, workspace)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "error"
+        assert "unknown pack 'nope'" in result["details"]["error"]
 
 
 class TestWriteReport:

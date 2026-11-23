@@ -8,6 +8,9 @@ Validates:
   4. MCP servers in opencode.json — 'mcp.servers' shape validated; local
      commands resolved on PATH. Servers are never started and remote URLs
      are never probed, so this is not a reachability or handshake check.
+  5. sync drift — the sync plan runs in dry-run mode and any difference is
+     flagged with the command that fixes it; manifest or sync problems are
+     errors. Runs in --quick mode too.
 
 Writes a summary to memory/staging/health-check-{YYYY-MM-DD}.md.
 
@@ -23,7 +26,9 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+import sync
 from lib import WORKSPACE
+from manifest import ManifestError
 
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 OPECODE_CONFIG = WORKSPACE / ".opencode" / "opencode.json"
@@ -183,6 +188,23 @@ def check_mcp_servers() -> list[dict]:
     return [_check_mcp_server(name, server) for name, server in servers.items()]
 
 
+def check_sync() -> dict:
+    """Run the sync plan in dry-run mode and flag any difference."""
+    result = {"tool": "sync", "status": "ok", "details": {}}
+    try:
+        pending = sync.plan(WORKSPACE).changes
+    except (ManifestError, sync.SyncError) as e:
+        result["status"] = "error"
+        result["details"]["error"] = "; ".join(e.problems)
+        return result
+    if pending:
+        result["status"] = "warn"
+        result["details"]["warning"] = f"{len(pending)} change(s) pending; run: python3 scripts/moraine sync"
+    else:
+        result["details"]["note"] = "workspace matches moraine.yaml"
+    return result
+
+
 def write_report(checks: list[dict], quick: bool) -> Path:
     """Write health-check summary to staging."""
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
@@ -225,8 +247,9 @@ def main() -> int:
 
     checks = []
 
-    # Core tools
-    for check_fn, label in [(check_git, "git"), (check_python, "python"), (check_node, "node")]:
+    # Core tools and sync drift (sync runs in quick mode too: it is cheap
+    # and the manifests gate everything else)
+    for check_fn, label in [(check_git, "git"), (check_python, "python"), (check_node, "node"), (check_sync, "sync")]:
         result = check_fn()
         checks.append(result)
         icon = {"ok": "OK", "warn": "WARN", "error": "FAIL"}.get(result["status"], "?")
