@@ -5,8 +5,10 @@ import { z } from "zod";
 import { isValid } from "./scheduler";
 import { LOCK_KEY_PATTERN } from "./lock";
 import { recipientError, recipientsError, subjectError } from "./email";
-import type { CronConfig, Job } from "./types";
+import type { Job } from "./types";
 
+// Strict: an unknown key fails the job instead of being ignored, so a
+// removed option (such as the old `scope` gate) cannot linger silently.
 export const JobSchema = z.object({
   name: z.string().regex(LOCK_KEY_PATTERN, {
     message: "must be a slug: letters, digits, '_' or '-', at most 64 chars, no separators",
@@ -22,7 +24,6 @@ export const JobSchema = z.object({
   timeout: z.number().optional(),
   hostname: z.string().optional(),
   disabled: z.boolean().optional(),
-  scope: z.enum(["work", "personal"]).optional(),
   email: z.object({
     to: z.string().refine(v => recipientsError(v) === null, {
       message: "must be valid address(es) — 'user@host' or 'Name <user@host>', comma-separated, no CR/LF",
@@ -34,25 +35,7 @@ export const JobSchema = z.object({
       message: "must not contain CR/LF",
     }).optional(),
   }).optional(),
-});
-
-/**
- * Work-model gate: jobs marked scope:work must run on a model in the
- * OpenRouter allowlist (config.work_models). Returns a one-line violation
- * message, or null when the job is allowed (or not work-scoped).
- */
-export function workScopeViolation(job: Job, config: CronConfig): string | null {
-  if (job.scope !== "work") return null;
-  if (job.agent) {
-    return `job '${job.name}' is scope:work but sets 'agent' — scope:work jobs cannot use a custom agent (unvalidated model) — set model directly`;
-  }
-  const effectiveModel = job.model ?? config.default?.model;
-  const allowlist = config.work_models ?? [];
-  if (!effectiveModel || !allowlist.includes(effectiveModel)) {
-    return `job '${job.name}' is scope:work but its effective model '${effectiveModel ?? "(none)"}' is not in the OpenRouter work_models allowlist [${allowlist.join(", ") || "(empty)"}]`;
-  }
-  return null;
-}
+}).strict();
 
 export function buildPrompt(job: Job): string {
   if (!job.skills?.length) return job.prompt;

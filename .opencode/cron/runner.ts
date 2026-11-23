@@ -4,7 +4,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { hostname } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config";
-import { loadJobs, buildPrompt, workScopeViolation } from "./job";
+import { loadJobs, buildPrompt } from "./job";
 import { matches } from "./scheduler";
 import { acquireLock, releaseLock } from "./lock";
 import { runWithTimeout } from "./spawn";
@@ -37,25 +37,12 @@ function parseArgs(args: string[]) {
 
 /** Run one job and preserve its log even when output routing fails. */
 export async function runJob(job: Job, config: CronConfig, dryRun: boolean): Promise<number> {
-  // Work-model gate: work-scoped jobs may only run on models in the
-  // OpenRouter allowlist. Refuse real runs; dry runs still show the verdict.
-  const violation = workScopeViolation(job, config);
-  if (violation && !dryRun) {
-    console.error(`  [${job.name}] REFUSED (work model gate): ${violation}`);
-    return 1;
-  }
-
   if (dryRun) {
     const model = job.model ?? config.default.model ?? "(opencode default)";
     const timeout = job.timeout ?? config.default.timeout;
     console.log(`  [${job.name}] DRY RUN`);
     console.log(`    model: ${model}`);
     console.log(`    timeout: ${timeout}s`);
-    if (job.scope) console.log(`    scope: ${job.scope}`);
-    if (job.scope === "work") {
-      if (violation) console.log(`    work-model gate: REFUSED — ${violation}`);
-      else console.log(`    work-model gate: PASS`);
-    }
     if (job.agent) console.log(`    agent: ${job.agent}`);
     if (job.skills?.length) console.log(`    skills: ${job.skills.join(", ")}`);
     if (job.output) console.log(`    output: ${job.output}`);
@@ -180,8 +167,6 @@ function listJobs(jobs: Job[], config: CronConfig): void {
     const mode = job.prepend ? " (prepend)" : job.append ? " (append)" : "";
     const hostOk = !job.hostname || job.hostname === h;
     let status = !hostOk ? " (host skip)" : job.disabled ? " (disabled)" : "";
-    if (job.scope === "work") status += " [work]";
-    if (workScopeViolation(job, config)) status += " (work-model VIOLATION)";
     if (job.email) status += " [emails]";
     console.log(`  ${job.name.padEnd(30)} ${job.cron.padEnd(20)} ${model.padEnd(30)} ${(output + mode).padEnd(40)}${status}`);
   }

@@ -7,6 +7,12 @@ Moraine was previously Joinery, and before that OpenBench (`github.com/jamesctuc
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- **The `scope: work` model gate** in the cron runner, pending a design for employer data. Jobs have no `scope` key and the cron config has no `work_models` allowlist. The job schema is now strict: a job file that still sets `scope:` fails validation with a message naming the key, instead of the key being silently ignored.
+
 ## [0.3.0] - 2026-11-21
 
 Consolidates the October 2026 restructuring (OpenBench → Joinery → Moraine, config migration, setup review) with the November distribution-compliance, correctness, and release work. The June 2026 entry below remains 0.2.0.

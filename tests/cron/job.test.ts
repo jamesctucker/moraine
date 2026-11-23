@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { loadJobs } from "../../.opencode/cron/job";
 import { writeFileSync, mkdirSync, rmSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
@@ -133,6 +133,22 @@ prompt: "test"
     const jobs = loadJobs(tmpDir);
     expect(jobs).toHaveLength(1);
     expect(jobs[0].name).toBe("a".repeat(64));
+  });
+
+  it("should reject unknown keys such as the removed scope gate", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    writeFileSync(join(tmpDir, "scoped-job.yaml"), `
+name: scoped-job
+cron: "* * * * *"
+prompt: "test"
+scope: work
+`);
+
+    const jobs = loadJobs(tmpDir);
+
+    expect(jobs).toHaveLength(0);
+    expect(warn.mock.calls.flat().join("\n")).toMatch(/scoped-job\.yaml.*scope/);
+    warn.mockRestore();
   });
 
   it("should reject duplicate job names across files", () => {

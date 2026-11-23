@@ -11,7 +11,6 @@ const CronConfigSchema = z.object({
   log_dir: z.string().default("scheduled/.logs"),
   locks_dir: z.string().default("~/.moraine/cron/.locks"),
   install_dir: z.string().default("~/.moraine/cron"),
-  work_models: z.array(z.string()).optional(),
 });
 
 export function loadConfig(configPath: string): CronConfig {

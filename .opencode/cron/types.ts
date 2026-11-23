@@ -6,7 +6,6 @@ export interface CronConfig {
   log_dir: string;
   locks_dir: string;
   install_dir: string;
-  work_models?: string[];
 }
 
 export interface EmailConfig {
@@ -29,7 +28,6 @@ export interface Job {
   timeout?: number;
   hostname?: string;
   disabled?: boolean;
-  scope?: "work" | "personal";
   email?: EmailConfig;
 }
 
