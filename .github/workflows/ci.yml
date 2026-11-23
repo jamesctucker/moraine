@@ -71,6 +71,11 @@ jobs:
         working-directory: .opencode
         run: npx tsc --noEmit
 
+      # setup installs this exact package and version; `opencode-ai` stops at
+      # 1.19.x, so a pin that only exists there fails on a fresh machine.
+      - name: Pinned OpenCode version exists on npm
+        run: npm view "@opencode/cli@$(cat .opencode-version)" version
+
   validate-workspace:
     name: Validate workspace structure
     runs-on: ubuntu-latest

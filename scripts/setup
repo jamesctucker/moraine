@@ -100,7 +100,9 @@ fi
 install_opencode() {
     local version="$1"
     info "Installing OpenCode (${version})..."
-    if bun install -g "opencode-ai@${version}"; then
+    # OpenCode 2.x ships as @opencode/cli; the older unscoped package stops at
+    # 1.19.x. --trust lets the package's postinstall place the binary.
+    if bun install -g --trust "@opencode/cli@${version}"; then
         ok "OpenCode installed"
         # bun's global bin dir is not always on PATH (fresh bun installs)
         local bun_bin
@@ -118,20 +120,20 @@ if ! command -v opencode &>/dev/null; then
     echo ""
     info "OpenCode not found."
     echo "   This workspace runs on the OpenCode agent CLI."
-    echo "   Install command: bun install -g opencode-ai@${OPENCODE_VERSION}"
+    echo "   Install command: bun install -g --trust @opencode/cli@${OPENCODE_VERSION}"
     echo ""
     if ask "Install OpenCode globally now?" "y"; then
         install_opencode "$OPENCODE_VERSION"
     else
         warn "OpenCode skipped — the workspace won't run without it."
-        echo "   Install later: bun install -g opencode-ai@${OPENCODE_VERSION}"
+        echo "   Install later: bun install -g --trust @opencode/cli@${OPENCODE_VERSION}"
     fi
 else
     # `opencode --version` prints e.g. "opencode v2.1.1" — keep only the number.
     INSTALLED_VERSION=$(opencode --version 2>/dev/null | sed -E 's/.*v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' || echo "unknown")
     if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != "$OPENCODE_VERSION" ]]; then
         warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
-        if ask "Install matching version (bun install -g opencode-ai@${OPENCODE_VERSION})?"; then
+        if ask "Install matching version (bun install -g --trust @opencode/cli@${OPENCODE_VERSION})?"; then
             install_opencode "$OPENCODE_VERSION"
         else
             warn "Version mismatch — workspace may not behave as expected"

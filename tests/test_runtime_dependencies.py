@@ -24,6 +24,14 @@ def test_weekly_recap_uses_the_locked_pdf_package():
     assert "--no-sandbox" not in recap
 
 
+def test_setup_installs_opencode_from_the_package_that_ships_2x():
+    # `opencode-ai` stops at 1.19.x; OpenCode 2.x is published as `@opencode/cli`.
+    setup = (ROOT / "scripts" / "setup").read_text()
+
+    assert "opencode-ai" not in setup
+    assert "@opencode/cli@${OPENCODE_VERSION}" in setup
+
+
 def test_vitest_and_vite_are_on_reviewed_security_releases():
     package = json.loads((ROOT / "package.json").read_text())
 
