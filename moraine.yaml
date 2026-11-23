@@ -1,0 +1,18 @@
+# Moraine workspace manifest. This file is yours: upstream sync never writes here.
+version: 1
+
+# Harnesses you run in this workspace. Any of: opencode, claude, codex.
+harnesses: []
+
+# Enabled packs, by name. Each pack describes itself in packs/<name>/pack.yaml;
+# `moraine packs list` shows every pack with its prerequisites.
+# A pack's `requires` are enabled with it. `packs/local` is always enabled and
+# is not listed here.
+packs: []
+
+# Your own MCP servers. `moraine sync` merges them with the enabled packs'
+# servers, so a name may not collide with a pack's server.
+#   linear:
+#     type: remote
+#     url: https://mcp.linear.app/mcp
+mcp: {}

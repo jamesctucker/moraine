@@ -31,7 +31,9 @@ A personal workspace for building projects, storing documents, and running agent
 | `artifacts/diagrams/` | Excalidraw drawings (`.excalidraw`) and diagram descriptions (`.md`) | When looking for architecture diagrams, flowcharts, or system visuals | When creating or updating visual documentation for an artifact |
 | `scripts/` | Tooling: MCP servers, workspace setup | When adding/modifying workspace tooling | When creating new scripts or MCP servers |
 | `docs/` | Maintenance and onboarding guides (upstream sync, first session) | When syncing a fork or onboarding | When a guide outgrows the README |
-| `.opencode/skills/` | Agent skill definitions | Automatically discovered by agents | When creating a new skill via `create-skill` |
+| `.agents/skills/` | Core skills as real folders, plus one symlink per enabled pack skill | Automatically discovered by agents | Never by hand — `moraine sync` writes the symlinks; add skills with `create-skill` |
+| `packs/` | Opt-in packs, each self-contained: `pack.yaml`, skills, scripts, jobs | When a task touches a pack's domain | Upstream owns shipped packs; `packs/local/` is yours |
+| `moraine.yaml` | Which harnesses and packs this workspace enables, plus your own MCP servers | When a pack's skill or server seems missing | You — `moraine packs enable/disable` edits it, then run `moraine sync` |
 | `.opencode/plugins/` | OpenCode plugins (auto-discovered `*.ts` files) | Never — loaded automatically by OpenCode runtime | When adding project-local plugins |
 | `.opencode/opencode.json` | OpenCode project config (MCP servers, agents, plugins) | When checking or modifying OpenCode configuration | When adding MCP servers, agents, or changing settings |
 
@@ -83,7 +85,7 @@ Default jobs: `weekly-recap` (Mondays 8am) — runs the deterministic memory aud
 - The wiki (`wiki/`) uses PARA for human knowledge management. The memory system (`memory/`) is for agent session context. Agents write to `memory/`, humans write to `wiki/`.
 - **Anti-slop checklist (milestone/feature work — not tight fix loops or review-apply passes).** While writing code, avoid the patterns SlopCodeBench showed agents overproduce: abnormal defensive checks a human wouldn't add; casts or guards that fight the type system; single-use variables that just rename an expression; comments restating what the code says; trivial one-line wrappers; nesting depth ≥ 4; if/elif ladders ≥ 3 that should be dispatch; helper-method sprawl (single-call helpers that exist to make the diff look organized). This checklist is the shared vocabulary for the structure check in `implement-milestone` step 4b — write code you wouldn't flag.
 - Opening `wiki/` in Obsidian creates a `.obsidian/` config directory on first open (gitignored) — per-user vault state stays out of git.
-- Skills live in `.opencode/skills/<category>/<name>/SKILL.md` and follow OpenCode's naming rules. Categories: `engineering/`, `agent/`, `research/`, `productivity/`, `design/`.
+- Skills live in flat `<name>/SKILL.md` folders: core in `.agents/skills/`, everything else in `packs/<pack>/skills/`, and follow OpenCode's naming rules. Enabled packs are listed in `moraine.yaml`; `python3 scripts/moraine sync` links their skills into `.agents/skills/`. Skills you write go in `packs/local/skills/`.
 - Session summaries go in `memory/sessions/`, handoffs are optional.
 - `wiki/0 Inbox/00 Scratchpad.md` is the human scratchpad — agents must never write to it.
 - `memory/`, `wiki/`, and `artifacts/` are committed to git. Never write customer data, PII, credentials, incident details, or NDA material into them; keep secrets in `.env` (gitignored) and reference them by name.
@@ -146,7 +148,7 @@ Avoid bare `pip install` into a system Python — setup keeps every install work
 
 **Nothing is configured by default.** Add a tracker MCP server to `.opencode/opencode.json` — Linear, Jira, GitHub Issues, or anything else with an MCP server — then enable it there. The `to-issue` skill's workflow (read source → propose breakdown table → wait for human approval → create projects/issues with cross-links) works with whichever tracker the agent has available.
 
-The `to-issue` skill (`.opencode/skills/engineering/to-issue/SKILL.md`) encodes the spec/repo → tracker issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"turn artifacts/NN-foo.md into issues"* or *"create issues from work/my-repo"*.
+The `to-issue` skill (`packs/engineering/skills/to-issue/SKILL.md`) encodes the spec/repo → tracker issues workflow: read source → propose breakdown table → wait for human approval → create projects/issues with cross-links back to the source. Invoke with *"turn artifacts/NN-foo.md into issues"* or *"create issues from work/my-repo"*.
 
 **Layer model — each tool owns one question, cross-link by URL, never duplicate:**
 

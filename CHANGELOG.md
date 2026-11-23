@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking: skills are core plus packs.** Skills moved from `.opencode/skills/<category>/<name>/` to a flat layout. Seven core skills are real folders in `.agents/skills/<name>/`: `create-skill`, `domain-modeling`, `grilling`, `scaffold-project`, `session-handoff`, `session-search`, `sync-upstream`. The other 23 moved into `packs/<pack>/skills/<name>/`, each pack described by its own `pack.yaml`: `engineering` (13 skills), `reflection` (3), `writing` (5), `design` (1), `obsidian` (1). `moraine.yaml` at the root lists your harnesses and enabled packs. Skills you write belong in `packs/local/skills/`. There is no migration tooling: if you edited a shipped skill, `git log --follow <new path>` finds its history.
+- **`create-skill` writes to `packs/local/skills/`** and links the new folder into `.agents/skills/` with `moraine sync`, instead of writing into `.opencode/skills/`.
+- **`sync-upstream`** classifies paths for the new layout, treats `moraine.yaml` and `packs/local/` as user-owned, and never writes to a user-owned path. For `opencode.json` it takes upstream's changes outside `mcp.servers` and leaves that block to `moraine sync`.
+- **Impeccable** refers to its helper scripts at `.agents/skills/impeccable/scripts/`.
+
 ### Removed
 
 - **The `scope: work` model gate** in the cron runner, pending a design for employer data. Jobs have no `scope` key and the cron config has no `work_models` allowlist. The job schema is now strict: a job file that still sets `scope:` fails validation with a message naming the key, instead of the key being silently ignored.

@@ -1,0 +1,14 @@
+name: automation
+description: Scheduled agent jobs. Cron runner, weekly recap, email, PDF. OpenCode only.
+requires: []
+harnesses: [opencode]
+prereqs:
+  - cmd: bun
+    why: runs the cron runner
+    install:
+      macos: brew install oven-sh/bun/bun
+      linux: curl -fsSL https://bun.sh/install | bash
+  - cmd: opencode
+    why: the runner starts every job with opencode run
+mcp: {}
+jobs: []

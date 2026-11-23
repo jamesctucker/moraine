@@ -1,0 +1,7 @@
+name: reflection
+description: Looking back. Memory reviews, single-session retros, and promoting recurring notes.
+requires: []
+harnesses: [any]
+prereqs: []
+mcp: {}
+jobs: []

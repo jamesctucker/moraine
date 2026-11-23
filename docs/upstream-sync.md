@@ -21,20 +21,22 @@ GitHub also has a "Sync fork" button in the UI (`https://github.com/<you>/morain
 
 **Safe to merge (rarely conflict):**
 
-- `scripts/` — setup, MCP servers, workspace tooling
-- `.opencode/skills/` — skill definitions
-- `.opencode/cron/` — cron runner
+- `scripts/` — setup, the `moraine` CLI, core workspace tooling
+- `.agents/skills/` — core skills (the folders upstream ships)
+- `packs/` — every shipped pack: `pack.yaml`, skills, scripts, jobs
 - `tests/` — test suite
 - `.husky/` — git hooks
-- `scheduled/` — cron job YAMLs
 - `.opencode-version` — OpenCode version pin
 - `package.json`, `requirements.txt` — dependency manifests
 
 **Expect conflicts (you've likely personalized these):**
 
-- `AGENTS.md` — issue tracker config, remote access, conventions
+- `AGENTS.md` — remote access, conventions
+- `packs/engineering/AGENTS.md` — your issue tracker setup
 - `README.md` — setup notes, integrations
-- `.opencode/opencode.json` — MCP server selection
+- `.opencode/opencode.json` — permissions; its `mcp.servers` block is rewritten by `moraine sync`, so re-run it after a merge
+- `moraine.yaml` — yours; upstream never changes it
+- `packs/local/` — your own skills, conventions, docs, and jobs
 - `wiki/` — your PARA vault content
 - `memory/` — session summaries, staging notes
 - `artifacts/` — your artifacts

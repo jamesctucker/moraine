@@ -1,0 +1,7 @@
+name: engineering
+description: Spec-driven engineering. Review, diagnosis, TDD, planning, build chains, and issue workflows.
+requires: []
+harnesses: [any]
+prereqs: []
+mcp: {}
+jobs: []

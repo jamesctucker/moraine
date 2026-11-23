@@ -31,6 +31,7 @@ from lib import (
     check_wikilinks,
     extract_wikilinks,
     parse_detailed,
+    skill_dirs,
 )
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -58,13 +59,30 @@ class ValidationContext:
 # ── SKILL validation ────────────────────────────────────────────────
 
 
+def skill_markdown_files() -> list[Path]:
+    """Every shipped SKILL.md, whether or not its pack is enabled.
+
+    Core skills are real folders in .agents/skills. Pack skills live under
+    packs/ and are linked into .agents/skills only while enabled, so both
+    roots are scanned; a linked skill is the same file and is listed once,
+    at its pack path.
+    """
+    found: dict[Path, Path] = {}
+    pack_roots = sorted((WORKSPACE / "packs").glob("*/skills"))
+    for root in [*pack_roots, WORKSPACE / ".agents" / "skills"]:
+        for skill_dir in skill_dirs(root):
+            skill_md = skill_dir / "SKILL.md"
+            found.setdefault(skill_md.resolve(), skill_md)
+    return sorted(found.values())
+
+
 def validate_skills(ctx: ValidationContext) -> None:
-    skills_dir = WORKSPACE / ".opencode" / "skills"
-    if not skills_dir.is_dir():
-        ctx.warn(f"Skills directory not found: {skills_dir}")
+    skills = skill_markdown_files()
+    if not skills:
+        ctx.warn(f"No skills found under {WORKSPACE / '.agents' / 'skills'}")
         return
 
-    for skill_md in sorted(skills_dir.rglob("SKILL.md")):
+    for skill_md in skills:
         skill_dir = skill_md.parent
         dir_name = skill_dir.name
 

@@ -1,5 +1,7 @@
 """Tests for scripts/workspace/validate.py."""
 
+from pathlib import Path
+
 import pytest
 from test_helpers import load_module
 
@@ -26,7 +28,7 @@ class TestValidateSkills:
         assert len(ctx.warnings) >= 0
 
     def test_invalid_skill_dir_name(self, val, tmp_path):
-        skill_dir = tmp_path / ".opencode" / "skills" / "Bad_Name"
+        skill_dir = tmp_path / ".agents" / "skills" / "Bad_Name"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("""---
 name: Bad_Name
@@ -41,7 +43,7 @@ Content
         assert any("kebab-case" in e for e in ctx.errors)
 
     def test_valid_skill_passes(self, val, tmp_path):
-        skill_dir = tmp_path / ".opencode" / "skills" / "good-skill"
+        skill_dir = tmp_path / ".agents" / "skills" / "good-skill"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("""---
 name: good-skill
@@ -55,7 +57,7 @@ Content
         assert ctx.errors == []
 
     def test_absent_frontmatter_is_an_error(self, val, tmp_path):
-        skill_dir = tmp_path / ".opencode" / "skills" / "no-frontmatter"
+        skill_dir = tmp_path / ".agents" / "skills" / "no-frontmatter"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("# No frontmatter here\nJust a body.\n")
         ctx = val.ValidationContext()
@@ -64,7 +66,7 @@ Content
         assert any("frontmatter" in e for e in ctx.errors)
 
     def test_malformed_frontmatter_is_an_error(self, val, tmp_path):
-        skill_dir = tmp_path / ".opencode" / "skills" / "broken-skill"
+        skill_dir = tmp_path / ".agents" / "skills" / "broken-skill"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("---\nname: broken-skill\n")
         ctx = val.ValidationContext()
@@ -72,8 +74,34 @@ Content
         val.validate_skills(ctx)
         assert any("malformed_delimiter" in e for e in ctx.errors)
 
+    def test_linked_pack_skill_is_listed_once_at_its_pack_path(self, val, tmp_path):
+        pack_skill = tmp_path / "packs" / "demo" / "skills" / "demo-skill"
+        pack_skill.mkdir(parents=True)
+        (pack_skill / "SKILL.md").write_text("---\nname: demo-skill\ndescription: d\n---\nBody")
+        linked = tmp_path / ".agents" / "skills" / "demo-skill"
+        linked.parent.mkdir(parents=True)
+        linked.symlink_to(Path("../../packs/demo/skills/demo-skill"))
+        val.WORKSPACE = tmp_path
+
+        assert val.skill_markdown_files() == [pack_skill / "SKILL.md"]
+
+        ctx = val.ValidationContext()
+        val.validate_skills(ctx)
+        assert ctx.errors == []
+
+    def test_pack_skill_is_validated_while_its_pack_is_disabled(self, val, tmp_path):
+        skill = tmp_path / "packs" / "demo" / "skills" / "broken-skill"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("# No frontmatter\n")
+        val.WORKSPACE = tmp_path
+
+        ctx = val.ValidationContext()
+        val.validate_skills(ctx)
+
+        assert any("packs/demo/skills/broken-skill" in e for e in ctx.errors)
+
     def test_empty_frontmatter_is_an_error(self, val, tmp_path):
-        skill_dir = tmp_path / ".opencode" / "skills" / "empty-skill"
+        skill_dir = tmp_path / ".agents" / "skills" / "empty-skill"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text("---\n---\nBody\n")
         ctx = val.ValidationContext()

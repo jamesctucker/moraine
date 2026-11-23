@@ -1,0 +1,12 @@
+name: obsidian
+description: Obsidian vault skill and vault audit. Optional. The desktop app is nice to have, not required.
+requires: []
+harnesses: [any]
+prereqs:
+  - cmd: obsidian
+    why: optional. Browses wiki/ as a vault; any text editor works
+    install:
+      macos: brew install --cask obsidian
+      linux: flatpak install flathub md.obsidian.Obsidian
+mcp: {}
+jobs: []

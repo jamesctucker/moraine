@@ -6,7 +6,7 @@
 #   1. Clones the latest pbakaus/impeccable (sparse, .opencode/ only)
 #   2. Replaces reference/, scripts/ wholesale
 #   3. Replaces SKILL.md, then re-appends the workspace-integration fragment
-#   4. Rewrites all .opencode/skills/impeccable/ paths → .opencode/skills/design/impeccable/
+#   4. Rewrites all .opencode/skills/impeccable/ paths → .agents/skills/impeccable/
 #   5. Patches pin.mjs to discover impeccable inside category subdirectories
 #
 # Usage:
@@ -15,7 +15,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SKILL_DIR="$REPO_ROOT/.opencode/skills/design/impeccable"
+SKILL_DIR="$REPO_ROOT/packs/design/skills/impeccable"
 WORKSPACE_FRAGMENT="$SKILL_DIR/.workspace-integration.md"
 UPSTREAM_REPO="https://github.com/pbakaus/impeccable.git"
 UPSTREAM_PATH=".opencode/skills/impeccable"
@@ -75,11 +75,11 @@ log "Replacing SKILL.md and appending workspace fragment..."
 cp "$UPSTREAM_DIR/SKILL.md" "$SKILL_DIR/SKILL.md"
 cat "$WORKSPACE_FRAGMENT" >> "$SKILL_DIR/SKILL.md"
 
-# --- Fix paths for category nesting ---
+# --- Fix paths for the flat skills layout ---
 
-log "Fixing paths (.opencode/skills/impeccable/ → .opencode/skills/design/impeccable/)..."
+log "Fixing paths (.opencode/skills/impeccable/ → .agents/skills/impeccable/)..."
 find "$SKILL_DIR" -name "*.md" -exec \
-  sed -i '' 's|\.opencode/skills/impeccable/|.opencode/skills/design/impeccable/|g' {} +
+  sed -i '' 's|\.opencode/skills/impeccable/|.agents/skills/impeccable/|g' {} +
 
 # --- Patch pin.mjs for category-aware discovery ---
 
@@ -119,5 +119,5 @@ FILE_COUNT=$(find "$SKILL_DIR" -type f | wc -l | tr -d ' ')
 log "Done. Impeccable updated to v${FINAL_VERSION} (${FILE_COUNT} files)."
 log ""
 log "Next steps:"
-log "  git diff --stat .opencode/skills/design/impeccable/"
-log "  git add .opencode/skills/design/impeccable/ && git commit -m 'Update Impeccable to v${FINAL_VERSION}'"
+log "  git diff --stat packs/design/skills/impeccable/"
+log "  git add packs/design/skills/impeccable/ && git commit -m 'Update Impeccable to v${FINAL_VERSION}'"

@@ -1,0 +1,19 @@
+name: quality
+description: Deterministic code-quality measurement (erosion and verbosity) for your repos.
+requires: []
+harnesses: [any]
+prereqs:
+  - cmd: uvx
+    why: pinned lizard (complexity)
+    install:
+      macos: brew install uv
+      linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+  - cmd: ast-grep
+    why: rule-flagged lines
+    install:
+      macos: brew install ast-grep
+      linux: cargo install ast-grep --locked
+  - cmd: node
+    why: pinned jscpd via npx
+mcp: {}
+jobs: []

@@ -28,11 +28,13 @@ moraine/
 ├── artifacts/         # designs, research, specs
 ├── work/              # your code repos
 ├── scripts/           # setup + workspace tooling
-├── scheduled/         # cron job definitions
-└── .opencode/         # config, cron runner, skills
+├── .agents/skills/    # the skills your agent can see
+├── packs/             # optional packs: skills, scripts, jobs
+├── moraine.yaml       # which packs and harnesses you enabled
+└── .opencode/         # OpenCode config (permissions, MCP servers)
 ```
 
-Everything the agent needs for context — `memory/`, `wiki/`, `artifacts/` — is plain markdown in one git repo, so it is reviewable, diffable, and yours. (`scripts/` and `.opencode/` hold the Python/TypeScript/shell tooling that keeps it that way.)
+Everything the agent needs for context — `memory/`, `wiki/`, `artifacts/` — is plain markdown in one git repo, so it is reviewable, diffable, and yours. (`scripts/` and `packs/` hold the Python/TypeScript/shell tooling that keeps it that way.)
 
 ## Install
 
@@ -191,7 +193,7 @@ Add your own tracker, reader, or meeting-notes server there when you want it; `t
 Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No Moraine-operated backend and no signup. Your selected model provider and any MCP integrations you enable are external services with their own data policies, and the bundled automation currently targets OpenCode — memory itself stays portable Markdown you can read without any tool.
 
 - **`AGENTS.md`** — the main lever: conventions, commands, issue tracking, remote access.
-- **`.opencode/skills/`** — 30 skills. Edit them, or write your own with the `create-skill` skill.
+- **`.agents/skills/` and `packs/`** — 7 core skills and 23 more in packs. Edit them, or write your own with the `create-skill` skill.
 - **`.opencode/opencode.json`** — MCP servers and shell-safety permissions.
 - **The loop** — sessions feed reviews, reviews feed new skills, skills improve future sessions. It gets more useful the longer you use it.
 

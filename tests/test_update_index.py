@@ -87,38 +87,38 @@ class TestDecisionMerge:
 
 
 class TestGatherSkills:
-    def test_finds_nested_category_skills(self, ui, tmp_path, monkeypatch):
-        skills_dir = tmp_path / ".opencode" / "skills"
-        skill = skills_dir / "engineering" / "tdd" / "SKILL.md"
-        skill.parent.mkdir(parents=True)
-        skill.write_text("---\nname: tdd\ndescription: test driven\n---\nBody")
-        monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
-
-        skills = ui.gather_skills()
-
-        assert ("tdd", "test driven") in skills
-
-    def test_finds_flat_layout_skills(self, ui, tmp_path, monkeypatch):
-        skills_dir = tmp_path / ".opencode" / "skills"
+    def test_finds_core_skills(self, ui, tmp_path, monkeypatch):
+        skills_dir = tmp_path / ".agents" / "skills"
         skill = skills_dir / "tdd" / "SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text("---\nname: tdd\ndescription: test driven\n---\nBody")
         monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
 
-        skills = ui.gather_skills()
+        assert ui.gather_skills() == [("tdd", "test driven")]
 
-        assert ("tdd", "test driven") in skills
+    def test_follows_symlinked_pack_skills(self, ui, tmp_path, monkeypatch):
+        # moraine sync links pack skills into .agents/skills as symlinks;
+        # an rglob would stop at the link and report the skill missing.
+        skills_dir = tmp_path / ".agents" / "skills"
+        (skills_dir / "core-skill").mkdir(parents=True)
+        (skills_dir / "core-skill" / "SKILL.md").write_text(
+            "---\nname: core-skill\ndescription: core\n---\nBody")
+        pack_skill = tmp_path / "packs" / "demo" / "skills" / "pack-skill"
+        pack_skill.mkdir(parents=True)
+        (pack_skill / "SKILL.md").write_text("---\nname: pack-skill\ndescription: packed\n---\nBody")
+        (skills_dir / "pack-skill").symlink_to(pack_skill)
+        monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
+
+        assert ui.gather_skills() == [("core-skill", "core"), ("pack-skill", "packed")]
 
     def test_name_falls_back_to_skill_directory(self, ui, tmp_path, monkeypatch):
-        skills_dir = tmp_path / ".opencode" / "skills"
-        skill = skills_dir / "engineering" / "tdd" / "SKILL.md"
+        skills_dir = tmp_path / ".agents" / "skills"
+        skill = skills_dir / "tdd" / "SKILL.md"
         skill.parent.mkdir(parents=True)
         skill.write_text("---\ndescription: no name field\n---\nBody")
         monkeypatch.setattr(ui, "SKILLS_DIR", skills_dir)
 
-        skills = ui.gather_skills()
-
-        assert ("tdd", "no name field") in skills
+        assert ui.gather_skills() == [("tdd", "no name field")]
 
     def test_missing_skills_dir(self, ui, tmp_path, monkeypatch):
         monkeypatch.setattr(ui, "SKILLS_DIR", tmp_path / "does-not-exist")
