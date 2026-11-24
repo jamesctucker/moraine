@@ -66,6 +66,6 @@ cat memory/staging/<YYYY-MM-DD>.md
 - Builds an SQLite FTS5 index over all session and staging markdown files
 - Tokenizer: `porter unicode61` — Porter stemming (e.g., "auth" matches "authentication") + Unicode-aware tokenization
 - Each H2 section (`## Accomplished`, `## Decisions`, etc.) is indexed as a separate row with a `section` tag for targeted queries
-- Wikilinks (double-bracket path syntax with alias) and `work/<repo>/` paths are extracted as `project_links` for project-scoped search
+- Wikilinks (double-bracket path syntax with alias) and `repos/<repo>/` paths are extracted as `project_links` for project-scoped search
 - Full rebuild on every index run — trivial (~40 files, <100ms)
 - Index stored at `memory/.index/sessions.db` (gitignored)

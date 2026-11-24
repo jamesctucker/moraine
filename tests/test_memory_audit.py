@@ -147,12 +147,15 @@ class TestDelegatedScripts:
         assert err is not None
         assert "prune-decisions.py" in err
 
-    def test_failing_registry_reported_not_clean(self, ma, fake_scripts):
-        (fake_scripts / "validate-repos.py").write_text("import sys\nsys.exit(2)\n")
+    def test_failing_registry_reported_not_clean(self, ma, monkeypatch):
+        def boom(workspace=None, host=None):
+            raise OSError("git exploded")
+
+        monkeypatch.setattr(ma.repos, "check", boom)
         issues, err = ma.repo_registry_issues()
         assert issues == []
-        assert "validate-repos.py" in err
-        assert "exit 2" in err
+        assert err is not None
+        assert "repos check failed" in err
 
     def test_stalled_projects_parsed_from_output(self, ma, fake_scripts):
         (fake_scripts / "project-status.py").write_text(f"print('{STALE_ROW}')\n")
@@ -169,6 +172,7 @@ class TestDelegatedScripts:
 
 class TestBuildReport:
     def _patch_workspace(self, ma, tmp_path, monkeypatch):
+        monkeypatch.setattr(ma.repos, "check", lambda workspace=None, host=None: [])
         monkeypatch.setattr(ma, "INDEX", tmp_path / "index.md")
         (tmp_path / "index.md").write_text("## Open threads\n- nothing pending\n")
         for dirname in ("sessions", "reviews", "staging"):
@@ -179,7 +183,6 @@ class TestBuildReport:
         self, ma, fake_scripts, tmp_path, monkeypatch, capsys
     ):
         (fake_scripts / "prune-decisions.py").write_text("import sys\nsys.exit(1)\n")
-        (fake_scripts / "validate-repos.py").write_text("print('ok')\n")
         (fake_scripts / "project-status.py").write_text(f"print('{STALE_ROW}')\n")
         self._patch_workspace(ma, tmp_path, monkeypatch)
 
@@ -197,7 +200,6 @@ class TestBuildReport:
         self, ma, fake_scripts, tmp_path, monkeypatch, capsys
     ):
         (fake_scripts / "prune-decisions.py").write_text("print('No candidate blocks found.')\n")
-        (fake_scripts / "validate-repos.py").write_text("print('ok')\n")
         (fake_scripts / "project-status.py").write_text(
             "print('All Active/Paused projects have session activity.')\n"
         )

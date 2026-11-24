@@ -174,8 +174,8 @@ def validate_memory_index(ctx: ValidationContext) -> None:
 
     for ref in refs:
         if "/" in ref:
-            # Skip work/ references — those are separate git repos not tracked here
-            if ref.startswith("work/"):
+            # Skip repos/ references — those are separate git repos not tracked here
+            if ref.startswith("repos/"):
                 continue
             # Skip template/pattern references (e.g. YYYY-Wnn.md)
             if "YYYY" in ref or "NN" in ref or "NNN" in ref:

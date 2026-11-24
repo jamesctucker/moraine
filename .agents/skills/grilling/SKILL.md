@@ -35,15 +35,15 @@ my-workspace/
 ├── memory/
 │   └── index.md         ← active projects, open threads, recent decisions
 ├── wiki/                ← PARA vault for domain knowledge
-└── work/                ← external project repos (when present)
+└── repos/               ← external project repos (when present)
 ```
 
 ### Project level
 
-Discussing a specific software project inside `work/<project>/`. Documentation lives there:
+Discussing a specific software project inside `repos/<project>/`. Documentation lives there:
 
 ```
-work/
+repos/
 └── my-app/
     ├── GLOSSARY.md
     ├── docs/
@@ -53,11 +53,11 @@ work/
     └── src/
 ```
 
-If no `work/` project is active, default to workspace level.
+If no `repos/` project is active, default to workspace level.
 
-### When `work/` projects aren't cloned
+### When `repos/` projects aren't cloned
 
-The user may discuss a project that isn't physically present in `work/` (e.g., repos tracked in `memory/index.md` but not yet checked out). In this case:
+The user may discuss a project that isn't physically present in `repos/` (e.g., repos tracked in `memory/index.md` but not yet checked out). In this case:
 - Check `memory/index.md` for any recorded context about the project
 - Ask the user for the relevant domain terms and constraints rather than assuming you can read code
 - If a `GLOSSARY.md` would be valuable, suggest the user clone the repo first, or offer to draft one in `artifacts/` as a temporary holding doc until the repo is available
@@ -66,8 +66,8 @@ The user may discuss a project that isn't physically present in `work/` (e.g., r
 
 - **Workspace architecture docs** → `artifacts/` using sequential numbering (`python scripts/workspace/next-artifact.py --claim <slug>`)
 - **Workspace decisions** → `memory/index.md` under a dated "Recent decisions" section
-- **Project glossary** → `work/<project>/GLOSSARY.md`
-- **Project ADRs** → `work/<project>/docs/adr/` with sequential numbering
+- **Project glossary** → `repos/<project>/GLOSSARY.md`
+- **Project ADRs** → `repos/<project>/docs/adr/` with sequential numbering
 
 Create files lazily — only when you have something to write.
 
@@ -104,7 +104,7 @@ When a term is resolved or a decision crystallises, update documentation right t
 - New decision → append to `memory/index.md` under the current date
 
 **At project level:**
-- New term → update `work/<project>/GLOSSARY.md` using the format in [GLOSSARY-FORMAT.md](../domain-modeling/GLOSSARY-FORMAT.md)
+- New term → update `repos/<project>/GLOSSARY.md` using the format in [GLOSSARY-FORMAT.md](../domain-modeling/GLOSSARY-FORMAT.md)
 - Hard-to-reverse, surprising, trade-off decision → offer an ADR using the format in [ADR-FORMAT.md](./ADR-FORMAT.md)
 
 ### Offer workspace artifacts generously

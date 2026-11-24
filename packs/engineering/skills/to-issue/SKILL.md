@@ -36,7 +36,7 @@ Cross-link by URL. The wiki/artifact owns intent; the tracker owns the list. Iss
 Determine what you're filing:
 
 - **From an artifact** (e.g. `artifacts/15-checkout-redesign.md`): read it fully.
-- **From a repo** (e.g. `work/my-app/`): read `AGENTS.md`, `README.md`, `TODO.md`/`ROADMAP.md`; scan for `TODO`/`FIXME`.
+- **From a repo** (e.g. `repos/my-app/`): read `AGENTS.md`, `README.md`, `TODO.md`/`ROADMAP.md`; scan for `TODO`/`FIXME`.
 - **From the conversation**: the settled plan is the source — say so in the proposal so the user knows what you're working from.
 
 Map the natural grouping:

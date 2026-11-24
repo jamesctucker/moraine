@@ -23,7 +23,7 @@ Files are organized by date: `YYYY-MM-DD.md`. No topic-based structure — that 
 
 - Formal session summaries → `memory/sessions/`
 - Project-level decisions or research → the project's wiki top note in `wiki/1 Projects/`
-- Repo-specific context → `memory/work-repos.md`
+- Repo-specific context → the repo's own `AGENTS.md`, registered in `repos/README.md`
 - Fully formed projects → scaffold via `scaffold-project` skill into `wiki/1 Projects/`
 
 ## Lifecycle

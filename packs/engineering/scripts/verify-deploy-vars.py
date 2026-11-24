@@ -7,10 +7,10 @@ stale var names, missing definitions, and vars declared in one place but
 not another.
 
 Usage:
-    python scripts/workspace/verify-deploy-vars.py                      # scan all work/ repos
-    python scripts/workspace/verify-deploy-vars.py --repo my-app        # scan one repo
-    python scripts/workspace/verify-deploy-vars.py --repo api-server    # scan a different repo
-    python scripts/workspace/verify-deploy-vars.py --strict              # exit 1 on warnings
+    python packs/engineering/scripts/verify-deploy-vars.py            # scan all repos/ repos
+    python packs/engineering/scripts/verify-deploy-vars.py --repo my-app  # scan one repo
+    python packs/engineering/scripts/verify-deploy-vars.py --repo api-server  # scan another
+    python packs/engineering/scripts/verify-deploy-vars.py --strict        # exit 1 on warnings
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "worksp
 
 from lib import WORKSPACE  # noqa: E402
 
-WORK_DIR = WORKSPACE / "work"
+WORK_DIR = WORKSPACE / "repos"
 
 # Patterns that capture env var references in different file types:
 
@@ -75,7 +75,7 @@ class RepoReport:
 
 
 def find_repos() -> list[Path]:
-    """Find all subdirectories in work/ that look like git repos."""
+    """Find all subdirectories in repos/ that look like git repos."""
     repos = []
     if not WORK_DIR.is_dir():
         return repos
@@ -192,7 +192,7 @@ def main() -> None:
         "--repo",
         type=str,
         metavar="NAME",
-        help="Scan a single repo in work/ by name",
+        help="Scan a single repo in repos/ by name",
     )
     parser.add_argument(
         "--strict",
@@ -203,21 +203,21 @@ def main() -> None:
 
     if args.repo:
         # A repo "name" that is really a path would recursively scan config
-        # outside work/. Enforce that the argument resolves to a direct
-        # child of work/ (rejects absolute, nested, and traversing values).
+        # outside repos/. Enforce that the argument resolves to a direct
+        # child of repos/ (rejects absolute, nested, and traversing values).
         repo_path = WORK_DIR / args.repo
         if repo_path.resolve().parent != WORK_DIR.resolve():
-            print(f"error: --repo expects a single directory name under work/, not a path: {args.repo}", file=sys.stderr)
+            print(f"error: --repo expects a single directory name under repos/, not a path: {args.repo}", file=sys.stderr)
             sys.exit(1)
         if not repo_path.is_dir():
-            print(f"error: work/{args.repo} not found", file=sys.stderr)
+            print(f"error: repos/{args.repo} not found", file=sys.stderr)
             sys.exit(1)
         repos = [repo_path]
     else:
         repos = find_repos()
 
     if not repos:
-        print("No repos found in work/")
+        print("No repos found in repos/")
         sys.exit(0)
 
     print(f"Scanning {len(repos)} repo(s) for deploy var drift...\n")

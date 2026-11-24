@@ -108,6 +108,18 @@ jobs:
       - name: Lint with ruff
         run: ruff check tests/ scripts/ packs/
 
+      # The directory rename to repos/ must not miss a reference. The
+      # CHANGELOG keeps its historical mentions; everything else must
+      # say repos/. The pattern is written so this file does not match.
+      - name: No stale registry-directory references
+        run: |
+          if grep -rIn --exclude=CHANGELOG.md --exclude-dir=.git --exclude-dir=.venv \
+               --exclude-dir=node_modules --exclude-dir=__pycache__ --exclude-dir=.ruff_cache \
+               'work[/]' .; then
+            echo "::error::stale reference(s) to the old directory name found above"
+            exit 1
+          fi
+
       # setup installs this exact package and version; `opencode-ai` stops at
       # 1.19.x, so a pin that only exists there fails on a fresh machine.
       - name: Pinned OpenCode version exists on npm

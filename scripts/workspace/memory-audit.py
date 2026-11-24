@@ -5,7 +5,7 @@ Aggregates the existing workspace validators plus two checks with no
 dedicated script, and emits one markdown report to stdout:
 
   1. Decision-block pruning candidates (prune-decisions.py dry run)
-  2. Work repo registry drift (validate-repos.py)
+  2. Repo registry drift (moraine repos check)
   3. Stalled projects (project-status.py --stale-only)
   4. Open threads whose latest referenced date is past-due
   5. Review cadence (sessions since the last memory review)
@@ -31,6 +31,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from lib import WORKSPACE
+
+import repos
 
 INDEX = WORKSPACE / "memory" / "index.md"
 SESSIONS_DIR = WORKSPACE / "memory" / "sessions"
@@ -265,11 +267,10 @@ def prune_candidates() -> tuple[list[str], str | None]:
 
 
 def repo_registry_issues() -> tuple[list[str], str | None]:
-    out, code = _run_script("validate-repos.py")
-    if code != 0:
-        return [], _script_failure("validate-repos.py", code, out)
-    issues = [line.rstrip() for line in out.splitlines() if line.lstrip().startswith(("✗", "⚠"))]
-    return issues, None
+    try:
+        return repos.check(), None
+    except OSError as e:
+        return [], f"repos check failed: {e}"
 
 
 def stalled_projects(days: int) -> tuple[list[str], str | None]:
@@ -320,7 +321,7 @@ def build_report(days: int, today: date) -> str:
         lines.append(f"- **Repo registry**: {len(issues)} issue(s):")
         for i in issues:
             lines.append(f"  - {i.lstrip('✗⚠ ')}")
-        lines.append("  Fix: update `memory/work-repos.md` and bump `last_verified`.")
+        lines.append("  Fix: edit `repos/README.md` (the repos/ pointer registry), then re-run `moraine repos check`.")
     else:
         lines.append("- **Repo registry**: matches disk (clean)")
 

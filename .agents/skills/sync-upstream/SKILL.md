@@ -118,7 +118,7 @@ These files have structure that upstream maintains, but contain `[CUSTOMIZE]` se
 - `packs/<pack>/AGENTS.md` — when it carries `[CUSTOMIZE]` markers (a pack's issue-tracker section does)
 - `README.md` — user-edited setup notes and integrations (no markers; whole file is user-owned in spirit)
 - `.opencode/opencode.json` — permissions come from upstream; only the `mcp.servers` block is preserved (see the rule below)
-- `work/README.md` — user adds their repos here
+- `repos/README.md` and `repos/*.md` — the user's repo registry (pointer files)
 - `memory/README.md` (if user customized stubs)
 - `artifacts/README.md`
 
@@ -132,7 +132,7 @@ These paths belong to the user. **Never write to one yourself** — not a stub, 
 - `wiki/**`
 - `memory/sessions/**`, `memory/staging/**`, `memory/reviews/**`
 - `artifacts/**` (except README.md and _TEMPLATE.md)
-- `work/<repo>/**` (sub-repos)
+- `repos/<repo>/**` (sub-repos)
 
 ## Auto-merge SAFE files
 

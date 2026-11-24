@@ -47,18 +47,18 @@ my-workspace/
 
 ### Project level
 
-Discussing a specific software project inside `work/<project>/`. Documentation lives there:
+Discussing a specific software project inside `repos/<project>/`. Documentation lives there:
 
 ```
-work/
+repos/
 └── <project>/
     ├── GLOSSARY.md       ← domain glossary (see GLOSSARY-FORMAT)
     └── docs/adr/        ← architectural decisions (see ADR-FORMAT)
 ```
 
-If no `work/` project is active, default to workspace level.
+If no `repos/` project is active, default to workspace level.
 
-### When `work/` projects aren't cloned
+### When `repos/` projects aren't cloned
 
 Check `memory/index.md` for any recorded context about the project. Ask the user for relevant domain terms and constraints rather than assuming you can read code. If a `GLOSSARY.md` would be valuable, suggest cloning the repo first, or offer to draft one in `artifacts/` as a temporary holding doc.
 
@@ -66,7 +66,7 @@ Check `memory/index.md` for any recorded context about the project. Ask the user
 
 ### 1. Explore
 
-Read the project's domain glossary (`work/<project>/GLOSSARY.md`) and any ADRs in the area you're touching first.
+Read the project's domain glossary (`repos/<project>/GLOSSARY.md`) and any ADRs in the area you're touching first.
 
 Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
 

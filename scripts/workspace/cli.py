@@ -21,6 +21,8 @@ from manifest import (
 )
 from sync import SyncError, SyncPlan, run
 
+import repos
+
 # Longer change lists are summarised; the plan is the same either way.
 MAX_SHOWN = 12
 
@@ -56,6 +58,13 @@ def _parser() -> argparse.ArgumentParser:
         command = verbs.add_parser(verb, help=helptext)
         command.add_argument("name", help="pack name")
         command.set_defaults(handler=cmd_packs_enable if verb == "enable" else cmd_packs_disable)
+
+    repos = commands.add_parser("repos", help="the repos/ registry: pointers to the repos this workspace works on")
+    repo_verbs = repos.add_subparsers(dest="verb", required=True)
+    repo_verbs.add_parser("check", help="flag missing repos, unregistered clones, and remote drift").set_defaults(handler=cmd_repos_check)
+    restore = repo_verbs.add_parser("restore", help="clone the repos missing on this machine, asking first")
+    restore.add_argument("--yes", "-y", action="store_true", help="clone every missing repo without asking")
+    restore.set_defaults(handler=cmd_repos_restore)
     return parser
 
 
@@ -146,3 +155,18 @@ def cmd_packs_disable(args: argparse.Namespace, workspace: Path) -> int:
         return 1
     write_manifest(workspace / MANIFEST_NAME, packs=[pack for pack in manifest.packs if pack != name])
     return _sync(workspace)
+
+
+# ── repos ────────────────────────────────────────────────────────────
+
+
+def cmd_repos_check(args: argparse.Namespace, workspace: Path) -> int:
+    findings = repos.check(workspace)
+    for finding in findings:
+        print(f"  {finding}")
+    print("repos check: clean" if not findings else f"repos check: {len(findings)} finding(s)")
+    return 0
+
+
+def cmd_repos_restore(args: argparse.Namespace, workspace: Path) -> int:
+    return repos.restore(workspace, assume_yes=args.yes)

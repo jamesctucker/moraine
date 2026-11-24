@@ -23,7 +23,7 @@ SECTION_ALIASES = {
     "notes": "notes",
 }
 
-WORK_REPO_RE = re.compile(r"work/([^/]+)/")
+REPO_PATH_RE = re.compile(r"repos/([^/]+)/")
 
 
 def parse_date_title(content: str, path: Path) -> tuple[str, str] | None:
@@ -45,7 +45,7 @@ def extract_projects(text: str) -> list[str]:
         if link.endswith(".md"):
             stem = Path(link).stem
             projects.add(stem)
-    for m in WORK_REPO_RE.finditer(text):
+    for m in REPO_PATH_RE.finditer(text):
         projects.add(m.group(1).replace("_", "-"))
     return sorted(projects)
 
