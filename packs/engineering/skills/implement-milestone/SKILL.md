@@ -1,0 +1,103 @@
+---
+name: implement-milestone
+description: Spec-driven implementation of a single milestone/feature with a mandatory PR-review pass and a green test gate. Use when the user says "implement milestone X", "build M3", "work on PROJ-5", or points at a tracker issue / artifact section and wants it built end-to-end. Not for research, triage, or pure code review.
+---
+
+# implement-milestone
+
+Implement one milestone from a spec (artifact section or tracker issue), ship it on a branch with tests, run the **test gate**, do a **self-review pass**, then hand off for **human PR review** and apply every piece of feedback before the issue is closed.
+
+This skill encodes the loop that matured across the Auction Reseller M2/M3 sessions: every milestone ends with "PR feedback applied / all review findings addressed" **and** a full green test suite (e.g. 68/68, 117ms) — never "implemented, will test later."
+
+## Layer model
+
+Follow the layer model in `AGENTS.md` → Issue Tracking. Read the spec section before coding — don't re-derive the design.
+
+## Workflow
+
+### 1. Load context
+- Read the milestone's spec section (artifact or issue description) and any linked decisions/comments. If the spec or comment thread is large, compress with `headroom_compress` first.
+- Read the repo's `AGENTS.md` for commands, branch naming, and conventions.
+- Skim the relevant existing code so the new code matches surrounding style.
+- Identify the issue ID and target branch name (repo convention, e.g. `feature/proj-5-m3-comp-fetcher-pipeline`).
+
+### 2. Branch
+- Create the branch from the repo's default base. Announce the branch name.
+
+### 3. Implement with tests
+- Build the feature **and** its tests in the same pass. Match the repo test framework (`bun test`, `bin/rails test`, etc.).
+- Favor injectable dependencies (pass `fetchFn`/clock/clients) so network and time are testable.
+- Preserve risk signals: when a value is estimated/uncertain, encode it explicitly (e.g. `confidence:"low"`) rather than silently guessing.
+- Graceful degradation: on upstream/network failure, fall back and propagate a partial/failed status — never fabricate data (especially dates/timestamps).
+- **Extract before you extend (CC-10 edit rule).** If the function you are about to modify has cyclomatic complexity > 10 or is > 60 lines, extract the seam first in a **separate commit**, then add the feature. Never add a branch to a function already over threshold — patching new logic into eroding functions is the exact mechanism that compounds erosion (SlopCodeBench §3.2).
+- **Anti-slop checklist** (`AGENTS.md` → Conventions): run it mentally while writing. It defines the vocabulary the step-4b structure check measures — code you wouldn't flag, the gate won't either.
+
+### 4. Test gate (MANDATORY — do not skip)
+Run the repo's full test command **and** typecheck. Both must be green before you claim done.
+- Record the result: test count, typecheck status, and any framework-specific metrics the repo reports.
+- If red, fix until green. A red gate blocks the PR.
+- **Regression-test custody.** Test count must be **non-decreasing** across the milestone. If green requires editing or deleting a prior milestone's assertion, treat that as a **code defect by default, not a test defect** — the code regressed, not the test. Changing/removing a prior assertion requires explicit justification in the PR body (what behavior changed and why the old assertion is now wrong). Silent assertion edits are how error-pass decays over long horizons (SlopCodeBench: 80.1% → 62.2% across checkpoints).
+
+### 4b. Structure check (BLOCKING on new CC>10)
+Run the deterministic structural check over the whole diff (if the `quality` pack is enabled):
+
+```bash
+python3 packs/quality/scripts/slop-check.py --range <base>..HEAD --repo <path-to-repo> --fail-on-new-cc
+```
+
+When the `quality` pack is not enabled, apply the AGENTS.md anti-slop checklist by hand instead: nesting ≥ 4, if/elif ladders ≥ 3, single-use variables, defensive checks a human wouldn't add.
+
+- **Blocking:** if the diff introduces a **new** callable with CC > 10 (exit 1), the PR is blocked — extract the seam first in a separate commit, then re-run. This is the sharpest, lowest-noise signal from the upstream rehearsal (in the rehearsal's A/B run, the one checkpoint that broke threshold was the one that never recovered).
+- **Advisory:** report Δerosion, Δverbosity in the PR comment. A red delta is a conversation, not a failed gate. If you want more teeth, tighten this to blocking on Δerosion red after a month of clean signal.
+- Gate on whole files the diff touches, not hunks — erosion is a cross-diff property.
+- Grandfathered repos (`slop-check.json` → `grandfathered`) are delta-gated only: the CC>10 block applies to *new* callables, which is already the rule — no absolute-band failure applies to them.
+
+### 5. Self-review pass
+Before opening the PR, re-read your own diff against the recurring bug classes below and fix anything found. If none of the scraper/pipeline items apply, check the generic list. Produce a 3–5 line self-review note in the PR/issue comment.
+
+**If the user invokes `code-review` explicitly on this branch** (e.g., "review this branch before I open the PR", "self-review ENG-X"): **defer to the `code-review` skill in Mode C** — it supersedes this step. Its output (tiered findings + self-review note) replaces step 5 here; step 6 picks up with opening the PR.
+
+**Generic items (all milestone types):**
+- No dead code, commented-out blocks, or leftover debug logging.
+- No hardcoded secrets, tokens, or credentials.
+- Public APIs and exported functions have type annotations and brief docs.
+- Error paths are tested, not just the happy path.
+
+### 6. Open PR + comment, transition issue
+- Push the branch and open a PR (or just push if PRs aren't used).
+- Add a comment on the issue: what was implemented, key decisions, the test-gate result, and the self-review note. Link the spec section and PR.
+- **Churn telemetry**: include in the comment — files touched, net lines added/removed, and **% of each touched file replaced** (`git diff --stat` + file sizes). Tripwires to flag (not block): >10 files touched, or any single file >60% rewritten → note that a rewrite-vs-extend verdict is warranted; three consecutive milestones of shrinking %-replaced with rising effort → park and reassess.
+- Before transitioning, check `includeRelations: true` for blocking issues — don't start if someone flagged a blocker.
+- Transition the issue **Backlog → Todo → In Progress** (allowed without asking).
+
+### 7. Wait for human PR review
+- Hand off and wait. Do **not** merge, deploy, or mark Done.
+- When review feedback arrives, **apply every finding** (triage as P0/P1/P2 but don't silently drop any), re-run the test gate, and update the PR/comment with "all review findings addressed".
+
+### 8. Closeout (human-gated)
+- Only after explicit human approval: the human merges; on merge, transition **In Progress → Done**.
+- Write a `memory/sessions/` summary (accomplished, decisions, artifacts, next).
+
+## Recurring review-finding checklist
+
+These categories surfaced in human PR reviews on HTTP-scraper / data-pipeline milestones (see References). Apply when the diff touches external HTTP, caching, or untrusted input. For other milestone types (UI, CLI, data-only), check the repo's own `AGENTS.md` for a project-specific rubric — if none exists, use the generic items below and add repo-specific ones as they emerge.
+
+> **For an explicit review pass** (user says "review this branch", "self-review", "PR review on ENG-X"), invoke the `code-review` skill instead — it generalizes this checklist across all diff-surfaces (HTTP, auth, persistence, types, UI) and produces the tiered report + apply-fixes loop. This checklist is the lightweight pre-PR self-review built into implementation; `code-review` is the heavier standalone pass.
+
+- **Cache poisoning** — failed upstream responses must not be cached for the full TTL; bypass/retry on `failed` status.
+- **No date fabrication** — parse real dates; if absent, leave null. Never invent `2024-01-01` style defaults. Use ISO-8601 everywhere (DB writes + returned objects).
+- **Injection sanitization** — sanitize any user/entity input that reaches SPARQL/SQL/HTML/shell (entity IDs, search terms, item numbers).
+- **Real identity + rate-limit hygiene** — set a real `User-Agent` and log rate-limit/backoff events on external HTTP.
+- **Partial/failed-signal propagation** — return a result object carrying `status`/`error` instead of throwing; let the failed signal flow through the adapter chain.
+- **Options-based APIs** — prefer `doThing({ a, b })` over positional args; update all callers.
+- **Enum/contract docs** — document confidence enums and shared contracts; keep the single source of truth authoritative.
+- **Config-drift** — if you add/remove an env var, update **all** layers (deploy configs, `.env` templates, preflight checks); don't leave a stale name.
+
+## Autonomy gates
+
+Follow `AGENTS.md` → Issue Tracking → Autonomy gates (same model as `to-issue`). Additionally: apply **all** PR review feedback; never close an issue with outstanding review findings.
+
+## Reference
+- Pattern source: `memory/sessions/2026-07-09-m2-spec-lookup-pipeline.md` (ENG-64), `memory/sessions/2026-07-10-m3-comp-fetcher-pipeline.md` (ENG-65) — auction-reseller project; the review checklist above derives from findings in these sessions
+- Test gate + review loop observed in: `memory/reviews/2026-06-23.md` ("review-then-fix double-check" pattern)
+- Tracker workflow: `AGENTS.md` → Issue Tracking

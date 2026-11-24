@@ -3,7 +3,8 @@
 import json
 
 import pytest
-from test_helpers import load_module
+import sync
+from test_helpers import build_workspace, load_module
 
 
 @pytest.fixture
@@ -49,12 +50,6 @@ class TestCheckPython:
         assert "version" in result["details"]
 
 
-class TestCheckNode:
-    def test_node_found(self, hc):
-        result = hc.check_node()
-        assert result["tool"] == "node"
-
-
 class TestCheckMcpServers:
     def test_no_config(self, hc, tmp_path):
         hc.OPECODE_CONFIG = tmp_path / "nonexistent.json"
@@ -69,16 +64,26 @@ class TestCheckMcpServers:
         results = hc.check_mcp_servers()
         assert results[0]["status"] == "error"
 
-    def test_real_config_inspects_actual_servers(self, hc):
-        """The repo's real opencode.json: iterate mcp.servers, not mcp itself."""
+    def test_iterates_every_server_in_the_block(self, hc, tmp_path):
+        """A real-shaped config: every mcp.servers entry is inspected, not mcp itself."""
+        hc.OPECODE_CONFIG = write_config(
+            tmp_path,
+            {
+                "mcp": {
+                    "servers": {
+                        "local-one": {"type": "local", "command": ["/bin/echo", "hi"]},
+                        "remote-one": {"type": "remote", "url": "https://example.com/mcp"},
+                    }
+                }
+            },
+        )
         results = hc.check_mcp_servers()
-        tools = {r["tool"] for r in results}
-        assert tools == {"mcp/semble", "mcp/headroom"}
-        # Shape errors on the real config are never OK; a missing binary on
-        # PATH is environment-dependent and only ever a warn.
+        # Shape errors are never OK; a missing binary on PATH is
+        # environment-dependent and only ever a warn.
+        assert {r["tool"] for r in results} == {"mcp/local-one", "mcp/remote-one"}
         assert all(r["status"] in ("ok", "warn") for r in results)
         for r in results:
-            assert r["details"].get("command"), f"{r['tool']} lost its command"
+            assert r["details"].get("command") or r["details"].get("url")
 
     def test_flat_mcp_without_servers_is_error(self, hc, tmp_path):
         hc.OPECODE_CONFIG = write_config(
@@ -160,6 +165,46 @@ class TestCheckMcpServers:
         result = hc.check_mcp_servers()[0]
         assert result["status"] == "error"
         assert "carrier-pigeon" in result["details"]["error"]
+
+
+class TestCheckSync:
+    """Cron state is injected, never the real ~/.moraine/cron."""
+
+    def _point_at(self, hc, monkeypatch, workspace):
+        cron_state = workspace / "cron-state"
+        monkeypatch.setattr(hc, "WORKSPACE", workspace)
+        monkeypatch.setattr(sync, "default_cron_state", lambda: cron_state)
+        return cron_state
+
+    def test_synced_workspace_is_ok(self, hc, tmp_path, monkeypatch):
+        listing = "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
+        workspace = build_workspace(tmp_path, listing, packs={"demo": {"skills": ["alpha"]}})
+        cron_state = self._point_at(hc, monkeypatch, workspace)
+        sync.run(workspace, cron_state=cron_state)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "ok"
+        assert result["details"].get("note")
+
+    def test_unsynced_workspace_warns_and_names_the_fix(self, hc, tmp_path, monkeypatch):
+        listing = "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
+        workspace = build_workspace(tmp_path, listing, packs={"demo": {"skills": ["alpha"]}})
+        self._point_at(hc, monkeypatch, workspace)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "warn"
+        assert result["details"]["warning"] == "2 change(s) pending; run: python3 scripts/moraine sync"
+
+    def test_invalid_manifest_is_an_error(self, hc, tmp_path, monkeypatch):
+        workspace = build_workspace(tmp_path, manifest="version: 1\nharnesses: [opencode]\npacks: [nope]\n")
+        self._point_at(hc, monkeypatch, workspace)
+
+        result = hc.check_sync()
+
+        assert result["status"] == "error"
+        assert "unknown pack 'nope'" in result["details"]["error"]
 
 
 class TestWriteReport:

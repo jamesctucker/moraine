@@ -18,13 +18,13 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lib import WORKSPACE, parse
+from lib import WORKSPACE, parse, skill_dirs
 
 MEMORY_DIR = WORKSPACE / "memory"
 SESSIONS_DIR = MEMORY_DIR / "sessions"
 REVIEWS_DIR = MEMORY_DIR / "reviews"
 INDEX_PATH = MEMORY_DIR / "index.md"
-SKILLS_DIR = WORKSPACE / ".opencode" / "skills"
+SKILLS_DIR = WORKSPACE / ".agents" / "skills"
 PERSONAS_DIR = WORKSPACE / "personas"
 
 KNOWN_SECTIONS = {
@@ -37,16 +37,14 @@ KNOWN_SECTIONS = {
 
 
 def gather_skills() -> list[tuple[str, str]]:
-    if not SKILLS_DIR.is_dir():
-        return []
+    # Only what the harness can see: core skills plus the pack skills that
+    # sync has linked into .agents/skills.
     skills = []
-    # Skills live at .opencode/skills/<category>/<name>/SKILL.md, but the
-    # flat .opencode/skills/<name>/SKILL.md layout is honoured too.
-    for md in sorted(SKILLS_DIR.rglob("SKILL.md")):
-        content = md.read_text()
+    for skill_dir in skill_dirs(SKILLS_DIR):
+        content = (skill_dir / "SKILL.md").read_text()
         fm, _body = parse(content)
         if fm is not None:
-            name = fm.get("name", md.parent.name)
+            name = fm.get("name", skill_dir.name)
             desc = fm.get("description", "")
             skills.append((name, desc))
     return skills

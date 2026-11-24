@@ -1,7 +1,0 @@
-default:
-  model: deepseek/deepseek-v4-flash
-  timeout: 600
-hostname: null
-log_dir: scheduled/.logs
-locks_dir: ~/.moraine/cron/.locks
-install_dir: ~/.moraine/cron

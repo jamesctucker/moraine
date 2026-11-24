@@ -1,0 +1,7 @@
+name: writing
+description: Research, brainstorming, voice editing, teaching, and questionnaires.
+requires: []
+harnesses: [any]
+prereqs: []
+mcp: {}
+jobs: []

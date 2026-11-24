@@ -1,0 +1,7 @@
+name: design
+description: Impeccable. Frontend design, critique, and UI polish.
+requires: []
+harnesses: [any]
+prereqs: []
+mcp: {}
+jobs: []

@@ -1,0 +1,18 @@
+name: headroom
+description: Headroom MCP server. Context compression for tool output.
+requires: []
+harnesses: [any]
+prereqs:
+  - cmd: uvx
+    why: installs headroom into an isolated tool environment
+    install:
+      macos: brew install uv
+      linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+  - cmd: headroom
+    why: serves the MCP server
+    install: uv tool install "headroom-ai[mcp]"
+mcp:
+  headroom:
+    type: local
+    command: ["headroom", "mcp", "serve"]
+jobs: []

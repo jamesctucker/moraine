@@ -7,6 +7,40 @@ Moraine was previously Joinery, and before that OpenBench (`github.com/jamesctuc
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`moraine` CLI** (`scripts/moraine`) — `moraine sync [--dry-run]` makes the workspace match `moraine.yaml`: skill symlinks in `.agents/skills/`, the managed block in `.git/info/exclude`, the `mcp.servers` block of `.opencode/opencode.json`, and `~/.moraine/cron/enabled.json` for the job runner. `moraine packs list|enable <name>|disable <name>` manages the enabled-pack list. Sync never installs anything and never touches a real skill folder.
+- **Manifest schema checks in `validate.py`** — `moraine.yaml` and every `packs/<name>/pack.yaml` are validated against the strict schema (unknown packs, requires cycles, harness fit, MCP name collisions); `--manifests` runs just that check.
+- **Sync drift check in `health-check.py`** — runs the sync plan in dry-run mode, warns with the exact fix command when changes are pending, and errors on manifest problems. Runs in `--quick` mode too.
+- **A `core-only` CI job** — git + Python only, no bun or Node on the runner: `setup --yes`, sync with no packs, validate, health-check, core pytest, and the core eval. The full job enables every pack and additionally runs vitest, the Bun timeout tests, the runner typecheck, and the npm pin check.
+
+### Changed
+
+- **Breaking: core needs only git and Python 3.11+.** Setup is core-first: it checks git and Python, creates the `.venv`, asks which harnesses you run (detected ones are the default, OpenCode installs only if chosen and missing, via bun or npm at the pinned `@opencode/cli` version), offers pack presets (core / recommended / everything / custom), shows each enabled pack's missing prerequisites with the exact install command, writes `moraine.yaml`, runs `moraine sync`, and smoke-tests. `--yes` is core with detected harnesses and installs nothing. bun, husky, and Vitest are contributor-only (see `CONTRIBUTING.md`).
+
+- **Breaking: skills are core plus packs.** Skills moved from `.opencode/skills/<category>/<name>/` to a flat layout. Seven core skills are real folders in `.agents/skills/<name>/`: `create-skill`, `domain-modeling`, `grilling`, `scaffold-project`, `session-handoff`, `session-search`, `sync-upstream`. The other 23 moved into `packs/<pack>/skills/<name>/`, each pack described by its own `pack.yaml`: `engineering` (13 skills), `reflection` (3), `writing` (5), `design` (1), `obsidian` (1). `moraine.yaml` at the root lists your harnesses and enabled packs. Skills you write belong in `packs/local/skills/`. There is no migration tooling: if you edited a shipped skill, `git log --follow <new path>` finds its history.
+- **`create-skill` writes to `packs/local/skills/`** and links the new folder into `.agents/skills/` with `moraine sync`, instead of writing into `.opencode/skills/`.
+- **`sync-upstream`** classifies paths for the new layout, treats `moraine.yaml` and `packs/local/` as user-owned, and never writes to a user-owned path. For `opencode.json` it takes upstream's changes outside `mcp.servers` and leaves that block to `moraine sync`.
+- **Impeccable** refers to its helper scripts at `.agents/skills/impeccable/scripts/`.
+- **Pack scripts, tests, and docs moved into their packs.** `slop-check.py`, `slop-rules/`, `slop-fixtures/`, and `docs/slop-check.md` now live under `packs/quality/`; `memory-promoter.py` under `packs/reflection/scripts/`; `verify-deploy-vars.py` under `packs/engineering/scripts/` — each with its tests under the pack's `tests/`. The `slop-sweep` job moved to `packs/quality/jobs/` (installed only while both `quality` and `automation` are enabled). Invoke the scripts at their new paths.
+- **Eval is core plus packs.** `agent-eval.py` runs five core golden tasks plus any `TASKS` contributed by enabled packs (`packs/<name>/eval.py`); the three slop tasks now come from the `quality` pack, so a core-only workspace scores 5/5 (8/8 with `quality` enabled). Core eval names no pack.
+- **`AGENTS.md` slimmed to core** (~70 lines, harness-neutral): scheduled jobs moved to `packs/automation/AGENTS.md`, Headroom to `packs/headroom/`, issue tracking to `packs/engineering/` (which keeps the `[CUSTOMIZE]` tracker section), Semble search guidance to `packs/semble/`, and every pack now has its own `AGENTS.md`. Core files name no pack's skill or script unless the line says the pack is enabled; `tests/test_skill_references.py` enforces the boundary.
+- **Pack tests run with the suite** — pytest collects `packs/` alongside `tests/`, and ruff lints it.
+- **The cron runner moved to `packs/automation/runner/`** (with its `package.json`, lockfile, `tsconfig`, and `cron.config.yaml`; logs land in `packs/automation/.logs`). The runner's `--install-defaults` reads `~/.moraine/cron/enabled.json` (written by `moraine sync`) instead of scanning `scheduled/`, and removes installed job files that a pack shipped but no longer has enabled. `weekly-recap` now ships as the automation pack's own job (`packs/automation/jobs/`) and renders its PDF via `bun run --cwd packs/automation/runner render:pdf`. The runner's tests moved to `packs/automation/tests/` with the vitest config at `packs/automation/vitest.config.ts`.
+- **`update-impeccable.sh` moved to `packs/design/scripts/`** and **`obsidian-audit` to `packs/obsidian/scripts/`** — invoke them at their new paths.
+- **`health-check.py` no longer checks node** — node is the `quality` pack's prerequisite, not a core tool; the check moved out with the pack.
+- **`.opencode/opencode.json` ships an empty `mcp.servers`** — `moraine sync` owns the block and fills it from the enabled packs (Semble and Headroom each ship their server in their pack).
+- **A corrupt `enabled.json` stops the runner instead of uninstalling everything** — an unparseable job list was read as "no jobs", which made `--install-defaults` remove every installed shipped job; it now fails loudly before touching files. A missing file still means "sync has not run".
+- **Two packs shipping the same job filename is now a sync error** — the runner installs job files by name alone, so a shared filename silently overwrote; sync refuses with both paths named, like skill ID collisions.
+- **`health-check.py` checks packages in the interpreter running it** — the import checks use `sys.executable` (often the `.venv` python) instead of a bare `python3` from PATH, which may have nothing installed.
+
+### Removed
+
+- **The `scope: work` model gate** in the cron runner, pending a design for employer data. Jobs have no `scope` key and the cron config has no `work_models` allowlist. The job schema is now strict: a job file that still sets `scope:` fails validation with a message naming the key, instead of the key being silently ignored.
+- **`scripts/mcp-servers/brave-search-mcp.sh`** — the wrapper pinned an npm package nobody imported; no server references it.
+
 ## [0.3.0] - 2026-11-21
 
 Consolidates the October 2026 restructuring (OpenBench → Joinery → Moraine, config migration, setup review) with the November distribution-compliance, correctness, and release work. The June 2026 entry below remains 0.2.0.

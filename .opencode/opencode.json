@@ -26,15 +26,6 @@
     { "action": "external_directory", "resource": "*", "effect": "ask" }
   ],
   "mcp": {
-    "servers": {
-      "semble": {
-        "type": "local",
-        "command": ["uvx", "--from", "semble[mcp]==0.7.3", "semble"]
-      },
-      "headroom": {
-        "type": "local",
-        "command": ["headroom", "mcp", "serve"]
-      }
-    }
+    "servers": {}
   }
 }

@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+"""Audit the Obsidian vault for common structural issues."""
+
+import sys
+from collections import defaultdict
+from datetime import date, datetime
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS_DIR.parent.parent.parent / "scripts" / "workspace"))
+
+from lib import VAULT, WikilinkIndex, check_wikilinks, extract_wikilinks, parse_detailed
+
+PROJECTS = VAULT / "1 Projects"
+
+# Colors
+BOLD = "\033[1m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
+stats = defaultdict(int)
+
+
+def info(msg):
+    print(f"{BOLD}{msg}{RESET}")
+
+
+def ok(msg):
+    print(f"  {GREEN}✓{RESET} {msg}")
+    stats["ok"] += 1
+
+
+def warn(msg):
+    print(f"  {YELLOW}→{RESET} {msg}")
+    stats["warnings"] += 1
+
+
+def fail(msg):
+    print(f"  {RED}✗{RESET} {msg}")
+    stats["failures"] += 1
+
+
+def heading(msg):
+    print(f"\n{CYAN}═══ {msg} ═══{RESET}")
+
+
+def relative_path(p):
+    """Return path relative to vault root."""
+    try:
+        return f"wiki/{p.relative_to(VAULT)}"
+    except ValueError:
+        return str(p)
+
+
+# ── 1. Broken wikilinks ──────────────────────────────────────────
+heading("Broken Wikilinks")
+
+broken = check_wikilinks()
+for b in broken:
+    fail(f"{relative_path(b.source)}: [[{b.link}]] → no matching file")
+
+if not broken:
+    ok("No broken wikilinks found")
+
+
+# ── 2. Orphaned notes ────────────────────────────────────────────
+heading("Orphaned Notes")
+
+index = WikilinkIndex()
+referenced: set[Path] = set()
+for fp in index.files:
+    content = fp.read_text(encoding="utf-8", errors="replace")
+    for link in extract_wikilinks(content):
+        target = index.resolve(link, source_file=fp)
+        if target:
+            referenced.add(target)
+
+orphan_count = 0
+for fp in index.files:
+    if fp not in referenced and PROJECTS in fp.parents:
+        fail(f"{relative_path(fp)}: not linked from any other note")
+        orphan_count += 1
+
+if orphan_count == 0:
+    ok("No orphaned project notes")
+
+
+# ── 3. Missing frontmatter ───────────────────────────────────────
+heading("Missing Frontmatter (Project Top Notes)")
+
+required_keys = {"status", "priority", "next-action"}
+
+for fp in sorted(PROJECTS.rglob("00 Top Note.md")):
+    content = fp.read_text(encoding="utf-8", errors="replace")
+    result = parse_detailed(content)
+
+    if result.error:
+        fail(f"{relative_path(fp)}: {result.error.kind.name.lower()}: {result.error.detail}")
+        continue
+
+    if result.frontmatter is None:
+        fail(f"{relative_path(fp)}: no frontmatter")
+        continue
+
+    fm = result.frontmatter
+    missing = required_keys - set(fm.keys())
+    for key in sorted(missing):
+        fail(f"{relative_path(fp)}: missing `{key}` in frontmatter")
+
+    lr_val = fm.get("last-reviewed")
+    if lr_val:
+        if isinstance(lr_val, date):
+            lr_date = lr_val
+        else:
+            lr_date = datetime.strptime(str(lr_val), "%Y-%m-%d").date()
+        days_since = (date.today() - lr_date).days
+        if days_since > 60:
+            warn(f"{relative_path(fp)}: last reviewed {days_since} days ago ({lr_date})")
+    else:
+        warn(f"{relative_path(fp)}: no last-reviewed date")
+
+
+# ── 4. Orphaned project directories ─────────────────────────────
+heading("Orphaned Project Directories")
+
+if PROJECTS.exists():
+    existing_dirs = {d.name for d in PROJECTS.iterdir() if d.is_dir() and d.name != "projects.md"}
+    projects_index = PROJECTS / "projects.md"
+    if projects_index.exists():
+        content = projects_index.read_text(encoding="utf-8", errors="replace")
+        indexed = set(extract_wikilinks(content))
+        for ref in indexed:
+            if not ref.startswith("00"):
+                dir_name = ref.split("/")[0]
+                if (PROJECTS / dir_name).is_dir():
+                    existing_dirs.discard(dir_name)
+                else:
+                    fail(f"projects.md: [[{ref}]] → no matching directory")
+        for d in sorted(existing_dirs):
+            if d != "projects.md":
+                warn(f"{d}/: exists but not listed in projects.md")
+
+
+# ── Summary ──────────────────────────────────────────────────────
+heading("Summary")
+total = stats["ok"] + stats["warnings"] + stats["failures"]
+print(f"  {GREEN}{stats['ok']} passed{RESET}")
+if stats["warnings"]:
+    print(f"  {YELLOW}{stats['warnings']} warnings{RESET}")
+if stats["failures"]:
+    print(f"  {RED}{stats['failures']} failures{RESET}")
+print(f"\n  {BOLD}{total} total checks{RESET}")
+
+sys.exit(0 if stats["failures"] == 0 else 1)

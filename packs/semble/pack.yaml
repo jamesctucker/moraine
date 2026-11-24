@@ -1,0 +1,15 @@
+name: semble
+description: Semble MCP server. Semantic code search across your repos.
+requires: []
+harnesses: [any]
+prereqs:
+  - cmd: uvx
+    why: runs the pinned Semble MCP server
+    install:
+      macos: brew install uv
+      linux: curl -LsSf https://astral.sh/uv/install.sh | sh
+mcp:
+  semble:
+    type: local
+    command: ["uvx", "--from", "semble[mcp]==0.7.3", "semble"]
+jobs: []

@@ -28,9 +28,12 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests — assert is expected in tests
 "tests/*.py" = ["S101"]
+"packs/*/tests/*.py" = ["S101"]
+# Pack scripts bootstrap sys.path to the core library before importing it.
+"packs/*/scripts/*.py" = ["E402"]
 # Deliberately sloppy fixture code for the slop detector — findings there are
 # the point, not defects.
-"scripts/workspace/slop-fixtures/*.py" = ["S110", "UP024"]
+"packs/quality/scripts/slop-fixtures/*.py" = ["S110", "UP024"]
 # FTS5 queries assemble WHERE clauses from fixed condition strings; all
 # values are bound parameters.
 "scripts/workspace/session-index.py" = ["S608"]
@@ -40,5 +43,8 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "packs"]
+# Pack tests import test_helpers (tests/) and the core library
+# (scripts/workspace/) without owning a copy of either.
+pythonpath = ["scripts/workspace", "tests"]
 python_files = ["test_*.py"]
