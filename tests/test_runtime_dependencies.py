@@ -48,4 +48,4 @@ def test_vitest_and_vite_are_on_reviewed_security_releases():
     package = json.loads((ROOT / "package.json").read_text())
 
     assert package["devDependencies"]["vitest"] == "4.1.11"
-    assert package["devDependencies"]["vite"] == "7.3.7"
+    assert package["devDependencies"]["vite"] == "8.3.8"
