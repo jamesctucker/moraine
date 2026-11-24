@@ -36,8 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Two packs shipping the same job filename is now a sync error** — the runner installs job files by name alone, so a shared filename silently overwrote; sync refuses with both paths named, like skill ID collisions.
 - **`health-check.py` checks packages in the interpreter running it** — the import checks use `sys.executable` (often the `.venv` python) instead of a bare `python3` from PATH, which may have nothing installed.
 
+### Changed
+
+- **Breaking: `work/` is now `repos/`, registered as pointers.** Repos are registered in `repos/README.md` — one table row per repo: `Repo | What it is | Path | Remote | Hint`, with an optional `Machines` column (comma-separated hostnames; empty means every machine). `Remote` is required, which is what makes `moraine repos restore` able to rebuild a machine. `slop-check`, `verify-deploy-vars` (containment root), the skills, and the docs all say `repos/` now, and CI fails on any stale `work/` reference outside the CHANGELOG. There is no migration tooling: rename the directory and port your rows to the new table.
+
 ### Removed
 
+- **`validate-repos.py` and `memory/work-repos.md`** — replaced by the `repos/` pointer registry and `moraine repos check`; the `Machines` column replaces the `machine_scope` frontmatter.
 - **The `scope: work` model gate** in the cron runner, pending a design for employer data. Jobs have no `scope` key and the cron config has no `work_models` allowlist. The job schema is now strict: a job file that still sets `scope:` fails validation with a message naming the key, instead of the key being silently ignored.
 - **`scripts/mcp-servers/brave-search-mcp.sh`** — the wrapper pinned an npm package nobody imported; no server references it.
 

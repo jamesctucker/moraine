@@ -52,7 +52,7 @@ If the subagent fails or returns unverified claims, finish the research inline r
 3. Use Context7 for library and framework docs; `webfetch` for raw docs, GitHub files, and API references; `websearch` to *locate* the primary source, not to replace it.
 4. If primary sources conflict, state both and cite both.
 5. If a primary source is unreachable, mark the claim unverified. Do not fill the gap with a secondary write-up.
-6. Prefer the project's own code and `work/` repos over external docs when the question is about this workspace.
+6. Prefer the project's own code and `repos/` repos over external docs when the question is about this workspace.
 
 ## 4. File shape
 

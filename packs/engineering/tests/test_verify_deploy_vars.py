@@ -7,7 +7,7 @@ from test_helpers import load_module
 @pytest.fixture
 def vdv(scripts_dir, tmp_path, monkeypatch, capsys):
     module = load_module("verify_deploy_vars", scripts_dir / "verify-deploy-vars.py")
-    module.WORK_DIR = tmp_path / "work"
+    module.WORK_DIR = tmp_path / "repos"
     module.WORK_DIR.mkdir()
     (module.WORK_DIR / "my-app").mkdir()
     return module

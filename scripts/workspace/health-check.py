@@ -10,6 +10,8 @@ Validates:
   4. sync drift — the sync plan runs in dry-run mode and any difference is
      flagged with the command that fixes it; manifest or sync problems are
      errors. Runs in --quick mode too.
+  5. repos registry — missing repos, unregistered clones, and remote drift
+     from the repos/ pointer files. Flag-only. Runs in --quick mode too.
 
 Writes a summary to memory/staging/health-check-{YYYY-MM-DD}.md.
 
@@ -28,6 +30,8 @@ from pathlib import Path
 import sync
 from lib import WORKSPACE
 from manifest import ManifestError
+
+import repos
 
 STAGING_DIR = WORKSPACE / "memory" / "staging"
 OPECODE_CONFIG = WORKSPACE / ".opencode" / "opencode.json"
@@ -185,6 +189,21 @@ def check_sync() -> dict:
     return result
 
 
+def check_repos() -> dict:
+    """Flag-only repos/ registry drift: missing repos, clones, remote changes."""
+    result = {"tool": "repos", "status": "ok", "details": {}}
+    findings = repos.check(WORKSPACE)
+    if findings:
+        result["status"] = "warn"
+        result["details"]["warning"] = f"{len(findings)} finding(s); run: python3 scripts/moraine repos check"
+        result["details"]["findings"] = findings[:3]
+        if len(findings) > 3:
+            result["details"]["more"] = f"+{len(findings) - 3} more"
+    else:
+        result["details"]["note"] = "registry matches disk"
+    return result
+
+
 def write_report(checks: list[dict], quick: bool) -> Path:
     """Write health-check summary to staging."""
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
@@ -227,9 +246,14 @@ def main() -> int:
 
     checks = []
 
-    # Core tools and sync drift (sync runs in quick mode too: it is cheap
-    # and the manifests gate everything else)
-    for check_fn, label in [(check_git, "git"), (check_python, "python"), (check_sync, "sync")]:
+    # Core tools, sync drift, and repo registry (all cheap and local; the
+    # manifests and the registry gate everything else)
+    for check_fn, label in [
+        (check_git, "git"),
+        (check_python, "python"),
+        (check_sync, "sync"),
+        (check_repos, "repos"),
+    ]:
         result = check_fn()
         checks.append(result)
         icon = {"ok": "OK", "warn": "WARN", "error": "FAIL"}.get(result["status"], "?")

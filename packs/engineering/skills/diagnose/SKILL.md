@@ -130,8 +130,8 @@ This workspace is not a single project. Where the bug lives determines how you w
 - Check `.opencode/` config for misconfigurations
 - Scripts and MCP servers live in `packs/<pack>/scripts/` and the packs' `pack.yaml` files
 
-### Project level (`work/<project>/`)
+### Project level (`repos/<project>/`)
 
 - Check the project's `GLOSSARY.md` for domain vocabulary before exploring code
 - Check `docs/adr/` for architectural decisions that explain why things are the way they are
-- If no `work/` project is active, ask which project the bug is in before proceeding
+- If no `repos/` project is active, ask which project the bug is in before proceeding

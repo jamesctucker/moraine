@@ -3,7 +3,7 @@
 ADRs live in `docs/adr/` **inside a project directory** and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.
 
 ```
-work/
+repos/
 └── my-app/
     └── docs/
         └── adr/
@@ -33,7 +33,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `work/<project>/docs/adr/` for the highest existing number and increment by one.
+Scan `repos/<project>/docs/adr/` for the highest existing number and increment by one.
 
 ## When to offer an ADR
 

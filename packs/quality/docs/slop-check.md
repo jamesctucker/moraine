@@ -15,7 +15,7 @@ Both are computed per repo and per diff. Missing or unmeasurable values are reco
 python3 scripts/workspace/slop-check.py --all --write
 ```
 
-This snapshots every repo under `work/` plus `scripts/workspace` into `memory/eval/slop/snapshots/<ISO-date>/` — one directory per day, so weekly sweeps never overwrite each other. Rerunning on the same day keeps the existing snapshot; pass `--replace-today` to replace it deliberately. These are *your* reference points — the template ships no baselines, because they belong to your repos.
+This snapshots every repo under `repos/` plus `scripts/workspace` into `memory/eval/slop/snapshots/<ISO-date>/` — one directory per day, so weekly sweeps never overwrite each other. Rerunning on the same day keeps the existing snapshot; pass `--replace-today` to replace it deliberately. These are *your* reference points — the template ships no baselines, because they belong to your repos.
 
 **Read bands as reference points, not gates.** The absolute green/warn/red bands come from the paper's human-vs-agent population means. A repo above the band is not a failure — it's a measurement. What matters is the *delta*: is this repo getting worse, and how fast?
 

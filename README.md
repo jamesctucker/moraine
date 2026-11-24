@@ -7,7 +7,7 @@
 Every session with a coding agent starts from zero: it doesn't know your projects, your conventions, or what you decided last week. Moraine closes that gap with a repo the agent reads on startup — project notes, session summaries, decisions — plus skills that encode how work gets done here.
 
 **For:** engineers who use a coding agent daily and are tired of re-explaining context.
-**Not for:** teams wanting one shared workspace (each person clones their own; code stays in its own repos under `work/`), or anyone wanting a hosted service.
+**Not for:** teams wanting one shared workspace (each person clones their own; code stays in its own repos under `repos/`), or anyone wanting a hosted service.
 
 ## The four stores
 
@@ -15,7 +15,7 @@ Four directories, four jobs. The split is the point: the agent writes memory, yo
 
 | Directory | What lives there | Who writes it |
 |-----------|------------------|---------------|
-| `work/` | Code repos, each independently versioned | you + agent |
+| `repos/` | Code repos, each independently versioned and registered as pointers | you + agent |
 | `memory/` | What happened, decisions, next actions | agent |
 | `wiki/` | Durable knowledge — PARA (projects, areas, resources, archives) | you |
 | `artifacts/` | Designs, research, specs, plans | agent |
@@ -26,7 +26,7 @@ moraine/
 ├── memory/            # agent-written session context
 ├── wiki/              # your PARA vault (open in Obsidian)
 ├── artifacts/         # designs, research, specs
-├── work/              # your code repos
+├── repos/             # your code repos (registered in repos/README.md)
 ├── scripts/           # setup, the moraine CLI, core workspace tooling
 ├── .agents/skills/    # core skills + one symlink per enabled pack skill
 ├── packs/             # opt-in packs: skills, scripts, jobs (automation's cron runner lives here)
@@ -120,8 +120,8 @@ If step 4 works, onboarding worked. You'll know: the agent answers from its own 
 ```
 # Morning: agent reads context, you set direction
 Agent reads memory/index.md → active projects, recent decisions, open threads
-You: "Let's continue the auth refactor in work/my-app"
-Agent reads work/my-app/AGENTS.md → stack, conventions, deploy notes
+You: "Let's continue the auth refactor in repos/my-app"
+Agent reads repos/my-app/AGENTS.md → stack, conventions, deploy notes
 Agent reads memory/staging/2026-06-15.md → restart anchors from yesterday
 
 # Work: agent codes, researches, documents
@@ -140,7 +140,7 @@ Finding past context:
 .venv/bin/python scripts/workspace/session-index.py search "authentication decision"
 ```
 
-For code across repos, ask the agent — the Semble MCP server searches `work/` semantically.
+For code across repos, ask the agent — the Semble MCP server searches the paths in `repos/` semantically.
 
 ## Automation and integrations
 
@@ -148,7 +148,7 @@ Moraine is harness-neutral: OpenCode, Claude Code, and Codex read the same `AGEN
 
 ### Scheduled jobs
 
-A lightweight cron scheduler runs automated agent tasks. It ships in the `automation` pack (`packs/automation/runner/`, TypeScript under Bun). Jobs are YAML files in each pack's `jobs/` folder and your own in `packs/local/jobs/` — two ship: `weekly-recap` (Mondays 8am — a deterministic memory audit plus a week-in-review appended to your daily note) and the quality pack's `slop-sweep` (Mondays 9am — weekly code-quality measurement across your `work/` repos, flag-only). `moraine sync` writes the enabled list to `~/.moraine/cron/enabled.json`; the runner installs from it.
+A lightweight cron scheduler runs automated agent tasks. It ships in the `automation` pack (`packs/automation/runner/`, TypeScript under Bun). Jobs are YAML files in each pack's `jobs/` folder and your own in `packs/local/jobs/` — two ship: `weekly-recap` (Mondays 8am — a deterministic memory audit plus a week-in-review appended to your daily note) and the quality pack's `slop-sweep` (Mondays 9am — weekly code-quality measurement across your `repos/` repos, flag-only). `moraine sync` writes the enabled list to `~/.moraine/cron/enabled.json`; the runner installs from it.
 
 ```bash
 bun run packs/automation/runner/runner.ts --install-defaults   # install enabled jobs to ~/.moraine/cron/
@@ -175,7 +175,7 @@ hostname: my-machine     # optional — restrict to one machine
 
 ### MCP servers
 
-MCP servers (tool integrations the agent can call) are configured per pack: enabling a pack adds its servers to your harness's config via `moraine sync`. Two packs ship them — **Semble** (semantic code search across `work/` repos, local, `uvx`) and **Headroom** (context compression, reversible via CCR). Add your own in `moraine.yaml`'s `mcp:` block; `to-issue` and the other skills use whatever the agent can see.
+MCP servers (tool integrations the agent can call) are configured per pack: enabling a pack adds its servers to your harness's config via `moraine sync`. Two packs ship them — **Semble** (semantic code search across the paths in `repos/`, local, `uvx`) and **Headroom** (context compression, reversible via CCR). Add your own in `moraine.yaml`'s `mcp:` block; `to-issue` and the other skills use whatever the agent can see.
 
 ### Built on
 

@@ -314,7 +314,18 @@ PY
 info "Running moraine sync..."
 "$PYBIN" scripts/moraine sync || fail "moraine sync failed — fix moraine.yaml and re-run"
 
-# ── 7. Smoke test ────────────────────────────────────────────
+# ── 7. Repos: the second-machine path ────────────────────────
+
+echo ""
+info "Repos registry"
+REPOS_CHECK="$("$PYBIN" scripts/moraine repos check)"
+echo "$REPOS_CHECK"
+MISSING_LINES="$(printf '%s\n' "$REPOS_CHECK" | grep 'missing:' || true)"
+if [[ -n "$MISSING_LINES" ]] && ask "Clone the missing repo(s) now?" "y"; then
+    "$PYBIN" scripts/moraine repos restore --yes || warn "some clones failed — run: python3 scripts/moraine repos restore"
+fi
+
+# ── 8. Smoke test ────────────────────────────────────────────
 
 echo ""
 info "Smoke test"
@@ -350,7 +361,7 @@ if [[ " $HARNESSES " == *" opencode "* ]] && command -v opencode &>/dev/null; th
     fi
 fi
 
-# ── 8. Done ───────────────────────────────────────────────────
+# ── 9. Done ───────────────────────────────────────────────────
 
 echo ""
 if [[ $SMOKE_FAILED -eq 0 ]]; then

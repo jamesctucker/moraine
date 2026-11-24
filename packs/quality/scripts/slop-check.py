@@ -17,7 +17,7 @@ Tool requirements (resolved on demand, nothing to pip-install):
   - jscpd   via npx (pinned 5.4.2)         — clone lines
 
 Usage:
-  slop-check.py --repo work/rolodex            # snapshot a working tree
+  slop-check.py --repo repos/rolodex          # snapshot a working tree
   slop-check.py --repo . --range main..HEAD    # base-vs-head delta (temp worktree)
   slop-check.py --all --json --write           # weekly sweep -> memory/eval/slop/
   slop-check.py --changed-only --fail-on-new   # pre-commit / PR gate
@@ -543,11 +543,11 @@ def link_prev(snap: dict, today: str) -> None:
 
 def discover_repos() -> list[tuple[str, Path]]:
     repos: list[tuple[str, Path]] = []
-    work = WORKSPACE / "work"
-    if work.is_dir():
-        for d in sorted(work.iterdir()):
+    clones = WORKSPACE / "repos"
+    if clones.is_dir():
+        for d in sorted(clones.iterdir()):
             if d.is_dir() and (d / ".git").exists():
-                repos.append((f"work/{d.name}", d))
+                repos.append((f"repos/{d.name}", d))
     repos.append(("scripts/workspace", WORKSPACE / "scripts" / "workspace"))
     return repos
 
@@ -753,7 +753,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--repo", help="Repo path (relative to workspace or absolute)")
     p.add_argument("--range", metavar="BASE..HEAD", help="Measure delta across a range (temp worktree)")
-    p.add_argument("--all", action="store_true", help="Measure all work/ repos + scripts/workspace")
+    p.add_argument("--all", action="store_true", help="Measure all repos/ clones + scripts/workspace")
     p.add_argument("--json", action="store_true", help="Emit JSON")
     p.add_argument("--write", action="store_true", help="Write snapshots to memory/eval/slop/")
     p.add_argument("--replace-today", action="store_true",

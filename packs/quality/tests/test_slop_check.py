@@ -36,7 +36,7 @@ def freeze_today(monkeypatch, sc, day: date):
     monkeypatch.setattr(sc, "date", FrozenDate)
 
 
-def write_snapshot(slop_dir, day, repo="work/demo", erosion=0.1, verbosity=0.1):
+def write_snapshot(slop_dir, day, repo="repos/demo", erosion=0.1, verbosity=0.1):
     d = slop_dir / "snapshots" / day
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"{repo.replace('/', '__')}.json"
@@ -44,7 +44,7 @@ def write_snapshot(slop_dir, day, repo="work/demo", erosion=0.1, verbosity=0.1):
     return p
 
 
-def bare_snap(repo="work/demo", erosion=0.2, verbosity=0.2):
+def bare_snap(repo="repos/demo", erosion=0.2, verbosity=0.2):
     return {
         "repo": repo, "erosion": erosion, "verbosity": verbosity,
         "prev": None, "delta": {"erosion": None, "verbosity": None},
@@ -80,7 +80,7 @@ class TestLinkPrev:
             write_snapshot(slop_dir, day)
         snap = bare_snap()
         sc.link_prev(snap, "2026-11-23")
-        assert snap["prev"].endswith("snapshots/2026-11-16/work__demo.json")
+        assert snap["prev"].endswith("snapshots/2026-11-16/repos__demo.json")
         assert snap["delta"]["erosion"] == pytest.approx(0.1)
 
     def test_baseline_crosses_month_boundary(self, sc, slop_dir):
@@ -88,7 +88,7 @@ class TestLinkPrev:
         write_snapshot(slop_dir, "2026-11-30", erosion=0.15)
         snap = bare_snap()
         sc.link_prev(snap, "2026-12-07")
-        assert snap["prev"].endswith("snapshots/2026-11-30/work__demo.json")
+        assert snap["prev"].endswith("snapshots/2026-11-30/repos__demo.json")
 
     def test_current_month_snapshot_is_eligible(self, sc, slop_dir):
         # The old logic only accepted earlier months, so a December run
@@ -97,7 +97,7 @@ class TestLinkPrev:
         write_snapshot(slop_dir, "2026-11-16", verbosity=0.12)
         snap = bare_snap()
         sc.link_prev(snap, "2026-11-23")
-        assert snap["prev"].endswith("snapshots/2026-11-16/work__demo.json")
+        assert snap["prev"].endswith("snapshots/2026-11-16/repos__demo.json")
         assert snap["delta"]["verbosity"] == pytest.approx(0.08)
 
     def test_same_day_snapshot_is_excluded(self, sc, slop_dir):
@@ -105,7 +105,7 @@ class TestLinkPrev:
         write_snapshot(slop_dir, "2026-11-23")
         snap = bare_snap()
         sc.link_prev(snap, "2026-11-23")
-        assert snap["prev"].endswith("snapshots/2026-11-16/work__demo.json")
+        assert snap["prev"].endswith("snapshots/2026-11-16/repos__demo.json")
 
     def test_no_earlier_snapshot_leaves_prev_null(self, sc, slop_dir):
         write_snapshot(slop_dir, "2026-11-23")
@@ -120,17 +120,17 @@ class TestLinkPrev:
         write_snapshot(slop_dir, "2026-10")
         snap = bare_snap()
         sc.link_prev(snap, "2026-11-23")
-        assert snap["prev"].endswith("snapshots/2026-10/work__demo.json")
+        assert snap["prev"].endswith("snapshots/2026-10/repos__demo.json")
 
 
 class TestSameDayRerun:
     def test_mode_repo_preserves_same_day_snapshot(self, sc, slop_dir, monkeypatch, capsys):
         stub_measurement(monkeypatch, sc)
         freeze_today(monkeypatch, sc, date(2026, 11, 23))
-        args = Namespace(repo="work/demo", range=None, json=False, write=True,
+        args = Namespace(repo="repos/demo", range=None, json=False, write=True,
                          include_tests=False, replace_today=False)
         sc.mode_repo(args)
-        first = slop_dir / "snapshots" / "2026-11-23" / "work__demo.json"
+        first = slop_dir / "snapshots" / "2026-11-23" / "repos__demo.json"
         assert json.loads(first.read_text())["erosion"] == 0.1
 
         stub_measurement(monkeypatch, sc, lambda *a, **k: fake_measure(erosion=0.4))
@@ -141,22 +141,22 @@ class TestSameDayRerun:
     def test_mode_repo_replace_today_overwrites(self, sc, slop_dir, monkeypatch):
         stub_measurement(monkeypatch, sc)
         freeze_today(monkeypatch, sc, date(2026, 11, 23))
-        args = Namespace(repo="work/demo", range=None, json=False, write=True,
+        args = Namespace(repo="repos/demo", range=None, json=False, write=True,
                          include_tests=False, replace_today=False)
         sc.mode_repo(args)
         stub_measurement(monkeypatch, sc, lambda *a, **k: fake_measure(erosion=0.4))
         args.replace_today = True
         sc.mode_repo(args)
-        p = slop_dir / "snapshots" / "2026-11-23" / "work__demo.json"
+        p = slop_dir / "snapshots" / "2026-11-23" / "repos__demo.json"
         assert json.loads(p.read_text())["erosion"] == 0.4
 
     def test_mode_all_reports_kept_snapshots(self, sc, slop_dir, monkeypatch, capsys):
         stub_measurement(monkeypatch, sc)
         freeze_today(monkeypatch, sc, date(2026, 11, 23))
-        monkeypatch.setattr(sc, "discover_repos", lambda: [("work/demo", slop_dir)])
+        monkeypatch.setattr(sc, "discover_repos", lambda: [("repos/demo", slop_dir)])
         args = Namespace(include_tests=False, write=True, json=False, replace_today=False)
         sc.mode_all(args)
-        p = slop_dir / "snapshots" / "2026-11-23" / "work__demo.json"
+        p = slop_dir / "snapshots" / "2026-11-23" / "repos__demo.json"
         assert p.is_file()
         stub_measurement(monkeypatch, sc, lambda *a, **k: fake_measure(erosion=0.4))
         sc.mode_all(args)

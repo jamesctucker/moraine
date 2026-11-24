@@ -14,7 +14,7 @@ A personal workspace for building projects, storing documents, and running agent
 
 | Directory | Purpose | When to read | When to write |
 |-----------|---------|--------------|---------------|
-| `work/` | External project repos — each subdirectory is its own git repo | When working on a project that lives here | Pull repos in via git; see `work/README.md` for registry |
+| `repos/` | External project repos — each subdirectory is its own git repo, registered as pointers | When working on a project that lives here | Clone with `moraine repos restore`; register repos in `repos/README.md` |
 | `memory/` | Agent session summaries, handoffs, and periodic reviews | At the start of every session and when catching up on past work | At the end of every session via `session-handoff` |
 | `memory/index.md` | Entry point: active projects, open threads, recent decisions | **First file to read** each session | Updated by `session-handoff` at wrap-up |
 | `memory/sessions/` | Per-session summaries and handoffs | When resuming a specific thread or reviewing recent work | Written by `session-handoff` at wrap-up |
@@ -58,7 +58,7 @@ Deterministic scripts in `scripts/workspace/`. All flag-only (never modify memor
 | `health-check.py` | Core tools, MCP config shape, sync drift | On demand |
 | `memory-audit.py` | Decision pruning, repo drift, stalled projects, past-due threads, review cadence, stale staging (>14d) | Weekly |
 | `project-status.py` | Last session activity per project (`--stale-only --days N`) | Session start when choosing work |
-| `validate-repos.py` | `memory/work-repos.md` matches `work/` on disk (honours `machine_scope`) | After adding/removing repos |
+| `moraine repos check` | The `repos/` pointer registry vs disk: missing repos, unregistered clones, remote drift | After adding/removing repos |
 | `agent-eval.py` | Golden-task eval harness (core tasks, plus any contributed by enabled packs) | After changing workspace tooling |
 | `prune-decisions.py` | Archives old "Recent decisions" blocks from `memory/index.md` (`--prune` modifies) | When flagged by memory-audit |
 

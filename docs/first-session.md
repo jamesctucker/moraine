@@ -39,7 +39,7 @@ If the file lands somewhere else, stop and fix it now — every later session re
 
 Keep it small enough to finish:
 
-> Create a small repo at work/checkout, then add a health endpoint with a test.
+> Create a small repo at repos/checkout, then add a health endpoint with a test.
 
 The agent creates the project repo, reads the project note, writes the code, runs the test, and commits. Steer as it goes — correcting the agent mid-run is the normal mode, not a failure. The point is to produce something a session summary can describe.
 
