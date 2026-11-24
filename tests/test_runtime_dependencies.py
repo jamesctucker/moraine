@@ -47,5 +47,5 @@ def test_setup_installs_opencode_from_the_package_that_ships_2x():
 def test_vitest_and_vite_are_on_reviewed_security_releases():
     package = json.loads((ROOT / "package.json").read_text())
 
-    assert package["devDependencies"]["vitest"] == "4.1.11"
+    assert package["devDependencies"]["vitest"] == "5.1.1"
     assert package["devDependencies"]["vite"] == "7.3.7"
