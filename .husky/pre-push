@@ -65,7 +65,7 @@ fi
 #
 # Contributor-only: the automation pack's tests need bun and the root
 # node_modules (bun install). Core users skip this hook entirely or set
-# SKIP_HOOKS=1 — see CONTRIBUTING.md.
+# SKIP_HOOKS=1 — see the README's Verify section.
 echo ""
 echo "[husky] bun run test (vitest)..."
 if command -v bun >/dev/null 2>&1; then

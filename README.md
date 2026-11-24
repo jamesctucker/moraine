@@ -84,7 +84,7 @@ Forking first and cloning your fork works too. Either way, pulling template upda
 .venv/bin/python -m pytest                           # Pytest — core + pack scripts
 ```
 
-Vitest (the automation pack's cron-runner tests) is contributor-only — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Vitest (the automation pack's cron-runner tests) needs bun and the root `node_modules` — contributor-only; core users can skip it.
 
 Use `python3` instead of `.venv/bin/python` only if you installed the Python deps elsewhere.
 
@@ -240,7 +240,7 @@ Or just tell the agent *"Sync with upstream"* — the `sync-upstream` skill clas
 - Easier exclusion of large third-party skill bundles, to shrink install and review surface.
 - Cross-platform setup and first-session verification (currently macOS-tested, Linux-CI).
 
-Ideas tracked in [issues](https://github.com/jamesctucker/moraine/issues); see [CONTRIBUTING.md](CONTRIBUTING.md) for how to pitch in.
+Ideas tracked in [issues](https://github.com/jamesctucker/moraine/issues).
 
 ## License
 
