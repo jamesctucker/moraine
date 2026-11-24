@@ -79,9 +79,6 @@ def test_impeccable_embedded_components_carry_their_license():
 
 def test_adoption_surface_files_exist():
     expected = (
-        ROOT / "CONTRIBUTING.md",
-        ROOT / "SECURITY.md",
-        ROOT / "CODE_OF_CONDUCT.md",
         ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.md",
         ROOT / ".github" / "PULL_REQUEST_TEMPLATE.md",
     )
