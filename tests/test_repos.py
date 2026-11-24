@@ -1,9 +1,19 @@
 """Tests for scripts/workspace/repos.py — the repos/ pointer registry."""
 
+import os
 import subprocess
 
 import pytest
 from test_helpers import load_module
+
+
+def run_git(*args, cwd=None):
+    """git without inherited GIT_* env. When the suite runs inside a hook or
+    rebase, GIT_DIR points at the caller's repository and redirects these
+    commands there — `-C` does not override it — corrupting that repo
+    instead of building the fixture in tmp_path."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", *args], cwd=cwd, env=env, check=True)
 
 
 @pytest.fixture
@@ -169,8 +179,8 @@ def clone(workspace, name, remote):
     """A real local git repo with an origin, so origin() has something to read."""
     path = workspace / "repos" / name
     path.mkdir(parents=True)
-    subprocess.run(["git", "init", "-q", str(path)], check=True)
-    subprocess.run(["git", "-C", str(path), "remote", "add", "origin", remote], check=True)
+    run_git("init", "-q", str(path))
+    run_git("-C", str(path), "remote", "add", "origin", remote)
     return path
 
 
@@ -222,8 +232,8 @@ class TestCheck:
         registry(tmp_path, REPOS_TABLE)
         repo = tmp_path / "repos" / "storefront"
         repo.mkdir()
-        subprocess.run(["git", "init", "-q", str(repo)], check=True)
-        subprocess.run(["git", "-C", str(repo), "remote", "add", "origin", "git@github.com:wrong/storefront.git"], check=True)
+        run_git("init", "-q", str(repo))
+        run_git("-C", str(repo), "remote", "add", "origin", "git@github.com:wrong/storefront.git")
 
         findings = rp.check(tmp_path, host="laptop")
 

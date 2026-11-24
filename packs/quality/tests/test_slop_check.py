@@ -4,6 +4,7 @@ Detector and git runners are stubbed so the suite stays hermetic.
 """
 
 import json
+import os
 import subprocess
 from argparse import Namespace
 from datetime import date
@@ -238,13 +239,17 @@ def make_git_repo(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "main.py").write_text("x = 1\n")
+    # Strip inherited GIT_* env: when the suite runs inside a hook or rebase,
+    # GIT_DIR points at the caller's repository and these init/add/commit
+    # land there, corrupting it instead of building this fixture.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     for cmd in (
         ["git", "init", "-q"],
         ["git", "add", "-A"],
         ["git", "-c", "user.email=test@example.com", "-c", "user.name=test",
          "commit", "-qm", "init"],
     ):
-        subprocess.run(cmd, cwd=repo, check=True, capture_output=True)
+        subprocess.run(cmd, cwd=repo, env=env, check=True, capture_output=True)
     return repo
 
 
