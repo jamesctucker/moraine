@@ -6,14 +6,28 @@ const JOB_EXT = /\.(ya?ml)$/i;
 /**
  * The job files the cron runner installs, per ~/.moraine/cron/enabled.json
  * (written by `moraine sync`). Paths are relative to the workspace root.
+ * A missing file means sync has not run (or the runner pack is disabled);
+ * a file that exists but does not parse is corrupt state and throws, so a
+ * bad enabled list can never look like "no jobs" and uninstall everything.
  */
 export function readEnabledJobs(enabledFile: string): string[] {
+  let raw: string;
   try {
-    const data = JSON.parse(readFileSync(enabledFile, "utf-8"));
-    return Array.isArray(data.jobs) ? data.jobs : [];
+    raw = readFileSync(enabledFile, "utf-8");
   } catch {
     return [];
   }
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`${enabledFile} is not valid JSON — fix or delete it (moraine sync rewrites it): ${(e as Error).message}`);
+  }
+  const jobs = (data as { jobs?: unknown }).jobs;
+  if (!Array.isArray(jobs) || !jobs.every((job) => typeof job === "string")) {
+    throw new Error(`${enabledFile} must hold {"jobs": [string, ...]} — fix or delete it (moraine sync rewrites it)`);
+  }
+  return jobs;
 }
 
 /** Basenames of every job shipped in the repo's packs (including `local`). */

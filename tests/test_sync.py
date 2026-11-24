@@ -353,6 +353,31 @@ class TestJobs:
         assert not (workspace / "cron-state" / "enabled.json").exists()
         assert "remove" in result.changes[0].detail
 
+    def test_two_packs_shipping_the_same_job_filename_is_an_error(self, tmp_path):
+        # The runner installs job files by name alone, so a shared filename
+        # would silently overwrite, unlike skills which collide loudly.
+        packs = {
+            "automation": {"yaml": PACK_YAML.format(name="automation") + "harnesses: [opencode]\njobs: [jobs/recap.yaml]\n", "jobs": ["recap.yaml"]},
+            "scheduler": {"yaml": PACK_YAML.format(name="scheduler") + "jobs: [jobs/recap.yaml]\n", "jobs": ["recap.yaml"]},
+        }
+        workspace = build_workspace(tmp_path, listing("scheduler", "automation"), packs=packs)
+
+        with pytest.raises(sync.SyncError, match="'recap.yaml' ships in both packs/automation/ and packs/scheduler/"):
+            run_sync(workspace)
+
+        assert not (workspace / "cron-state" / "enabled.json").exists()
+
+    def test_job_filename_collisions_do_not_matter_without_the_runner(self, tmp_path):
+        workspace = build_workspace(tmp_path, listing("scheduler", "other"), packs={
+            "scheduler": {"yaml": PACK_YAML.format(name="scheduler") + "jobs: [jobs/recap.yaml]\n", "jobs": ["recap.yaml"]},
+            "other": {"yaml": PACK_YAML.format(name="other") + "jobs: [jobs/recap.yaml]\n", "jobs": ["recap.yaml"]},
+        })
+
+        result = run_sync(workspace)
+
+        assert not (workspace / "cron-state" / "enabled.json").exists()
+        assert "jobs skipped" in result.notes[0]
+
 
 class TestReport:
     def test_one_line_per_enabled_pack(self, tmp_path, monkeypatch):

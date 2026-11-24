@@ -312,7 +312,11 @@ def _indent_unit(raw: str) -> str:
 
 
 def job_change(workspace: Path, enabled: dict[str, Pack], cron_state: Path) -> tuple[list[Change], str | None]:
-    """enabled.json for the cron runner, and a note when jobs are skipped for lack of one."""
+    """enabled.json for the cron runner, and a note when jobs are skipped for lack of one.
+
+    The runner installs job files by filename alone, so two packs shipping
+    the same filename is an error, not a silent overwrite.
+    """
     jobs = {pack.name: pack.jobs for pack in (local_pack(workspace), *enabled.values()) if pack.jobs}
     path = cron_state / "enabled.json"
     if JOB_RUNNER_PACK not in enabled:
@@ -320,7 +324,22 @@ def job_change(workspace: Path, enabled: dict[str, Pack], cron_state: Path) -> t
         note = f"jobs skipped, the '{JOB_RUNNER_PACK}' pack is not enabled: {', '.join(skipped)}" if skipped else None
         stale = [Change("remove", path, detail=f"remove {path} (no job runner enabled)")] if path.exists() else []
         return stale, note
-    listed = sorted(f"packs/{name}/{job}" for name, pack_jobs in jobs.items() for job in pack_jobs)
+    listed: list[str] = []
+    owners: dict[str, str] = {}
+    problems: list[str] = []
+    for name, pack_jobs in jobs.items():
+        for job in pack_jobs:
+            listed.append(f"packs/{name}/{job}")
+            base = Path(job).name
+            if base in owners and owners[base] != name:
+                problems.append(
+                    f"job file '{base}' ships in both packs/{owners[base]}/ and packs/{name}/; rename one"
+                )
+            else:
+                owners[base] = name
+    if problems:
+        raise SyncError(problems)
+    listed.sort()
     text = json.dumps({"jobs": listed}, indent=2) + "\n"
     if path.is_file() and path.read_text() == text:
         return [], None

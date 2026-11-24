@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`update-impeccable.sh` moved to `packs/design/scripts/`** and **`obsidian-audit` to `packs/obsidian/scripts/`** — invoke them at their new paths.
 - **`health-check.py` no longer checks node** — node is the `quality` pack's prerequisite, not a core tool; the check moved out with the pack.
 - **`.opencode/opencode.json` ships an empty `mcp.servers`** — `moraine sync` owns the block and fills it from the enabled packs (Semble and Headroom each ship their server in their pack).
+- **A corrupt `enabled.json` stops the runner instead of uninstalling everything** — an unparseable job list was read as "no jobs", which made `--install-defaults` remove every installed shipped job; it now fails loudly before touching files. A missing file still means "sync has not run".
+- **Two packs shipping the same job filename is now a sync error** — the runner installs job files by name alone, so a shared filename silently overwrote; sync refuses with both paths named, like skill ID collisions.
+- **`health-check.py` checks packages in the interpreter running it** — the import checks use `sys.executable` (often the `.venv` python) instead of a bare `python3` from PATH, which may have nothing installed.
 
 ### Removed
 

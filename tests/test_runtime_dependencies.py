@@ -1,6 +1,7 @@
 """Release checks for reviewed runtime and test dependency pins."""
 
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,10 +15,15 @@ def test_runtime_downloads_are_exactly_pinned():
 
 
 def test_opencode_config_ships_an_empty_server_block():
-    # `moraine sync` owns mcp.servers; the template ships it empty.
-    config = json.loads((ROOT / ".opencode" / "opencode.json").read_text())
+    # `moraine sync` owns mcp.servers; the committed template ships it empty.
+    # Read from HEAD, not the working tree: CI's full job enables every pack
+    # and sync legitimately fills the live block before pytest runs.
+    template = subprocess.run(
+        ["git", "show", "HEAD:.opencode/opencode.json"],
+        capture_output=True, text=True, check=True,
+    ).stdout
 
-    assert config["mcp"]["servers"] == {}
+    assert json.loads(template)["mcp"]["servers"] == {}
 
 
 def test_weekly_recap_uses_the_locked_pdf_package():

@@ -59,15 +59,28 @@ describe("install.ts", () => {
     expect(existsSync(join(targetDir, "gone.yaml"))).toBe(false);
   });
 
-  it("should read an empty list when enabled.json is missing or invalid", () => {
+  it("should read an empty list when enabled.json is missing", () => {
     expect(readEnabledJobs(join(tmpDir, "nonexistent.json"))).toEqual([]);
+  });
 
-    const invalid = join(tmpDir, "invalid.json");
-    writeFileSync(invalid, "not json");
-    expect(readEnabledJobs(invalid)).toEqual([]);
+  it("should throw on a corrupt enabled.json, before touching any files", () => {
+    // A corrupt list must not look like "no jobs": that would uninstall
+    // every shipped job. Install one job first, then corrupt the list.
+    writeFileSync(enabledFile, JSON.stringify({ jobs: ["packs/demo/jobs/job-a.yaml"] }));
+    installEnabled(enabledFile, targetDir, workspaceRoot);
+    const installed = join(targetDir, "job-a.yaml");
+    writeFileSync(enabledFile, "not json");
 
-    const wrongShape = join(tmpDir, "wrong-shape.json");
-    writeFileSync(wrongShape, JSON.stringify({ jobs: "not-a-list" }));
-    expect(readEnabledJobs(wrongShape)).toEqual([]);
+    expect(() => readEnabledJobs(enabledFile)).toThrow(/not valid JSON/);
+    expect(() => installEnabled(enabledFile, targetDir, workspaceRoot)).toThrow();
+    expect(existsSync(installed)).toBe(true);
+  });
+
+  it("should throw when the jobs entry has the wrong shape", () => {
+    writeFileSync(enabledFile, JSON.stringify({ jobs: "not-a-list" }));
+    expect(() => readEnabledJobs(enabledFile)).toThrow(/must hold \{"jobs"/);
+
+    writeFileSync(enabledFile, JSON.stringify({ jobs: [1, 2] }));
+    expect(() => readEnabledJobs(enabledFile)).toThrow(/must hold \{"jobs"/);
   });
 });

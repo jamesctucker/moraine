@@ -71,7 +71,12 @@ def check_git() -> dict:
 
 
 def check_python() -> dict:
-    """Check python3 is available and can import key modules."""
+    """Check python3 is available and the running interpreter has the packages.
+
+    Import checks use sys.executable — the interpreter running this health
+    check is the one that runs the workspace scripts, and it may be the
+    .venv python while a bare `python3` on PATH has nothing installed.
+    """
     result = {"tool": "python", "status": "ok", "details": {}}
 
     rc, stdout, stderr = run(["python3", "--version"])
@@ -83,7 +88,7 @@ def check_python() -> dict:
 
     # Check key packages available
     for pkg in ("yaml", "sqlite3", "pathlib"):
-        rc, _, stderr = run(["python3", "-c", f"import {pkg}"])
+        rc, _, stderr = run([sys.executable, "-c", f"import {pkg}"])
         if rc != 0:
             result["status"] = "warn"
             result["details"].setdefault("missing_packages", []).append(pkg)
