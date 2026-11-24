@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { resolve } from "node:path";
-import { existsSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { readdirSync } from "node:fs";
 import { hostname } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config";
@@ -11,11 +11,11 @@ import { runWithTimeout } from "./spawn";
 import { routeOutput } from "./output";
 import { sendJobEmail } from "./email";
 import { createLogger } from "./logger";
-import { installDefaults } from "./install";
+import { installEnabled } from "./install";
 import { resolvePath } from "./util";
 import type { CronConfig, Job, RunResult } from "./types";
 
-const WORKSPACE_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../..");
+const WORKSPACE_ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../..");
 
 function parseArgs(args: string[]) {
   const list = args.includes("--list");
@@ -176,24 +176,32 @@ function listJobs(jobs: Job[], config: CronConfig): void {
 async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
 
-  const configPath = resolve(WORKSPACE_ROOT, ".opencode/cron.config.yaml");
+  const configPath = resolve(WORKSPACE_ROOT, "packs/automation/runner/cron.config.yaml");
   const config = loadConfig(configPath);
+  const installDir = resolvePath(config.install_dir, WORKSPACE_ROOT);
+  // enabled.json (written by `moraine sync`) names the jobs to install; it
+  // lives in the install dir alongside the job files.
+  const enabledFile = join(installDir, "enabled.json");
 
   if (args.installDefaults) {
-    const sourceDir = resolve(WORKSPACE_ROOT, "scheduled");
-    const targetDir = resolvePath(config.install_dir, WORKSPACE_ROOT);
-    installDefaults(sourceDir, targetDir, true);
+    installEnabled(enabledFile, installDir, WORKSPACE_ROOT);
     return 0;
   }
 
-  const jobDir = args.jobDir
-    ? resolvePath(args.jobDir, WORKSPACE_ROOT)
-    : resolvePath(config.install_dir, WORKSPACE_ROOT);
+  const jobDir = args.jobDir ? resolvePath(args.jobDir, WORKSPACE_ROOT) : installDir;
 
-  if (!args.jobDir && (!existsSync(jobDir) || !readdirSync(jobDir).length)) {
-    console.log(`Cron directory '${jobDir}' empty or missing. Installing defaults...`);
-    const sourceDir = resolve(WORKSPACE_ROOT, "scheduled");
-    installDefaults(sourceDir, jobDir);
+  // The install dir also holds enabled.json, so "empty" means no job files.
+  const hasJobFiles = (dir: string) => {
+    try {
+      return readdirSync(dir).some((entry) => /\.(ya?ml)$/i.test(entry));
+    } catch {
+      return false;
+    }
+  };
+
+  if (!args.jobDir && !hasJobFiles(jobDir)) {
+    console.log(`Cron directory '${jobDir}' has no job files. Installing from the enabled list...`);
+    installEnabled(enabledFile, jobDir, WORKSPACE_ROOT);
   }
 
   const jobs = loadJobs(jobDir);

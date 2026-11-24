@@ -128,7 +128,7 @@ This workspace is not a single project. Where the bug lives determines how you w
 
 - Use `memory/index.md` and `memory/sessions/` for context on recent changes that may have introduced the bug
 - Check `.opencode/` config for misconfigurations
-- Scripts and MCP servers live in `scripts/mcp-servers/`
+- Scripts and MCP servers live in `packs/<pack>/scripts/` and the packs' `pack.yaml` files
 
 ### Project level (`work/<project>/`)
 

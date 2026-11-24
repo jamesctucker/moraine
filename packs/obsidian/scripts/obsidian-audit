@@ -7,7 +7,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPTS_DIR / "workspace"))
+sys.path.insert(0, str(SCRIPTS_DIR.parent.parent.parent / "scripts" / "workspace"))
 
 from lib import VAULT, WikilinkIndex, check_wikilinks, extract_wikilinks, parse_detailed
 

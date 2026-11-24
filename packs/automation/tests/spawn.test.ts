@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runWithTimeout } from "../../.opencode/cron/spawn";
+import { runWithTimeout } from "../runner/spawn";
 import { fileURLToPath } from "node:url";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures", import.meta.url));

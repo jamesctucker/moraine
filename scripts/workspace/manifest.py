@@ -406,8 +406,8 @@ def install_hint(prereq: Prereq) -> str | None:
     return prereq.install.get(platform)
 
 
-def write_pack_list(path: Path, packs: list[str]) -> None:
-    """Set the `packs:` list in moraine.yaml, keeping every other byte.
+def write_manifest(path: Path, harnesses: list[str] | None = None, packs: list[str] | None = None) -> None:
+    """Set `harnesses` and/or `packs` in moraine.yaml, keeping every other byte.
 
     The value's span comes from the YAML node tree, so comments, key order,
     and formatting elsewhere survive. The edit is re-parsed and compared with
@@ -415,10 +415,15 @@ def write_pack_list(path: Path, packs: list[str]) -> None:
     """
     raw = path.read_text()
     expected = dict(yaml.safe_load(raw))
-    expected["packs"] = packs
-    candidate = _replace_value(raw, "packs", "[" + ", ".join(packs) + "]")
+    candidate = raw
+    if harnesses is not None:
+        expected["harnesses"] = harnesses
+        candidate = _replace_value(candidate, "harnesses", "[" + ", ".join(harnesses) + "]")
+    if packs is not None:
+        expected["packs"] = packs
+        candidate = _replace_value(candidate, "packs", "[" + ", ".join(packs) + "]")
     if yaml.safe_load(candidate) != expected:
-        raise ManifestError([f"{MANIFEST_NAME}: could not edit the packs list; edit it by hand"])
+        raise ManifestError([f"{MANIFEST_NAME}: could not edit the manifest; edit it by hand"])
     path.write_text(candidate)
 
 

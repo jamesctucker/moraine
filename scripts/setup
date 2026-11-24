@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 # Moraine — Setup
 #
-# One-shot workspace setup for new clones and forks.
-# - Verifies required tools (git, bun, python3)
-# - Offers to install OpenCode if missing (prompted, exact command shown)
-# - Installs JS deps and Python deps (into a workspace-local .venv, never system Python)
-# - Optionally installs headroom (context compression)
-# - Shows configured MCP servers and offers to trim unwanted ones
-# - Runs a smoke test and prints featured skills to try first
+# Core-first workspace setup for new clones and forks.
+#
+# Core needs git and Python 3.11+, nothing else. Setup then:
+#   - creates a workspace-local .venv and installs the Python deps
+#   - asks which agent harnesses you run (detected ones are the default)
+#     and installs OpenCode, at the pinned version, only if chosen+missing
+#   - offers pack presets: core / recommended / everything / custom
+#   - for each enabled pack, offers to install missing prerequisites —
+#     every prompt shows the exact command from the pack's pack.yaml
+#   - writes moraine.yaml, runs `moraine sync`, and smoke-tests the result
 #
 # Consent model: nothing is installed outside this workspace without a
 # prompt, and every prompt shows the exact command that will run.
-# Pass --yes (-y) to accept all defaults non-interactively (CI).
+# Pass --yes (-y) for the non-interactive default (CI): core with the
+# harnesses detected on PATH and nothing installed.
 
 set -euo pipefail
 
@@ -32,9 +36,8 @@ for arg in "$@"; do
         -y|--yes) YES=1 ;;
         -h|--help)
             echo "Usage: bash scripts/setup [--yes]"
-            echo "  --yes, -y   Accept all defaults non-interactively (CI). Nothing is"
-            echo "              installed outside the workspace without a prompt unless"
-            echo "              the default is already 'yes'."
+            echo "  --yes, -y   Non-interactive default (CI): core with the harnesses"
+            echo "              detected on PATH. Nothing is installed without a prompt."
             exit 0
             ;;
         *) warn "Unknown argument: $arg (ignored)" ;;
@@ -65,17 +68,12 @@ info "🛠  Moraine — Setup"
 echo "   ${REPO_ROOT}"
 echo ""
 
-# ── Required checks ──────────────────────────────────────────
+# ── 1. Core requirements: git + Python ≥ 3.11 ────────────────
 
 if ! command -v git &>/dev/null; then
     fail "git is required but not found. Install Xcode Command Line Tools first."
 fi
 ok "git"
-
-if ! command -v bun &>/dev/null; then
-    fail "bun is required but not found. Install it first: https://bun.sh/docs/installation"
-fi
-ok "bun $(bun --version)"
 
 if ! command -v python3 &>/dev/null; then
     fail "python3 is required but not found. Install Python 3.11+ from https://python.org"
@@ -85,374 +83,238 @@ if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)';
 fi
 ok "python3 $(python3 --version 2>&1 | awk '{print $2}')"
 
-# ── OpenCode (prompted install if missing) ───────────────────
-
-OPENCODE_VERSION=""
-if [[ -f ".opencode-version" ]]; then
-    OPENCODE_VERSION=$(tr -d '[:space:]' < .opencode-version)
-fi
-
-if [[ -z "$OPENCODE_VERSION" ]]; then
-    warn ".opencode-version not found — will install latest OpenCode"
-    OPENCODE_VERSION="latest"
-fi
-
-install_opencode() {
-    local version="$1"
-    info "Installing OpenCode (${version})..."
-    # OpenCode 2.x ships as @opencode/cli; the older unscoped package stops at
-    # 1.19.x. --trust lets the package's postinstall place the binary.
-    if bun install -g --trust "@opencode/cli@${version}"; then
-        ok "OpenCode installed"
-        # bun's global bin dir is not always on PATH (fresh bun installs)
-        local bun_bin
-        bun_bin="$(bun pm -g bin 2>/dev/null || echo "")"
-        if ! command -v opencode &>/dev/null && [[ -n "$bun_bin" ]]; then
-            warn "opencode installed but not on PATH. Add bun's global bin dir:"
-            echo "   export PATH=\"${bun_bin}:\$PATH\""
-        fi
-    else
-        fail "OpenCode installation failed. Install manually: https://opencode.ai/docs/install"
-    fi
-}
-
-if ! command -v opencode &>/dev/null; then
-    echo ""
-    info "OpenCode not found."
-    echo "   This workspace runs on the OpenCode agent CLI."
-    echo "   Install command: bun install -g --trust @opencode/cli@${OPENCODE_VERSION}"
-    echo ""
-    if ask "Install OpenCode globally now?" "y"; then
-        install_opencode "$OPENCODE_VERSION"
-    else
-        warn "OpenCode skipped — the workspace won't run without it."
-        echo "   Install later: bun install -g --trust @opencode/cli@${OPENCODE_VERSION}"
-    fi
-else
-    # `opencode --version` prints e.g. "opencode v2.1.1" — keep only the number.
-    INSTALLED_VERSION=$(opencode --version 2>/dev/null | sed -E 's/.*v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' || echo "unknown")
-    if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != "$OPENCODE_VERSION" ]]; then
-        warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
-        if ask "Install matching version (bun install -g --trust @opencode/cli@${OPENCODE_VERSION})?"; then
-            install_opencode "$OPENCODE_VERSION"
-        else
-            warn "Version mismatch — workspace may not behave as expected"
-        fi
-    else
-        ok "opencode ${INSTALLED_VERSION}"
-    fi
-fi
-
-# ── Node.js (informational only — the script itself runs on bun) ──
-
-if ! command -v node &>/dev/null; then
-    warn "node not found — not required by this workspace, but some third-party"
-    echo "   tools may expect it. Install via your package manager if you need it."
-else
-    ok "node $(node --version)"
-fi
-
-# ── Workspace dependencies ───────────────────────────────────
-
-if [[ -f package.json ]]; then
-    info "Installing workspace dependencies..."
-    bun install --silent
-    ok "Workspace dependencies installed"
-fi
-
-if [[ -f .opencode/package.json ]]; then
-    info "Installing OpenCode dependencies..."
-    (cd .opencode && bun install --silent)
-    ok "OpenCode dependencies installed"
-fi
-
-if [[ -f scripts/mcp-servers/package.json ]]; then
-    info "Installing MCP server dependencies..."
-    (cd scripts/mcp-servers && bun install --silent)
-    ok "MCP server dependencies installed"
-fi
-
-# ── Python dependencies (workspace-local .venv — never system Python) ──
+# ── 2. Python dependencies (workspace-local .venv) ───────────
 
 VENV_DIR=".venv"
 VENV_PY="$VENV_DIR/bin/python"
 
-# uv is an optional faster pip — never installed silently. If the user
-# already has it, use it; otherwise plain python3 -m venv works fine.
-USE_UV=0
-if command -v uv &>/dev/null; then
-    ok "uv $(uv --version)"
-    USE_UV=1
-else
-    echo ""
-    info "uv not found (optional)."
-    echo "   uv is a fast Python package manager. Setup works fine without it"
-    echo "   (falls back to python3 -m venv + pip)."
-    echo "   Install command: curl -LsSf https://astral.sh/uv/install.sh | sh"
-    echo ""
-    if ask "Install uv now?" "n"; then
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        export PATH="$HOME/.local/bin:$PATH"
-        if command -v uv &>/dev/null; then
-            ok "uv installed"
-            USE_UV=1
-            warn "uv installed to ~/.local/bin — add it to your shell's PATH:"
-            echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
-        else
-            warn "uv installation failed — continuing with python3 -m venv + pip"
-        fi
+if [[ ! -x "$VENV_PY" ]]; then
+    info "Creating ${VENV_DIR}/ (workspace-local, gitignored)..."
+    if command -v uv &>/dev/null; then
+        uv venv "$VENV_DIR" -q
+    else
+        python3 -m venv "$VENV_DIR"
     fi
 fi
 
 if [[ -f requirements.txt ]]; then
-    info "Installing Python dependencies into ${VENV_DIR}/ (workspace-local)..."
-    if [[ ! -d "$VENV_DIR" ]]; then
-        if [[ "$USE_UV" == "1" ]]; then
-            uv venv "$VENV_DIR" -q
-        else
-            python3 -m venv "$VENV_DIR"
-        fi
-    fi
-    if [[ "$USE_UV" == "1" ]]; then
+    info "Installing Python dependencies into ${VENV_DIR}/..."
+    if command -v uv &>/dev/null; then
         uv pip install -r requirements.txt -q
     else
+        # A venv created by uv ships without pip; bootstrap it when missing.
+        "$VENV_PY" -m pip --version &>/dev/null || "$VENV_PY" -m ensurepip --default-pip &>/dev/null
         "$VENV_PY" -m pip install -q -r requirements.txt
     fi
     ok "Python dependencies installed (${VENV_DIR}/)"
 fi
 
-# ── Optional: Headroom ───────────────────────────────────────
+PYBIN="$VENV_PY"
+
+# ── 3. Harnesses ──────────────────────────────────────────────
+
+# Current choice, so re-running setup keeps what you already run.
+CURRENT_HARNESSES="$("$PYBIN" - <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, "scripts/workspace")
+try:
+    from manifest import load_manifests
+    print(" ".join(load_manifests()[0].harnesses))
+except Exception:
+    print("")
+PY
+)"
 
 echo ""
-if command -v headroom &>/dev/null; then
-    ok "headroom already installed ($(headroom --version 2>/dev/null))"
-else
-    echo -e "${BOLD}headroom${RESET} — context optimization layer for LLMs"
-    echo " Compresses tool outputs, logs, files before they reach the model."
-    echo " Reversible via CCR (Compress-Cache-Retrieve). 60-95% fewer tokens."
-    echo " MCP server integrates with OpenCode — no plugin needed."
-    echo ""
-    if ask "Install headroom?" "y"; then
-        HEADROOM_INSTALLED=""
-        if command -v uv &>/dev/null; then
-            # uv tool install = isolated env, binary linked into ~/.local/bin
-            uv tool install "headroom-ai[mcp]" -q && HEADROOM_INSTALLED="uv tool"
-        elif command -v pipx &>/dev/null; then
-            pipx install "headroom-ai[mcp]" -q && HEADROOM_INSTALLED="pipx"
-        else
-            # Last resort: workspace venv (binary at .venv/bin/headroom)
-            "$VENV_PY" -m pip install -q "headroom-ai[mcp]" && HEADROOM_INSTALLED="venv"
-            warn "headroom installed into ${VENV_DIR} — binary at ${VENV_DIR}/bin/headroom"
-            echo "   For global access, install pipx or uv and re-run."
-        fi
+info "Agent harnesses"
+echo "   Moraine is harness-neutral; sync wires the harnesses you pick."
+HARNESSES=""
+for harness in opencode claude codex; do
+    default=n
+    command -v "$harness" &>/dev/null && default=y
+    [[ " $CURRENT_HARNESSES " == *" $harness "* ]] && default=y
+    if ask "Run the '$harness' harness in this workspace?" "$default"; then
+        HARNESSES+=" $harness"
+    fi
+done
+HARNESSES="${HARNESSES# }"
+[[ -n "$HARNESSES" ]] && ok "harnesses: $HARNESSES" || warn "no harness selected — sync will link skills but write no MCP config"
 
-        HEADROOM_BIN="$(command -v headroom || echo "$VENV_DIR/bin/headroom")"
-        echo ""
-        echo "   Registering headroom as an MCP server — this writes to your"
-        echo "   OpenCode config (the agent's MCP server list)."
-        if "$HEADROOM_BIN" mcp install 2>/dev/null; then
-            ok "headroom installed (${HEADROOM_INSTALLED}) and registered with OpenCode"
+OPENCODE_VERSION=""
+[[ -f ".opencode-version" ]] && OPENCODE_VERSION=$(tr -d '[:space:]' < .opencode-version)
+[[ -z "$OPENCODE_VERSION" ]] && OPENCODE_VERSION="latest"
+
+# OpenCode installs only when chosen and missing. bun is the installer when
+# available; npm works everywhere else.
+if [[ " $HARNESSES " == *" opencode "* ]] && ! command -v opencode &>/dev/null; then
+    echo ""
+    info "OpenCode not found."
+    if command -v bun &>/dev/null; then
+        OC_INSTALL="bun install -g --trust @opencode/cli@${OPENCODE_VERSION}"
+    else
+        OC_INSTALL="npm install -g @opencode/cli@${OPENCODE_VERSION}"
+    fi
+    echo "   Install command: $OC_INSTALL"
+    if ask "Install OpenCode globally now?" "n"; then
+        if $OC_INSTALL; then
+            ok "OpenCode installed"
+            if ! command -v opencode &>/dev/null; then
+                warn "opencode is installed but not on PATH — reopen your shell or add its bin dir"
+            fi
         else
-            warn "headroom installed but MCP registration failed. Run manually: headroom mcp install"
+            fail "OpenCode installation failed. Install manually: https://opencode.ai/docs/install"
         fi
     else
-        warn "headroom skipped. Install later: uv tool install \"headroom-ai[mcp]\" && headroom mcp install"
+        warn "OpenCode skipped. Install later: $OC_INSTALL"
+    fi
+elif [[ " $HARNESSES " == *" opencode "* ]] && command -v opencode &>/dev/null; then
+    # `opencode --version` prints e.g. "opencode v2.1.1" — keep only the number.
+    INSTALLED_VERSION=$(opencode --version 2>/dev/null | sed -E 's/.*v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/' || echo "unknown")
+    if [[ "$OPENCODE_VERSION" != "latest" && "$INSTALLED_VERSION" != "$OPENCODE_VERSION" ]]; then
+        warn "OpenCode ${INSTALLED_VERSION} installed, .opencode-version expects ${OPENCODE_VERSION}"
+    else
+        ok "opencode ${INSTALLED_VERSION}"
     fi
 fi
 
-# ── Obsidian ─────────────────────────────────────────────────
+# ── 4. Packs ─────────────────────────────────────────────────
 
 echo ""
-info "Obsidian — knowledge management client for wiki/"
-echo "   wiki/ is an Obsidian vault. Open it in the Obsidian desktop app"
-echo "   (not the repo root) to browse, edit, and follow wikilinks."
-echo ""
+info "Packs"
+echo "   Each pack is opt-in: skills, scripts, and jobs for one domain,"
+echo "   described in packs/<name>/pack.yaml."
 
-# Detect Obsidian install: check common app names across platforms
-obsidian_found=""
-case "$(uname -s)" in
-    Darwin)
-        [[ -d "/Applications/Obsidian.app" ]] && obsidian_found="macOS"
-        [[ -d "$HOME/Applications/Obsidian.app" ]] && obsidian_found="macOS (user)"
-        ;;
-    Linux)
-        command -v obsidian &>/dev/null && obsidian_found="Linux"
-        [[ -e "/var/lib/flatpak/exports/bin/md.obsidian.Obsidian" ]] && obsidian_found="Linux (flatpak)"
-        ;;
-    MINGW*|MSYS*|CYGWIN*)
-        [[ -e "/c/Users/$USER/AppData/Local/Obsidian/Obsidian.exe" ]] && obsidian_found="Windows"
-        ;;
-esac
+declare -a PACK_NAMES=() PACK_DESCS=()
+while IFS=$'\t' read -r kind name rest; do
+    [[ "$kind" == "pack" ]] || continue
+    PACK_NAMES+=("$name")
+    PACK_DESCS+=("$rest")
+done < <("$PYBIN" - <<'PY'
+import sys
+sys.path.insert(0, "scripts/workspace")
+from manifest import load_manifests
+_, packs = load_manifests()
+for name in sorted(packs):
+    print("\t".join(["pack", name, packs[name].description]))
+PY
+)
 
-if [[ -n "$obsidian_found" ]]; then
-    ok "obsidian already installed ($obsidian_found)"
+# Currently-enabled packs, so the custom preset defaults keep what you run.
+CURRENT_PACKS="$("$PYBIN" - <<'PY'
+import sys
+sys.path.insert(0, "scripts/workspace")
+from manifest import enabled_packs, load_manifests
+manifest, packs = load_manifests()
+print(" ".join(sorted(enabled_packs(manifest.packs, packs))))
+PY
+)"
+
+SELECTED_PACKS=""
+if [[ "$YES" == "1" ]]; then
+    echo "   --yes: core only. Enable packs later with: python3 scripts/moraine packs enable <name>"
 else
-    case "$(uname -s)" in
-        Darwin)
-            if command -v brew &>/dev/null; then
-                if ask "Install Obsidian via Homebrew cask (brew install --cask obsidian)?" "y"; then
-                    brew install --cask obsidian
-                    ok "Obsidian installed"
-                else
-                    warn "Obsidian skipped. Install later: brew install --cask obsidian"
-                    echo "   Or download directly from https://obsidian.md"
+    echo ""
+    echo "   1) core          — no packs (your own skills live in packs/local)"
+    echo "   2) recommended   — engineering, reflection, semble"
+    echo "   3) everything    — every shipped pack"
+    echo "   4) custom        — choose pack by pack"
+    echo -ne "${BOLD}Preset${RESET} [2]: "
+    read -r choice || choice=""
+    choice="${choice:-2}"
+    case "$choice" in
+        1) warn "core only" ;;
+        2) SELECTED_PACKS="engineering reflection semble"; ok "recommended: $SELECTED_PACKS" ;;
+        3) SELECTED_PACKS="${PACK_NAMES[*]}"; ok "everything: $SELECTED_PACKS" ;;
+        4)
+            for i in "${!PACK_NAMES[@]}"; do
+                name="${PACK_NAMES[$i]}"
+                default=n
+                [[ " $CURRENT_PACKS " == *" $name "* ]] && default=y
+                echo ""
+                echo "  ${BOLD}${name}${RESET} — ${PACK_DESCS[$i]}"
+                if ask "    Enable $name?" "$default"; then
+                    SELECTED_PACKS+=" $name"
                 fi
-            else
-                warn "Homebrew not found. Download Obsidian from https://obsidian.md"
-            fi
+            done
+            SELECTED_PACKS="${SELECTED_PACKS# }"
+            [[ -n "$SELECTED_PACKS" ]] && ok "custom: $SELECTED_PACKS" || warn "core only"
             ;;
-        Linux)
-            if command -v flatpak &>/dev/null; then
-                if ask "Install Obsidian via Flatpak (flatpak install flathub md.obsidian.Obsidian)?" "y"; then
-                    flatpak install -y flathub md.obsidian.Obsidian
-                    ok "Obsidian installed"
-                else
-                    warn "Obsidian skipped. Install later: flatpak install flathub md.obsidian.Obsidian"
-                    echo "   Or download an AppImage from https://obsidian.md"
-                fi
-            else
-                warn "Flatpak not found. Download Obsidian AppImage from https://obsidian.md"
-            fi
-            ;;
-        MINGW*|MSYS*|CYGWIN*)
-            if command -v winget &>/dev/null; then
-                if ask "Install Obsidian via winget (winget install Obsidian.Obsidian)?" "y"; then
-                    winget install Obsidian.Obsidian
-                    ok "Obsidian installed"
-                else
-                    warn "Obsidian skipped. Install later: winget install Obsidian.Obsidian"
-                    echo "   Or download from https://obsidian.md"
-                fi
-            else
-                warn "winget not found. Download Obsidian from https://obsidian.md"
-            fi
-            ;;
-        *)
-            warn "Unknown platform ($(uname -s)). Download Obsidian from https://obsidian.md"
-            ;;
+        *) warn "unknown choice '$choice' — core only" ;;
     esac
 fi
 
-echo ""
-warn "First use: open the 'wiki/' folder (not the repo root) as an Obsidian vault."
+# ── 5. Prerequisites for the enabled packs ────────────────────
+# The effective set includes each pack's `requires`; sync links those too.
 
-# ── Git setup ─────────────────────────────────────────────────
+PREREQ_OUTPUT="$("$PYBIN" - $SELECTED_PACKS <<'PY'
+import sys
+sys.path.insert(0, "scripts/workspace")
+from manifest import enabled_packs, install_hint, load_manifests, missing_prereqs
+_, packs = load_manifests()
+selected = [name for name in sys.argv[1:] if name]
+effective = enabled_packs(tuple(selected), packs)
+print("EFFECTIVE " + " ".join(sorted(effective)))
+for name, pack in sorted(effective.items()):
+    for prereq in missing_prereqs(pack):
+        hint = install_hint(prereq) or ""
+        print("\t".join([name, prereq.cmd, prereq.why, hint]))
+PY
+)"
+EFFECTIVE_PACKS="$(sed -n '1s/^EFFECTIVE //p' <<<"$PREREQ_OUTPUT")"
 
-echo ""
-info "Git setup"
-
-# Offer a rename only in the one case it's safe and useful: the repo's
-# only branch is 'master' and no 'main' exists. Anything else (detached
-# HEAD, feature branch, main already present) is left alone.
-CURRENT_BRANCH=$(git -C "$REPO_ROOT" symbolic-ref --short HEAD 2>/dev/null || echo "")
-if [[ "$CURRENT_BRANCH" == "master" ]] && ! git show-ref --verify --quiet refs/heads/main; then
-    if ask "Rename branch 'master' to 'main' (git branch -m main)?"; then
-        git -C "$REPO_ROOT" branch -m main
-        ok "branch renamed to main"
-    else
-        warn "keeping branch 'master'"
-    fi
-elif [[ -n "$CURRENT_BRANCH" ]]; then
-    ok "on branch '$CURRENT_BRANCH'"
-else
-    warn "detached HEAD — leaving branch state untouched"
-fi
-
-# ── MCP server status + trim ─────────────────────────────────
-
-echo ""
-info "MCP servers"
-echo ""
-
-MCP_FILE=".opencode/opencode.json"
-export MCP_FILE
-
-if [[ ! -f "$MCP_FILE" ]]; then
-    warn "No opencode.json found — skipping MCP configuration"
-else
-    # Print server list with descriptions
-    bun -e "
-        const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-        const servers = (cfg.mcp && cfg.mcp.servers) || {};
-        const descs = {
-            semble:   'semantic code search across work/ repos (local, uvx)',
-            headroom: 'context compression, 60-95% fewer tokens (local)',
-        };
-        const names = Object.keys(servers);
-        if (names.length === 0) {
-            console.log('  (none configured)');
-        } else {
-            names.forEach((name) => {
-                const conf = servers[name];
-                const type = conf.type || 'unknown';
-                const desc = descs[name] || type;
-                console.log('  \x1b[32m✓\x1b[0m \x1b[1m' + name + '\x1b[0m — ' + desc);
-            });
-        }
-    "
-
+# Process substitution, not a pipe: the loop body prompts on stdin.
+while IFS=$'\t' read -r pack cmd why hint; do
     echo ""
-    if ask "Remove any MCP servers you don't want?"; then
-        echo ""
-        info "Select servers to remove (comma-separated numbers):"
-
-        SERVER_COUNT=$(bun -e "
-            try {
-                const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-                console.log(Object.keys((cfg.mcp && cfg.mcp.servers) || {}).length);
-            } catch (e) {
-                console.log('0');
-            }
-        " 2>/dev/null || echo "0")
-        SERVER_COUNT="${SERVER_COUNT:-0}"
-
-        if [[ ! "$SERVER_COUNT" =~ ^[0-9]+$ ]] || [[ "$SERVER_COUNT" -eq 0 ]]; then
-            warn "No servers to remove"
-        else
-            bun -e "
-                const cfg = JSON.parse(require('fs').readFileSync(process.env.MCP_FILE, 'utf8'));
-                Object.keys((cfg.mcp && cfg.mcp.servers) || {}).forEach((name, i) => {
-                    console.log('  ' + (i + 1) + ') ' + name);
-                });
-            "
-
-            echo ""
-            echo -ne "${BOLD}Numbers to remove:${RESET} "
-            selections=""
-            read -r selections || selections=""
-
-            # Pass selections via stdin to avoid shell-injection into the JS string
-            if [[ -n "$selections" ]]; then
-                printf '%s' "$selections" | bun -e "
-                    const fs = require('fs');
-                    let input = '';
-                    process.stdin.on('data', chunk => input += chunk);
-                    process.stdin.on('end', () => {
-                        const cfg = JSON.parse(fs.readFileSync(process.env.MCP_FILE, 'utf8'));
-                        const names = Object.keys((cfg.mcp && cfg.mcp.servers) || {});
-                        const tokens = input.split(/[,\s]+/).filter(Boolean);
-                        const toRemove = tokens
-                            .map(n => parseInt(n.trim(), 10))
-                            .filter(n => n >= 1 && n <= names.length)
-                            .map(n => names[n - 1]);
-
-                        if (toRemove.length === 0) {
-                            console.log('  (no valid selections — keeping all)');
-                        } else {
-                            toRemove.forEach(name => delete cfg.mcp.servers[name]);
-                            fs.writeFileSync(process.env.MCP_FILE, JSON.stringify(cfg, null, 2) + '\n');
-                            console.log('  removed: ' + toRemove.join(', '));
-                        }
-                    });
-                "
+    warn "$pack: '$cmd' is missing ($why)"
+    if [[ -n "$hint" ]]; then
+        echo "   Install command: $hint"
+        if ask "Run it now?" "n"; then
+            if bash -c "$hint"; then
+                ok "$cmd installed"
             else
-                warn "No selections — keeping all MCP servers"
+                warn "$cmd install failed — install it manually, then re-run setup"
             fi
+        else
+            echo "   Later: $hint"
         fi
+    else
+        echo "   No install command in pack.yaml — install '$cmd' yourself, or keep the pack unenabled."
+    fi
+done < <(tail -n +2 <<<"$PREREQ_OUTPUT" | grep -v '^$')
+
+if [[ " $EFFECTIVE_PACKS " == *" automation "* ]]; then
+    echo ""
+    if command -v bun &>/dev/null; then
+        info "Installing the cron runner's dependencies..."
+        (cd packs/automation/runner && bun install --frozen-lockfile --silent)
+        ok "Cron runner dependencies installed"
+    else
+        warn "bun is missing — the cron runner's dependencies were not installed."
+        echo "   Install bun, then: (cd packs/automation/runner && bun install --frozen-lockfile)"
     fi
 fi
 
-# ── Smoke test ───────────────────────────────────────────────
+# ── 6. Write moraine.yaml and sync ───────────────────────────
+
+echo ""
+info "Writing moraine.yaml (harnesses: ${HARNESSES:-none}; packs: ${SELECTED_PACKS:-none})"
+"$PYBIN" - "$HARNESSES" "$SELECTED_PACKS" <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, "scripts/workspace")
+from manifest import write_manifest
+write_manifest(
+    Path("moraine.yaml"),
+    harnesses=sys.argv[1].split(),
+    packs=sys.argv[2].split(),
+)
+PY
+
+info "Running moraine sync..."
+"$PYBIN" scripts/moraine sync || fail "moraine sync failed — fix moraine.yaml and re-run"
+
+# ── 7. Smoke test ────────────────────────────────────────────
 
 echo ""
 info "Smoke test"
@@ -460,63 +322,35 @@ info "Smoke test"
 SMOKE_FAILED=0
 SMOKE_OK=0
 SMOKE_WARN=0
-NO_CREDENTIALS=0
-PYBIN="python3"
-[[ -x "$VENV_PY" ]] && PYBIN="$VENV_PY"
 
 smoke_ok()   { ok "$@";   SMOKE_OK=$((SMOKE_OK + 1)); }
 smoke_warn() { warn "$@"; SMOKE_WARN=$((SMOKE_WARN + 1)); }
 
-if command -v opencode &>/dev/null; then
-    if opencode --version &>/dev/null 2>&1; then
-        smoke_ok "opencode (CLI responsive)"
-    else
-        smoke_warn "opencode --version failed"
-        SMOKE_FAILED=1
-    fi
+if "$PYBIN" scripts/workspace/validate.py &>/dev/null; then
+    smoke_ok "validate (workspace structure OK)"
 else
-    smoke_warn "opencode not on PATH"
+    smoke_warn "validate.py failed — run it manually to see findings"
+    SMOKE_FAILED=1
+fi
+
+if "$PYBIN" scripts/workspace/health-check.py --quick &>/dev/null; then
+    smoke_ok "health-check (core tools OK)"
+else
+    smoke_warn "health-check failed — run it manually to see findings"
     SMOKE_FAILED=1
 fi
 
 # A model provider must be authenticated before any session can run.
-if command -v opencode &>/dev/null; then
+# (Credential checks for other harnesses land with their support.)
+if [[ " $HARNESSES " == *" opencode "* ]] && command -v opencode &>/dev/null; then
     if opencode auth list --standalone 2>/dev/null | grep -q "stored"; then
-        smoke_ok "model provider credentials"
+        smoke_ok "model provider credentials (opencode)"
     else
         smoke_warn "No model provider yet — run: opencode auth login"
-        NO_CREDENTIALS=1
     fi
 fi
 
-if command -v headroom &>/dev/null; then
-    if headroom --version &>/dev/null 2>&1; then
-        smoke_ok "headroom (installed)"
-    else
-        smoke_warn "headroom --version failed"
-        SMOKE_FAILED=1
-    fi
-fi
-
-if [[ -f scripts/workspace/session-index.py ]]; then
-    if "$PYBIN" scripts/workspace/session-index.py --help &>/dev/null 2>&1; then
-        smoke_ok "session-index (Python deps OK)"
-    else
-        smoke_warn "session-index.py failed — check Python dependencies"
-        SMOKE_FAILED=1
-    fi
-fi
-
-if [[ -f scripts/workspace/validate.py ]]; then
-    if "$PYBIN" scripts/workspace/validate.py &>/dev/null 2>&1; then
-        smoke_ok "validate (workspace structure OK)"
-    else
-        smoke_warn "validate.py failed — run it manually to see findings"
-        SMOKE_FAILED=1
-    fi
-fi
-
-# ── Done ──────────────────────────────────────────────────────
+# ── 8. Done ───────────────────────────────────────────────────
 
 echo ""
 if [[ $SMOKE_FAILED -eq 0 ]]; then
@@ -526,30 +360,21 @@ else
 fi
 echo "   Smoke test: ${SMOKE_OK} passed, ${SMOKE_WARN} warning(s)"
 
-if [[ "$NO_CREDENTIALS" == "1" ]]; then
-    warn "One thing left before your first session: opencode auth login"
-fi
-
-if [[ -x "$VENV_PY" ]]; then
-    echo ""
-    info "Python environment"
-    echo "   Python deps live in ${VENV_DIR}/ (workspace-local, gitignored)."
-    echo "   Workspace scripts use the venv automatically; for your own runs:"
-    echo "   source ${VENV_DIR}/bin/activate"
-fi
+echo ""
+info "Python environment"
+echo "   Python deps live in ${VENV_DIR}/ (workspace-local, gitignored)."
+echo "   Workspace scripts use the venv automatically; for your own runs:"
+echo "   source ${VENV_DIR}/bin/activate"
 
 echo ""
 info "Next step:"
 echo "   • docs/first-session.md — a 20-minute walkthrough that proves the workspace works"
-echo "   • Run: opencode"
-echo "   • Open wiki/ as a vault in Obsidian (for the human knowledge side)"
+echo "   • Start your harness from the repo root; it reads AGENTS.md on startup"
+echo "   • Open wiki/ as a vault in Obsidian for the human knowledge side (optional)"
 echo ""
-echo "   OpenCode auto-discovers AGENTS.md and skills. Start with AGENTS.md."
-echo ""
-info "Featured skills (try these first):"
+info "Featured skills (core, try these first):"
 echo "   • scaffold-project — start a new project with PARA structure"
 echo "   • session-handoff — wrap up a session, persist memory for next time"
-echo "   • to-issue — turn a spec or repo into tracker issues (needs an issue-tracker MCP server)"
 echo "   • create-skill — build a new skill when you find a pattern worth automating"
 echo ""
 echo "   Skills auto-activate when you ask for what they do. Just describe your intent."

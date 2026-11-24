@@ -225,12 +225,12 @@ class TestPrereqs:
         assert mf.install_hint(prereq) == expected
 
 
-class TestWritePackList:
+class TestWriteManifest:
     def test_a_flow_list_is_replaced_and_every_other_byte_survives(self, tmp_path):
         path = tmp_path / "moraine.yaml"
         path.write_text("# mine\nversion: 1\nharnesses: [opencode]   # keep\npacks: []   # enable what you use\n")
 
-        mf.write_pack_list(path, ["demo"])
+        mf.write_manifest(path, packs=["demo"])
 
         assert path.read_text() == "# mine\nversion: 1\nharnesses: [opencode]   # keep\npacks: [demo]   # enable what you use\n"
 
@@ -238,7 +238,7 @@ class TestWritePackList:
         path = tmp_path / "moraine.yaml"
         path.write_text("version: 1\npacks:\n  - alpha\n  - beta\nmcp: {}\n")
 
-        mf.write_pack_list(path, ["gamma"])
+        mf.write_manifest(path, packs=["gamma"])
 
         assert path.read_text() == "version: 1\npacks:\n  [gamma]\nmcp: {}\n"
         assert yaml.safe_load(path.read_text()) == {"version": 1, "packs": ["gamma"], "mcp": {}}
@@ -247,7 +247,7 @@ class TestWritePackList:
         path = tmp_path / "moraine.yaml"
         path.write_text("version: 1\n")
 
-        mf.write_pack_list(path, ["demo"])
+        mf.write_manifest(path, packs=["demo"])
 
         assert path.read_text() == "version: 1\npacks: [demo]\n"
         assert yaml.safe_load(path.read_text()) == {"version": 1, "packs": ["demo"]}
@@ -256,10 +256,18 @@ class TestWritePackList:
         path = tmp_path / "moraine.yaml"
         path.write_text("version: 1\npacks:   # enable what you use\n  - alpha\n")
 
-        mf.write_pack_list(path, ["beta"])
+        mf.write_manifest(path, packs=["beta"])
 
         assert path.read_text() == "version: 1\npacks:   # enable what you use\n  [beta]\n"
         assert yaml.safe_load(path.read_text()) == {"version": 1, "packs": ["beta"]}
+
+    def test_harnesses_and_packs_are_set_together(self, tmp_path):
+        path = tmp_path / "moraine.yaml"
+        path.write_text("version: 1\nharnesses: []\npacks: []\n")
+
+        mf.write_manifest(path, harnesses=["opencode"], packs=["demo"])
+
+        assert path.read_text() == "version: 1\nharnesses: [opencode]\npacks: [demo]\n"
 
     def test_an_edit_that_cannot_be_made_leaves_the_file_alone(self, tmp_path):
         # Duplicate keys: YAML takes the last one, so rewriting the first cannot win.
@@ -268,6 +276,6 @@ class TestWritePackList:
         path.write_text(original)
 
         with pytest.raises(mf.ManifestError, match="edit it by hand"):
-            mf.write_pack_list(path, ["beta"])
+            mf.write_manifest(path, packs=["beta"])
 
         assert path.read_text() == original

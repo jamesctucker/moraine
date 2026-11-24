@@ -11,4 +11,4 @@ prereqs:
   - cmd: opencode
     why: the runner starts every job with opencode run
 mcp: {}
-jobs: []
+jobs: [jobs/weekly-recap.yaml]

@@ -18,14 +18,20 @@ See the [README](README.md) for what Moraine is and the [first-session walkthrou
 2. Run the full gate before opening a PR:
 
    ```bash
-   bun run test                                # Vitest (cron runner, hooks)
-   .venv/bin/python -m pytest tests/ -q        # Pytest (workspace scripts)
-   .venv/bin/ruff check tests/ scripts/       # Lint
+   bun install                                # contributor deps (vitest, husky)
+   (cd packs/automation/runner && bun install --frozen-lockfile)
+   bun run test                                # Vitest — automation pack (cron runner, hooks)
+   .venv/bin/python -m pytest tests/ packs/ -q # Pytest — core + pack scripts
+   .venv/bin/ruff check tests/ scripts/ packs/ # Lint
    .venv/bin/python scripts/workspace/validate.py
    ```
 
-3. Keep the same style as the surrounding code. Workspace scripts are plain Python 3.11+ with stdlib + PyYAML; cron code is TypeScript run under Bun.
-4. Open a PR against `main` using the PR template.
+   Note: bun, husky, and Vitest are contributor-only. Running the workspace
+   itself needs just git and Python 3.11+ (`bash scripts/setup --yes`); the
+   pre-push hook's vitest step is why contributors need bun installed.
+
+3. Keep the same style as the surrounding code. Workspace scripts are plain Python 3.11+ with stdlib + PyYAML; the cron runner is TypeScript run under Bun from `packs/automation/runner/`.
+4. Open a PR against `main` using the PR template. CI runs a core-only job (git + Python) and a full job with every pack enabled.
 
 ## What's in scope
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValid, matches, getNextRun } from "../../.opencode/cron/scheduler";
+import { isValid, matches, getNextRun } from "../runner/scheduler";
 
 describe("scheduler.ts", () => {
   describe("isValid", () => {

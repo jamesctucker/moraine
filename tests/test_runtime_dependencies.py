@@ -7,19 +7,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_runtime_downloads_are_exactly_pinned():
-    config = json.loads((ROOT / ".opencode" / "opencode.json").read_text())
-    brave = (ROOT / "scripts" / "mcp-servers" / "brave-search-mcp.sh").read_text()
+    # The packs that ship MCP servers pin the exact download.
+    semble = (ROOT / "packs" / "semble" / "pack.yaml").read_text()
 
-    assert config["mcp"]["servers"]["semble"]["command"] == ["uvx", "--from", "semble[mcp]==0.7.3", "semble"]
-    assert "@brave/brave-search-mcp-server@2.2.0" in brave
+    assert 'command: ["uvx", "--from", "semble[mcp]==0.7.3", "semble"]' in semble
+
+
+def test_opencode_config_ships_an_empty_server_block():
+    # `moraine sync` owns mcp.servers; the template ships it empty.
+    config = json.loads((ROOT / ".opencode" / "opencode.json").read_text())
+
+    assert config["mcp"]["servers"] == {}
 
 
 def test_weekly_recap_uses_the_locked_pdf_package():
-    recap = (ROOT / "scheduled" / "weekly-recap.yaml").read_text()
-    package = json.loads((ROOT / ".opencode" / "package.json").read_text())
+    recap = (ROOT / "packs" / "automation" / "jobs" / "weekly-recap.yaml").read_text()
+    package = json.loads((ROOT / "packs" / "automation" / "runner" / "package.json").read_text())
 
     assert package["scripts"]["render:pdf"] == "md-to-pdf"
-    assert "bun run --cwd .opencode render:pdf \"$PWD/wiki/" in recap
+    assert 'bun run --cwd packs/automation/runner render:pdf "$PWD/wiki/' in recap
     assert "bunx md-to-pdf" not in recap
     assert "--no-sandbox" not in recap
 

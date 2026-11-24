@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { loadConfig } from "../../.opencode/cron/config";
+import { loadConfig } from "../runner/config";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -18,7 +18,7 @@ describe("config.ts", () => {
   it("should return defaults when config file is missing", () => {
     const config = loadConfig(join(tmpDir, "nonexistent.yaml"));
     expect(config.default.timeout).toBe(600);
-    expect(config.log_dir).toBe("scheduled/.logs");
+    expect(config.log_dir).toBe("packs/automation/.logs");
     expect(config.locks_dir).toBe("~/.moraine/cron/.locks");
     expect(config.install_dir).toBe("~/.moraine/cron");
   });

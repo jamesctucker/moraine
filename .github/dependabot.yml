@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: bun
-    directory: /.opencode
+    directory: /packs/automation/runner
     schedule:
       interval: weekly
   - package-ecosystem: pip

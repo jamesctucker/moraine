@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
-import { loadJobs } from "../../.opencode/cron/job";
+import { loadJobs } from "../runner/job";
 import { writeFileSync, mkdirSync, rmSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

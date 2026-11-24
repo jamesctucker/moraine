@@ -16,8 +16,8 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...actual, renameSync };
 });
 
-import { routeOutput } from "../../.opencode/cron/output";
-import type { Job } from "../../.opencode/cron/types";
+import { routeOutput } from "../runner/output";
+import type { Job } from "../runner/types";
 
 describe("output.ts injected write failure", () => {
   const tmpDir = join(tmpdir(), `cron-test-output-fail-${Date.now()}`);

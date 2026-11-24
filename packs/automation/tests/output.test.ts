@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { routeOutput } from "../../.opencode/cron/output";
+import { routeOutput } from "../runner/output";
 import { writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import { acquireLock, releaseLock } from "../../.opencode/cron/lock";
+import { acquireLock, releaseLock } from "../runner/lock";
 import { startWorker } from "./helpers";
-import type { Job } from "../../.opencode/cron/types";
+import type { Job } from "../runner/types";
 
 const OUTPUT_WORKER = fileURLToPath(new URL("./fixtures/output-worker.mjs", import.meta.url));
 

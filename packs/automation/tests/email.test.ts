@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildMessage, expandSubject, renderHtml, sendJobEmail } from "../../.opencode/cron/email";
-import { JobSchema } from "../../.opencode/cron/job";
+import { buildMessage, expandSubject, renderHtml, sendJobEmail } from "../runner/email";
+import { JobSchema } from "../runner/job";
 
 const NOW = new Date(2026, 8, 7); // 2026-09-07 (a Monday)
 

@@ -107,7 +107,7 @@ These files are pure upstream code. The user should not have personalized them. 
 - `.github/**`
 - `.editorconfig`, `.gitattributes`, `.gitignore`, `.nvmrc`
 - `.sembleignore`
-- `package.json`, `bun.lock`, `pyproject.toml`, `requirements.txt`
+- `package.json`, `bun.lock`, `pyproject.toml`, `requirements.txt` at the repo root (the `automation` pack's runner copies are SAFE via `packs/<pack>/**` above)
 - `LICENSE`
 
 ### PERSONALIZED — files with `[CUSTOMIZE]` markers or user-edited config

@@ -4,7 +4,7 @@
 // on stdin ("||" stands in for a newline); "ready" and "done"/"error ..."
 // on stdout.
 import { createInterface } from "node:readline";
-import { routeOutput } from "../../../.opencode/cron/output.ts";
+import { routeOutput } from "../../runner/output.ts";
 
 const [jobName, workspaceRoot, outputPath, locksDir, mode] = process.argv.slice(2);
 

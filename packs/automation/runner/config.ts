@@ -8,7 +8,7 @@ const CronConfigSchema = z.object({
     model: z.string().optional(),
     timeout: z.number().default(600),
   }).default({ timeout: 600 }),
-  log_dir: z.string().default("scheduled/.logs"),
+  log_dir: z.string().default("packs/automation/.logs"),
   locks_dir: z.string().default("~/.moraine/cron/.locks"),
   install_dir: z.string().default("~/.moraine/cron"),
 });

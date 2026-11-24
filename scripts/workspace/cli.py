@@ -17,7 +17,7 @@ from manifest import (
     local_pack,
     missing_prereqs,
     pack_skills,
-    write_pack_list,
+    write_manifest,
 )
 from sync import SyncError, SyncPlan, run
 
@@ -126,7 +126,7 @@ def cmd_packs_enable(args: argparse.Namespace, workspace: Path) -> int:
         print(f"'{'/'.join(pack.name for pack in unfitted)}' needs the {needed} harness. Add it in {MANIFEST_NAME}:")
         print(f"  harnesses: [{needed}]")
         return 1
-    write_pack_list(workspace / MANIFEST_NAME, sorted({*manifest.packs, *wanted}))
+    write_manifest(workspace / MANIFEST_NAME, packs=sorted({*manifest.packs, *wanted}))
     return _sync(workspace)
 
 
@@ -144,5 +144,5 @@ def cmd_packs_disable(args: argparse.Namespace, workspace: Path) -> int:
     if dependent:
         print(f"refusing: '{name}' is required by {', '.join(dependent)}. Disable those first.")
         return 1
-    write_pack_list(workspace / MANIFEST_NAME, [pack for pack in manifest.packs if pack != name])
+    write_manifest(workspace / MANIFEST_NAME, packs=[pack for pack in manifest.packs if pack != name])
     return _sync(workspace)

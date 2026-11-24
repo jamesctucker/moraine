@@ -27,10 +27,10 @@ moraine/
 ├── wiki/              # your PARA vault (open in Obsidian)
 ├── artifacts/         # designs, research, specs
 ├── work/              # your code repos
-├── scripts/           # setup + workspace tooling
-├── .agents/skills/    # the skills your agent can see
-├── packs/             # optional packs: skills, scripts, jobs
-├── moraine.yaml       # which packs and harnesses you enabled
+├── scripts/           # setup, the moraine CLI, core workspace tooling
+├── .agents/skills/    # core skills + one symlink per enabled pack skill
+├── packs/             # opt-in packs: skills, scripts, jobs (automation's cron runner lives here)
+├── moraine.yaml       # which harnesses and packs you enabled
 └── .opencode/         # OpenCode config (permissions, MCP servers)
 ```
 
@@ -40,8 +40,9 @@ Everything the agent needs for context — `memory/`, `wiki/`, `artifacts/` — 
 
 ### Prerequisites
 
-- `git`, `bun`, `python3` 3.11+
-- A model provider for OpenCode (Anthropic, DeepSeek, OpenRouter, …). Setup installs OpenCode; you authenticate after setup, below.
+- `git` and `python3` 3.11+ — that is all core needs
+- A model provider for your harness (Anthropic, DeepSeek, OpenRouter, …). Setup offers to install OpenCode at the pinned version; you authenticate after setup, below.
+- Optional, per pack: `bun` (only if you enable the `automation` pack's cron runner), the Obsidian app (obsidian pack), and the tools each pack's `pack.yaml` lists as prerequisites.
 
 **Platforms:** developed and tested on macOS; the full test suite and workspace validation also run on Ubuntu Linux in CI. Windows is untested — use WSL if you try it.
 
@@ -53,16 +54,16 @@ cd moraine
 bash scripts/setup
 ```
 
-Then authenticate your provider — setup installed OpenCode, but the credentials are yours:
+Setup is core-first: it checks git and Python, creates a workspace-local `.venv/`, asks which agent harnesses you run (detected ones are the default), and offers pack presets — **core**, **recommended** (engineering + reflection + semble), **everything**, or **custom** per pack. For every enabled pack it shows missing prerequisites with the exact install command from that pack's `pack.yaml`, and installs nothing without a prompt. It writes your choices to `moraine.yaml`, runs `moraine sync` to link the pack skills and MCP servers, and smoke-tests the result.
+
+If you chose OpenCode, authenticate your provider — setup installed the CLI, but the credentials are yours:
 
 ```bash
 opencode auth login          # Anthropic, DeepSeek, OpenRouter, …
 opencode auth list           # confirm something is stored
 ```
 
-Consent-first: nothing is installed outside the workspace without a prompt, and every prompt shows the exact command. Setup checks your tools, installs OpenCode at the pinned version (`.opencode-version`), installs JS deps and Python deps into a workspace-local `.venv/` (never system Python), optionally installs Headroom and Obsidian, lets you trim MCP servers (tool integrations the agent can call), and runs a smoke test that includes a credentials check. `--yes` accepts defaults non-interactively.
-
-Setup ends with `✓ Setup complete!` and a smoke-test tally. If the tally reports a credentials warning, run `opencode auth login` — everything else can wait.
+`--yes` accepts defaults non-interactively (CI): core with the harnesses detected on PATH, nothing installed.
 
 ### Point origin at your own repo
 
@@ -80,9 +81,10 @@ Forking first and cloning your fork works too. Either way, pulling template upda
 ```bash
 .venv/bin/python scripts/workspace/validate.py       # structure, skills, links
 .venv/bin/python scripts/workspace/health-check.py   # workspace sanity
-bun run test                                         # Vitest — cron runner, hooks
-.venv/bin/python -m pytest                           # Pytest — workspace scripts
+.venv/bin/python -m pytest                           # Pytest — core + pack scripts
 ```
+
+Vitest (the automation pack's cron-runner tests) is contributor-only — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Use `python3` instead of `.venv/bin/python` only if you installed the Python deps elsewhere.
 
@@ -142,22 +144,24 @@ For code across repos, ask the agent — the Semble MCP server searches `work/` 
 
 ## Automation and integrations
 
+Moraine is harness-neutral: OpenCode, Claude Code, and Codex read the same `AGENTS.md` and skills. One exception — the cron runner below starts every job with `opencode run`, so the `automation` pack needs OpenCode.
+
 ### Scheduled jobs
 
-A lightweight cron scheduler runs automated agent tasks. Two jobs ship: `weekly-recap` (Mondays 8am — a deterministic memory audit plus a week-in-review appended to your daily note) and `slop-sweep` (Mondays 9am — weekly code-quality measurement across your `work/` repos, flag-only). Jobs are YAML files in `scheduled/`; copy either one to add your own.
+A lightweight cron scheduler runs automated agent tasks. It ships in the `automation` pack (`packs/automation/runner/`, TypeScript under Bun). Jobs are YAML files in each pack's `jobs/` folder and your own in `packs/local/jobs/` — two ship: `weekly-recap` (Mondays 8am — a deterministic memory audit plus a week-in-review appended to your daily note) and the quality pack's `slop-sweep` (Mondays 9am — weekly code-quality measurement across your `work/` repos, flag-only). `moraine sync` writes the enabled list to `~/.moraine/cron/enabled.json`; the runner installs from it.
 
 ```bash
-bun run .opencode/cron/runner.ts --install-defaults   # install jobs to ~/.moraine/cron/
-bun run .opencode/cron/runner.ts --list               # list configured jobs
-bun run .opencode/cron/runner.ts --dry-run            # see what would fire now
-bun run .opencode/cron/runner.ts --once weekly-recap  # run one immediately
+bun run packs/automation/runner/runner.ts --install-defaults   # install enabled jobs to ~/.moraine/cron/
+bun run packs/automation/runner/runner.ts --list               # list configured jobs
+bun run packs/automation/runner/runner.ts --dry-run            # see what would fire now
+bun run packs/automation/runner/runner.ts --once weekly-recap  # run one immediately
 ```
 
 Add it to crontab (every minute is fine — it only fires when a job's schedule matches). Set PATH explicitly: cron's default excludes `~/.bun/bin` and `~/.opencode/bin`, so without this line the job silently never runs:
 
 ```
 PATH=$HOME/.bun/bin:$HOME/.opencode/bin:/usr/local/bin:/usr/bin:/bin
-* * * * * cd /path/to/moraine && bun run .opencode/cron/runner.ts
+* * * * * cd /path/to/moraine && bun run packs/automation/runner/runner.ts
 ```
 
 ```yaml
@@ -171,12 +175,7 @@ hostname: my-machine     # optional — restrict to one machine
 
 ### MCP servers
 
-Configured in `.opencode/opencode.json`. Two ship enabled:
-
-- **Semble** — semantic code search across `work/` repos (local, `uvx`).
-- **Headroom** — context compression. Headroom reports 60–95% fewer tokens on tool output for typical sessions; reversible — the agent can retrieve the original via CCR (local).
-
-Add your own tracker, reader, or meeting-notes server there when you want it; `to-issue` and the other skills will use whatever the agent can see.
+MCP servers (tool integrations the agent can call) are configured per pack: enabling a pack adds its servers to your harness's config via `moraine sync`. Two packs ship them — **Semble** (semantic code search across `work/` repos, local, `uvx`) and **Headroom** (context compression, reversible via CCR). Add your own in `moraine.yaml`'s `mcp:` block; `to-issue` and the other skills use whatever the agent can see.
 
 ### Built on
 
@@ -193,8 +192,8 @@ Add your own tracker, reader, or meeting-notes server there when you want it; `t
 Moraine is cloned, not hosted. Everything is in git — memory, wiki, skills, project repos. No Moraine-operated backend and no signup. Your selected model provider and any MCP integrations you enable are external services with their own data policies, and the bundled automation currently targets OpenCode — memory itself stays portable Markdown you can read without any tool.
 
 - **`AGENTS.md`** — the main lever: conventions, commands, issue tracking, remote access.
-- **`.agents/skills/` and `packs/`** — 7 core skills and 23 more in packs. Edit them, or write your own with the `create-skill` skill.
-- **`.opencode/opencode.json`** — MCP servers and shell-safety permissions.
+- **`.agents/skills/` and `packs/`** — 7 core skills and 23 more in packs. Enable packs in `moraine.yaml`, edit them, or write your own with the `create-skill` skill.
+- **`.opencode/opencode.json`** — shell-safety permissions; `moraine sync` writes the `mcp.servers` block.
 - **The loop** — sessions feed reviews, reviews feed new skills, skills improve future sessions. It gets more useful the longer you use it.
 
 ### Ejecting

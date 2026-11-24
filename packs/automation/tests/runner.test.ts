@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { isValid, matches } from "../../.opencode/cron/scheduler";
-import { loadJobs, buildPrompt } from "../../.opencode/cron/job";
-import { loadConfig } from "../../.opencode/cron/config";
-import type { Job } from "../../.opencode/cron/types";
+import { isValid, matches } from "../runner/scheduler";
+import { loadJobs, buildPrompt } from "../runner/job";
+import { loadConfig } from "../runner/config";
+import type { Job } from "../runner/types";
 import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

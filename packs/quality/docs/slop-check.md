@@ -46,12 +46,12 @@ The matching write-time rules live in `AGENTS.md` (the anti-slop checklist) and 
 
 ## Weekly sweep
 
-`scheduled/slop-sweep.yaml` runs the full `--all --write` sweep every Monday and appends a flag-only report to the daily note. Each snapshot lands in its own date directory, and deltas compare against the latest earlier snapshot — normally the previous Monday, even across month boundaries. A repo is flagged when its weekly Δ exceeds human velocity (erosion +0.0053, verbosity +0.0022 per checkpoint, from the paper) — meaning it's slopping faster than a human would, which points at agent activity.
+`packs/quality/jobs/slop-sweep.yaml` runs the full `--all --write` sweep every Monday and appends a flag-only report to the daily note. Each snapshot lands in its own date directory, and deltas compare against the latest earlier snapshot — normally the previous Monday, even across month boundaries. A repo is flagged when its weekly Δ exceeds human velocity (erosion +0.0053, verbosity +0.0022 per checkpoint, from the paper) — meaning it's slopping faster than a human would, which points at agent activity.
 
-Install with the other cron jobs:
+Install with the other cron jobs (the `automation` pack must also be enabled):
 
 ```bash
-bun run .opencode/cron/runner.ts --install-defaults
+bun run packs/automation/runner/runner.ts --install-defaults
 ```
 
 ## Detector health

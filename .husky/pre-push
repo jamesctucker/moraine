@@ -31,7 +31,7 @@ fi
 echo ""
 echo "[husky] pytest..."
 if "$PYTHON" -m pytest --version >/dev/null 2>&1; then
-  "$PYTHON" -m pytest tests/ --tb=short -q
+  "$PYTHON" -m pytest tests/ packs/ --tb=short -q
   if [ $? -ne 0 ]; then
     echo "[husky] ❌ pytest failed"
     FAILED=1
@@ -43,15 +43,15 @@ fi
 
 # ── Python lint ──────────────────────────────────────────────
 echo ""
-echo "[husky] ruff check (tests/)..."
+echo "[husky] ruff check (tests/ scripts/ packs/)..."
 if command -v ruff >/dev/null 2>&1; then
-  ruff check tests/
+  ruff check tests/ scripts/ packs/
   if [ $? -ne 0 ]; then
     echo "[husky] ❌ ruff check failed"
     FAILED=1
   fi
 elif "$PYTHON" -m ruff --version >/dev/null 2>&1; then
-  "$PYTHON" -m ruff check tests/
+  "$PYTHON" -m ruff check tests/ scripts/ packs/
   if [ $? -ne 0 ]; then
     echo "[husky] ❌ ruff check failed"
     FAILED=1
@@ -62,6 +62,10 @@ else
 fi
 
 # ── TypeScript tests (vitest via bun) ────────────────────────
+#
+# Contributor-only: the automation pack's tests need bun and the root
+# node_modules (bun install). Core users skip this hook entirely or set
+# SKIP_HOOKS=1 — see CONTRIBUTING.md.
 echo ""
 echo "[husky] bun run test (vitest)..."
 if command -v bun >/dev/null 2>&1; then

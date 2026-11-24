@@ -120,7 +120,8 @@ def _pack_scripts() -> dict[str, str]:
     """File basename -> owning pack, outside skills/ and tests/.
 
     Directories are not collected: `scripts`, `jobs`, `docs`, and `rules`
-    are common words that name core folders too.
+    are common words that name core folders too. Installed dependencies
+    (`node_modules` under the automation runner) are not pack scripts.
     """
     found: dict[str, str] = {}
     for pack in sorted(PACKS_DIR.iterdir()):
@@ -131,6 +132,8 @@ def _pack_scripts() -> dict[str, str]:
                 continue
             relative = path.relative_to(pack)
             if relative.parts[0] in ("skills", "tests"):
+                continue
+            if "node_modules" in relative.parts:
                 continue
             found.setdefault(path.name, pack.name)
     return found

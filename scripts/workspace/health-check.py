@@ -4,11 +4,10 @@
 Validates:
   1. git installed and repo is clean-ish
   2. python3 available with required packages
-  3. node available with correct version
-  4. MCP servers in opencode.json — 'mcp.servers' shape validated; local
+  3. MCP servers in opencode.json — 'mcp.servers' shape validated; local
      commands resolved on PATH. Servers are never started and remote URLs
      are never probed, so this is not a reachability or handshake check.
-  5. sync drift — the sync plan runs in dry-run mode and any difference is
+  4. sync drift — the sync plan runs in dry-run mode and any difference is
      flagged with the command that fixes it; manifest or sync problems are
      errors. Runs in --quick mode too.
 
@@ -88,30 +87,6 @@ def check_python() -> dict:
         if rc != 0:
             result["status"] = "warn"
             result["details"].setdefault("missing_packages", []).append(pkg)
-
-    return result
-
-
-def check_node() -> dict:
-    """Check node is available and at expected version."""
-    result = {"tool": "node", "status": "ok", "details": {}}
-
-    rc, stdout, stderr = run(["node", "--version"])
-    if rc != 0:
-        result["status"] = "error"
-        result["details"]["error"] = stderr
-        return result
-    result["details"]["version"] = stdout
-
-    # Check major version >= 18
-    ver = stdout.lstrip("v")
-    try:
-        major = int(ver.split(".")[0])
-        if major < 18:
-            result["status"] = "warn"
-            result["details"]["warning"] = f"Node {major} < 18; consider upgrading"
-    except (ValueError, IndexError):
-        pass
 
     return result
 
@@ -249,7 +224,7 @@ def main() -> int:
 
     # Core tools and sync drift (sync runs in quick mode too: it is cheap
     # and the manifests gate everything else)
-    for check_fn, label in [(check_git, "git"), (check_python, "python"), (check_node, "node"), (check_sync, "sync")]:
+    for check_fn, label in [(check_git, "git"), (check_python, "python"), (check_sync, "sync")]:
         result = check_fn()
         checks.append(result)
         icon = {"ok": "OK", "warn": "WARN", "error": "FAIL"}.get(result["status"], "?")

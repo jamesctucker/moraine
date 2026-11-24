@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { createLogger } from "../../.opencode/cron/logger";
+import { createLogger } from "../runner/logger";
 import { existsSync, readFileSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RunResult } from "../../.opencode/cron/types";
+import type { RunResult } from "../runner/types";
 
 describe("logger.ts", () => {
   const logDir = join(tmpdir(), `cron-test-logs-${Date.now()}`);

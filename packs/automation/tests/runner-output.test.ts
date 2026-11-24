@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CronConfig, Job } from "../../.opencode/cron/types";
+import type { CronConfig, Job } from "../runner/types";
 
 const mocks = vi.hoisted(() => ({
   routeOutput: vi.fn(),
@@ -11,22 +11,22 @@ const mocks = vi.hoisted(() => ({
   sendJobEmail: vi.fn(),
 }));
 
-vi.mock("../../.opencode/cron/output", () => ({ routeOutput: mocks.routeOutput }));
-vi.mock("../../.opencode/cron/spawn", () => ({ runWithTimeout: mocks.runWithTimeout }));
-vi.mock("../../.opencode/cron/lock", async (importOriginal) => ({
+vi.mock("../runner/output", () => ({ routeOutput: mocks.routeOutput }));
+vi.mock("../runner/spawn", () => ({ runWithTimeout: mocks.runWithTimeout }));
+vi.mock("../runner/lock", async (importOriginal) => ({
   ...(await importOriginal()),
   acquireLock: mocks.acquireLock,
   releaseLock: mocks.releaseLock,
 }));
-vi.mock("../../.opencode/cron/logger", () => ({
+vi.mock("../runner/logger", () => ({
   createLogger: () => ({
     writeLogFile: mocks.writeLogFile,
     writeToConsole: mocks.writeToConsole,
   }),
 }));
-vi.mock("../../.opencode/cron/email", () => ({ sendJobEmail: mocks.sendJobEmail }));
+vi.mock("../runner/email", () => ({ sendJobEmail: mocks.sendJobEmail }));
 
-import { runJob } from "../../.opencode/cron/runner";
+import { runJob } from "../runner/runner";
 
 const job: Job = {
   name: "output-job",

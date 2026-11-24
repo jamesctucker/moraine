@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { acquireLock, releaseLock } from "../../.opencode/cron/lock";
+import { acquireLock, releaseLock } from "../runner/lock";
 import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

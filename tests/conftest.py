@@ -17,11 +17,6 @@ def scripts_dir():
     return Path(__file__).resolve().parent.parent / "scripts" / "workspace"
 
 
-@pytest.fixture(scope="session")
-def scheduled_dir():
-    return Path(__file__).resolve().parent.parent / "scheduled"
-
-
 @pytest.fixture
 def temp_dir():
     with tempfile.TemporaryDirectory() as d:

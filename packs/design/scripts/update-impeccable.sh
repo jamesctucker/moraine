@@ -10,11 +10,11 @@
 #   5. Patches pin.mjs to discover impeccable inside category subdirectories
 #
 # Usage:
-#   .opencode/scripts/update-impeccable.sh [--dry-run]
+#   packs/design/scripts/update-impeccable.sh [--dry-run]
 #
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SKILL_DIR="$REPO_ROOT/packs/design/skills/impeccable"
 WORKSPACE_FRAGMENT="$SKILL_DIR/.workspace-integration.md"
 UPSTREAM_REPO="https://github.com/pbakaus/impeccable.git"

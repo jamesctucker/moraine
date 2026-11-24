@@ -50,12 +50,6 @@ class TestCheckPython:
         assert "version" in result["details"]
 
 
-class TestCheckNode:
-    def test_node_found(self, hc):
-        result = hc.check_node()
-        assert result["tool"] == "node"
-
-
 class TestCheckMcpServers:
     def test_no_config(self, hc, tmp_path):
         hc.OPECODE_CONFIG = tmp_path / "nonexistent.json"
@@ -70,16 +64,26 @@ class TestCheckMcpServers:
         results = hc.check_mcp_servers()
         assert results[0]["status"] == "error"
 
-    def test_real_config_inspects_actual_servers(self, hc):
-        """The repo's real opencode.json: iterate mcp.servers, not mcp itself."""
+    def test_iterates_every_server_in_the_block(self, hc, tmp_path):
+        """A real-shaped config: every mcp.servers entry is inspected, not mcp itself."""
+        hc.OPECODE_CONFIG = write_config(
+            tmp_path,
+            {
+                "mcp": {
+                    "servers": {
+                        "local-one": {"type": "local", "command": ["/bin/echo", "hi"]},
+                        "remote-one": {"type": "remote", "url": "https://example.com/mcp"},
+                    }
+                }
+            },
+        )
         results = hc.check_mcp_servers()
-        tools = {r["tool"] for r in results}
-        assert tools == {"mcp/semble", "mcp/headroom"}
-        # Shape errors on the real config are never OK; a missing binary on
-        # PATH is environment-dependent and only ever a warn.
+        # Shape errors are never OK; a missing binary on PATH is
+        # environment-dependent and only ever a warn.
+        assert {r["tool"] for r in results} == {"mcp/local-one", "mcp/remote-one"}
         assert all(r["status"] in ("ok", "warn") for r in results)
         for r in results:
-            assert r["details"].get("command"), f"{r['tool']} lost its command"
+            assert r["details"].get("command") or r["details"].get("url")
 
     def test_flat_mcp_without_servers_is_error(self, hc, tmp_path):
         hc.OPECODE_CONFIG = write_config(

@@ -78,7 +78,7 @@ prompt: >
 
   2. Render the PDF (md-to-pdf outputs the .pdf next to the input .md):
 
-     bun run --cwd .opencode render:pdf "$PWD/wiki/2 Areas/Daily Notes/_recaps/YYYY-MM-DD-weekly-recap.md"
+     bun run --cwd packs/automation/runner render:pdf "$PWD/wiki/2 Areas/Daily Notes/_recaps/YYYY-MM-DD-weekly-recap.md"
 
   3. If the PDF fails, note the failure on the Recap PDF line but continue.
 
