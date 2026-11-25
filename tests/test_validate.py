@@ -27,6 +27,32 @@ class TestValidateSkills:
         val.validate_skills(ctx)
         assert len(ctx.warnings) >= 0
 
+    def test_a_nested_skill_md_is_an_error(self, val, tmp_path):
+        # Codex registers a nested SKILL.md as its own skill, so the flat
+        # layout is load-bearing.
+        outer = tmp_path / "packs" / "demo" / "skills" / "outer"
+        (outer / "inner").mkdir(parents=True)
+        (outer / "SKILL.md").write_text("---\nname: outer\ndescription: x\n---\n")
+        (outer / "inner" / "SKILL.md").write_text("---\nname: inner\ndescription: x\n---\n")
+
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+
+        assert any("sits below outer" in e and "second skill" in e for e in ctx.errors)
+
+    def test_a_reference_copy_below_a_skill_is_fine(self, val, tmp_path):
+        outer = tmp_path / ".agents" / "skills" / "outer"
+        (outer / "reference").mkdir(parents=True)
+        (outer / "SKILL.md").write_text("---\nname: outer\ndescription: x\n---\n")
+        (outer / "reference" / "SKILL.example.md").write_text("not a skill\n")
+
+        ctx = val.ValidationContext()
+        val.WORKSPACE = tmp_path
+        val.validate_skills(ctx)
+
+        assert not any("sits below" in e for e in ctx.errors)
+
     def test_invalid_skill_dir_name(self, val, tmp_path):
         skill_dir = tmp_path / ".agents" / "skills" / "Bad_Name"
         skill_dir.mkdir(parents=True)

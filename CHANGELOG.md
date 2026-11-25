@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Manifest schema checks in `validate.py`** — `moraine.yaml` and every `packs/<name>/pack.yaml` are validated against the strict schema (unknown packs, requires cycles, harness fit, MCP name collisions); `--manifests` runs just that check.
 - **Sync drift check in `health-check.py`** — runs the sync plan in dry-run mode, warns with the exact fix command when changes are pending, and errors on manifest problems. Runs in `--quick` mode too.
 - **A `core-only` CI job** — git + Python only, no bun or Node on the runner: `setup --yes`, sync with no packs, validate, health-check, core pytest, and the core eval. The full job enables every pack and additionally runs vitest, the Bun timeout tests, the runner typecheck, and the npm pin check.
+- **Harness support for Claude Code and Codex.** `CLAUDE.md` imports `AGENTS.md`; sync links `.claude/skills → ../.agents/skills` and writes each listed harness's MCP config — `.mcp.json` for Claude Code, `.codex/config.toml` for Codex — from the same merged server set as OpenCode's. Codex loads its config only for projects marked trusted. `.claude/settings.json` mirrors the `opencode.json` shell deny/ask patterns as `Bash(...)` rules, and a parity test fails on drift. The generated files (`.claude/skills`, `.mcp.json`, `.codex/`) are gitignored; unlisting a harness leaves them on disk — delete by hand.
+- **A nested-`SKILL.md` validator rule** — a `SKILL.md` below another skill's directory is now an error, because Codex would register it as a second skill.
 
 ### Changed
 

@@ -4,7 +4,9 @@ Four pieces of state are derived from the manifests and nothing else:
 
 1. one symlink per enabled pack skill, in .agents/skills/
 2. the `# moraine:managed` block in .git/info/exclude, listing those symlinks
-3. the `mcp.servers` block of each harness's MCP config
+3. each listed harness's wiring: the `mcp.servers` block of its MCP config
+   (.opencode/opencode.json, .mcp.json for Claude Code, .codex/config.toml
+   for Codex) and the .claude/skills link for Claude Code
 4. ~/.moraine/cron/enabled.json, the job files the cron runner installs
 
 Sync never installs anything and never touches a real skill folder. Running
@@ -35,6 +37,9 @@ from manifest import (
 
 SKILLS_DIR = ".agents/skills"
 OPENCODE_CONFIG = ".opencode/opencode.json"
+CLAUDE_MCP = ".mcp.json"
+CLAUDE_SKILLS = ".claude/skills"
+CODEX_CONFIG = ".codex/config.toml"
 EXCLUDE_PATH = ".git/info/exclude"
 EXCLUDE_BEGIN = "# moraine:managed"
 EXCLUDE_END = "# moraine:managed end"
@@ -85,6 +90,7 @@ def plan(workspace: Path = WORKSPACE, cron_state: Path | None = None) -> SyncPla
         changes.append(exclude)
     servers = merged_mcp(manifest, enabled)[0]
     changes += mcp_change(workspace, manifest, servers)
+    changes += claude_link_change(workspace, manifest)
     job_edits, skipped = job_change(workspace, enabled, cron_state or default_cron_state())
     notes = prereq_notes(enabled)
     if servers and not manifest.harnesses:
@@ -228,18 +234,85 @@ def _replace_block(text: str, block: str) -> str:
 
 
 def mcp_change(workspace: Path, manifest: Manifest, servers: dict[str, dict]) -> list[Change]:
-    """The OpenCode config edit, when that harness is listed and its block is stale."""
-    if "opencode" not in manifest.harnesses:
-        return []
-    path = workspace / OPENCODE_CONFIG
+    """Each listed harness's MCP config, when its block is stale."""
+    changes: list[Change] = []
+    if "opencode" in manifest.harnesses:
+        path = workspace / OPENCODE_CONFIG
+        if path.is_file() or servers:
+            current = path.read_text() if path.is_file() else "{\n}\n"
+            updated = splice_mcp_servers(current, servers)
+            if updated != current:
+                names = ", ".join(sorted(servers)) or "none"
+                changes.append(Change("write", path, updated, f"write mcp.servers in {OPENCODE_CONFIG} ({names})"))
+    if "claude" in manifest.harnesses:
+        changes += _claude_mcp_change(workspace, servers)
+    if "codex" in manifest.harnesses:
+        changes += _codex_mcp_change(workspace, servers)
+    return changes
+
+
+def _claude_mcp_change(workspace: Path, servers: dict[str, dict]) -> list[Change]:
+    """Claude Code's .mcp.json, rewritten wholesale — the file holds nothing else."""
+    path = workspace / CLAUDE_MCP
     if not path.is_file() and not servers:
-        return []  # nothing to write; do not create a config just to hold an empty block
-    current = path.read_text() if path.is_file() else "{\n}\n"
-    updated = splice_mcp_servers(current, servers)
-    if updated == current:
         return []
-    names = ", ".join(sorted(servers)) or "none"
-    return [Change("write", path, updated, f"write mcp.servers in {OPENCODE_CONFIG} ({names})")]
+    text = json.dumps({"mcpServers": {name: _claude_server(s) for name, s in sorted(servers.items())}}, indent=2) + "\n"
+    if path.is_file() and path.read_text() == text:
+        return []
+    return [Change("write", path, text, f"write {CLAUDE_MCP} ({len(servers)} server(s))")]
+
+
+def _claude_server(server: dict) -> dict:
+    if server["type"] == "local":
+        command = server["command"]
+        return {"command": command[0], "args": command[1:]}
+    return {"type": "http", "url": server["url"]}
+
+
+def _codex_mcp_change(workspace: Path, servers: dict[str, dict]) -> list[Change]:
+    """Codex's MCP config. Loads only for projects marked trusted in Codex."""
+    path = workspace / CODEX_CONFIG
+    if not path.is_file() and not servers:
+        return []
+    text = _codex_config(servers)
+    if path.is_file() and path.read_text() == text:
+        return []
+    return [Change("write", path, text, f"write {CODEX_CONFIG} ({len(servers)} server(s))")]
+
+
+def _codex_config(servers: dict[str, dict]) -> str:
+    """TOML for Codex's MCP servers. The manifest schema keeps the values
+    plain, so json.dumps renders valid TOML strings and arrays."""
+    lines = ["# Written by moraine sync. Codex loads these only for trusted projects.", ""]
+    for name, server in sorted(servers.items()):
+        lines.append(f"[mcp_servers.{name if re.match(r'^[A-Za-z0-9_-]+$', name) else json.dumps(name)}]")
+        if server["type"] == "local":
+            command = server["command"]
+            lines.append(f"command = {json.dumps(command[0])}")
+            lines.append(f"args = {json.dumps(command[1:])}")
+        else:
+            lines.append(f"url = {json.dumps(server['url'])}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def claude_link_change(workspace: Path, manifest: Manifest) -> list[Change]:
+    """Claude Code reads skills from .claude/skills, a link to the shared folder.
+
+    A real directory or a link pointing elsewhere is the user's own; sync
+    never touches it.
+    """
+    path = workspace / CLAUDE_SKILLS
+    wanted = f"../{SKILLS_DIR}"
+    if "claude" in manifest.harnesses:
+        if path.is_symlink() and os.readlink(path) == wanted:
+            return []
+        if path.exists() and not path.is_symlink():
+            return []
+        return [Change("link", path, wanted, f"link {CLAUDE_SKILLS} to {SKILLS_DIR}")]
+    if path.is_symlink() and os.readlink(path) == wanted:
+        return [Change("remove", path, detail=f"remove {CLAUDE_SKILLS} (claude not listed)")]
+    return []
 
 
 def splice_mcp_servers(raw: str, servers: dict[str, dict]) -> str:

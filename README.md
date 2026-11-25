@@ -104,6 +104,20 @@ winget install Obsidian.Obsidian
 
 Then: open Obsidian → "Open folder as vault" → select `wiki/`.
 
+## Harnesses
+
+Moraine is harness-neutral: one `AGENTS.md`, one skills folder, one manifest. List the harnesses you run in `moraine.yaml` and `moraine sync` wires each one.
+
+| Concern | OpenCode | Claude Code | Codex |
+|---------|----------|-------------|-------|
+| Instructions | `AGENTS.md` | `CLAUDE.md` → `@AGENTS.md` | `AGENTS.md` |
+| Skills | `.agents/skills` | `.claude/skills` → `../.agents/skills` (sync links it) | `.agents/skills` (native) |
+| MCP | `.opencode/opencode.json` `mcp.servers` | `.mcp.json` | `.codex/config.toml` |
+| Permissions | `opencode.json` deny/ask | `.claude/settings.json` mirrors them | sandbox and approval modes; no pattern list |
+| Cron (`automation` pack) | yes | no | no |
+
+Three things to know: Codex loads `.codex/config.toml` servers only for projects you have marked trusted; headless `claude -p` loads `.mcp.json` servers without asking; and the `automation` pack needs OpenCode. Permission patterns are not a sandbox — see the trust model below.
+
 ## Your first 20 minutes
 
 Onboarding has one test: **in a second session, the agent recalls what you did in the first without being told.**
@@ -144,7 +158,7 @@ For code across repos, ask the agent — the Semble MCP server searches the path
 
 ## Automation and integrations
 
-Moraine is harness-neutral: OpenCode, Claude Code, and Codex read the same `AGENTS.md` and skills. One exception — the cron runner below starts every job with `opencode run`, so the `automation` pack needs OpenCode.
+Moraine is harness-neutral: OpenCode, Claude Code, and Codex read the same `AGENTS.md` and skills (see the [Harnesses](#harnesses) table). One exception — the cron runner below starts every job with `opencode run`, so the `automation` pack needs OpenCode.
 
 ### Scheduled jobs
 
