@@ -188,6 +188,101 @@ def opencode_config(workspace, text):
 RENDERED_DEMO = '{\n      "demo": {\n        "type": "local",\n        "command": [\n          "uvx",\n          "demo"\n        ]\n      }\n    }'
 
 
+class TestHarnessConfigs:
+    """MCP output for Claude (.mcp.json) and Codex (.codex/config.toml)."""
+
+    BOTH_SERVERS = (
+        "mcp:\n"
+        "  demo:\n    type: local\n    command: [uvx, demo]\n"
+        "  linear:\n    type: remote\n    url: https://mcp.linear.app/mcp\n"
+    )
+
+    def _workspace(self, tmp_path, harness):
+        manifest = f"version: 1\nharnesses: [{harness}]\npacks: [demo]\n" + self.BOTH_SERVERS
+        return build_workspace(tmp_path, manifest, packs={"demo": {"skills": ["alpha"]}})
+
+    def test_claude_gets_an_mcp_json_with_command_and_args(self, tmp_path):
+        workspace = self._workspace(tmp_path, "claude")
+
+        run_sync(workspace)
+
+        written = json.loads((workspace / ".mcp.json").read_text())["mcpServers"]
+        assert written == {
+            "demo": {"command": "uvx", "args": ["demo"]},
+            "linear": {"type": "http", "url": "https://mcp.linear.app/mcp"},
+        }
+
+    def test_codex_gets_a_config_toml(self, tmp_path):
+        workspace = self._workspace(tmp_path, "codex")
+
+        run_sync(workspace)
+
+        written = (workspace / ".codex" / "config.toml").read_text()
+        assert '[mcp_servers.demo]' in written
+        assert 'command = "uvx"' in written
+        assert 'args = ["demo"]' in written
+        assert '[mcp_servers.linear]' in written
+        assert 'url = "https://mcp.linear.app/mcp"' in written
+
+    def test_no_config_is_written_for_an_unlisted_harness(self, tmp_path):
+        workspace = self._workspace(tmp_path, "opencode")
+
+        run_sync(workspace)
+
+        assert not (workspace / ".mcp.json").exists()
+        assert not (workspace / ".codex").exists()
+
+    def test_an_empty_server_set_writes_empty_configs(self, tmp_path):
+        workspace = build_workspace(tmp_path, "version: 1\nharnesses: [claude, codex]\npacks: [demo]\n", packs={"demo": {"skills": ["alpha"]}})
+        (workspace / ".mcp.json").write_text('{"mcpServers": {"stale": {}}}\n')
+        (workspace / ".codex" / "config.toml").parent.mkdir(exist_ok=True)
+        (workspace / ".codex" / "config.toml").write_text("[mcp_servers.stale]\ncommand = \"x\"\n")
+
+        run_sync(workspace)
+
+        assert json.loads((workspace / ".mcp.json").read_text())["mcpServers"] == {}
+        assert "stale" not in (workspace / ".codex" / "config.toml").read_text()
+
+    def test_a_server_name_with_spaces_is_quoted_in_toml(self, tmp_path):
+        manifest = "version: 1\nharnesses: [codex]\npacks: []\nmcp:\n  my server:\n    type: local\n    command: [uvx]\n"
+        workspace = build_workspace(tmp_path, manifest)
+
+        run_sync(workspace)
+
+        assert '[mcp_servers."my server"]' in (workspace / ".codex" / "config.toml").read_text()
+
+
+class TestClaudeSkillsLink:
+    def test_the_link_is_created_for_claude(self, tmp_path):
+        workspace = build_workspace(tmp_path, "version: 1\nharnesses: [claude]\npacks: []\n")
+
+        run_sync(workspace)
+
+        link = workspace / ".claude" / "skills"
+        assert os.readlink(link) == "../.agents/skills"
+
+    def test_the_link_is_removed_when_claude_is_unlisted(self, tmp_path):
+        workspace = build_workspace(tmp_path, "version: 1\nharnesses: [claude]\npacks: []\n")
+        run_sync(workspace)
+
+        (workspace / "moraine.yaml").write_text("version: 1\nharnesses: [opencode]\npacks: []\n")
+        run_sync(workspace)
+
+        assert not (workspace / ".claude" / "skills").exists()
+
+    def test_a_real_directory_is_left_alone(self, tmp_path):
+        workspace = build_workspace(tmp_path, "version: 1\nharnesses: [claude]\npacks: []\n")
+        skills = workspace / ".claude" / "skills"
+        skills.mkdir(parents=True)
+        (skills / "mine").mkdir()
+
+        result = run_sync(workspace)
+
+        assert (skills / "mine").is_dir()
+        assert not skills.is_symlink()
+        assert not any(".claude" in change.detail for change in result.changes)
+
+
 class TestMcpServers:
     def test_only_the_servers_object_changes(self, tmp_path):
         workspace = build_workspace(tmp_path, listing("demo"), packs={"demo": {"yaml": PACK_YAML.format(name="demo") + DEMO_MCP}})

@@ -4,12 +4,13 @@
 Checks:
   1. All SKILL.md files have valid YAML frontmatter with required fields (name, description)
   2. Skill directory names match frontmatter `name` and follow kebab-case
-  3. memory/index.md references are not orphaned
-  4. Artifact filenames follow the numbered <N>-title.md convention
-  5. No broken wikilinks in the Obsidian vault
-  6. Project top notes have required frontmatter, are indexed in projects.md,
+  3. No SKILL.md sits below another skill's directory (Codex would register it twice)
+  4. memory/index.md references are not orphaned
+  5. Artifact filenames follow the numbered <N>-title.md convention
+  6. No broken wikilinks in the Obsidian vault
+  7. Project top notes have required frontmatter, are indexed in projects.md,
      are linked from another note, and have a reviewed date under 60 days
-  7. moraine.yaml and every packs/<name>/pack.yaml match the manifest schema
+  8. moraine.yaml and every packs/<name>/pack.yaml match the manifest schema
 
 Usage:
   python scripts/workspace/validate.py          # validate entire workspace
@@ -99,6 +100,16 @@ def validate_skills(ctx: ValidationContext) -> None:
     if not skills:
         ctx.warn(f"No skills found under {WORKSPACE / '.agents' / 'skills'}")
         return
+
+    # The flat layout is load-bearing: Codex registers a nested SKILL.md as
+    # its own skill, so one must never sit below another skill's directory.
+    for skill_md in skills:
+        for nested in skill_md.parent.rglob("SKILL.md"):
+            if nested != skill_md:
+                ctx.error(
+                    f"{nested.relative_to(WORKSPACE)} sits below {skill_md.parent.name}/; "
+                    "Codex would register it as a second skill"
+                )
 
     for skill_md in skills:
         skill_dir = skill_md.parent

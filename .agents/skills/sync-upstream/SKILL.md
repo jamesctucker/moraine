@@ -101,6 +101,7 @@ These files are pure upstream code. The user should not have personalized them. 
 - `packs/<pack>/**` for every pack except `local`: skills, scripts, jobs, `pack.yaml`
 - `.opencode/plugins/**` (plugin scaffolding)
 - `.opencode/opencode.json` outside `mcp.servers` (shell-safety permissions)
+- `CLAUDE.md`, `.claude/settings.json` (the Claude import and permission mirror; the rest of `.claude/` is gitignored sync state)
 - `.opencode-version`
 - `tests/**`
 - `.husky/**` (git hooks) — treat as SAFE but **always** check for user-local changes; users sometimes customize `pre-push`
